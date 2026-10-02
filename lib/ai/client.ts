@@ -1,27 +1,29 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 
 // Server-side only. Never import this file from a client component — the
 // API key must never reach the browser bundle.
-let client: Anthropic | null = null;
+let client: OpenAI | null = null;
 
-export function getClaudeClient(): Anthropic {
+export function getOpenAIClient(): OpenAI {
   if (typeof window !== "undefined") {
     throw new Error(
-      "getClaudeClient() was called in the browser. The Claude API key " +
+      "getOpenAIClient() was called in the browser. The OpenAI API key " +
         "must only be used from app/api routes."
     );
   }
   if (!client) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error(
-        "ANTHROPIC_API_KEY is not set. Copy .env.local.example to " +
+        "OPENAI_API_KEY is not set. Copy .env.local.example to " +
           ".env.local and add your key."
       );
     }
-    client = new Anthropic({ apiKey });
+    client = new OpenAI({ apiKey });
   }
   return client;
 }
 
-export const CLAUDE_MODEL = "claude-sonnet-4-5";
+// Cheap and fast — fine for short marketing copy. Bump to "gpt-4o" later
+// if quality needs it.
+export const OPENAI_MODEL = "gpt-4o-mini";
