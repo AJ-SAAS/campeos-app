@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useAuth } from "@/lib/firebase/AuthProvider";
 
 // Matches the dark left sidebar in Start.dc.html / Main.dc.html.
 // "active" picks which nav item is highlighted.
 export function Sidebar({ active }: { active: "dashboard" | "campaigns" }) {
+  const { user, loading, signIn, signOut } = useAuth();
+
   return (
     <aside className="w-60 shrink-0 bg-slate text-ivory flex flex-col p-4 gap-7">
       <div className="flex items-center gap-2.5 px-1">
@@ -34,10 +37,36 @@ export function Sidebar({ active }: { active: "dashboard" | "campaigns" }) {
       <div className="flex-grow" />
 
       <div className="flex items-center gap-2.5 px-2 py-2.5 border-t border-[#33312B]">
-        <div className="w-9 h-9 rounded-full bg-[#2E2C27] flex items-center justify-center">
-          <PersonIcon />
-        </div>
-        <div className="text-sm font-medium">Ajay</div>
+        {loading ? (
+          <div className="text-sm text-[#CFCABB]">Loading...</div>
+        ) : user ? (
+          <>
+            <div className="w-9 h-9 rounded-full bg-[#2E2C27] flex items-center justify-center overflow-hidden shrink-0">
+              {user.photoURL ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <PersonIcon />
+              )}
+            </div>
+            <div className="flex-grow min-w-0 text-sm font-medium truncate">
+              {user.displayName ?? user.email}
+            </div>
+            <button
+              onClick={() => signOut()}
+              className="text-xs text-[#CFCABB] font-medium shrink-0"
+            >
+              Sign out
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => signIn()}
+            className="w-full flex items-center justify-center gap-2 min-h-11 rounded-[10px] bg-[#2E2C27] text-sm font-semibold"
+          >
+            Sign in with Google
+          </button>
+        )}
       </div>
     </aside>
   );

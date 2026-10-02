@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/lib/firebase/AuthProvider";
 
 export const metadata: Metadata = {
   title: "Campeos",
@@ -19,7 +20,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body">{children}</body>
+      <body className="font-body">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
