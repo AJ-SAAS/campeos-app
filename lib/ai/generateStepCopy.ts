@@ -53,7 +53,11 @@ export async function generateStepCopy(
     );
   }
 
-  return result.data;
+  // The schema is built dynamically from the step's field list, so zod
+  // can only infer a generic index-signature type for it here. The
+  // actual shape is guaranteed by schemaForFields (source + one key per
+  // field, all strings), so this cast is safe.
+  return result.data as GeneratedStepCopy & { source: string };
 }
 
 /**
@@ -91,7 +95,9 @@ export async function generateStepVariation(
     );
   }
 
-  return result.data;
+  // Same reasoning as generateStepCopy above: the dynamic schema only
+  // infers a generic shape, but schemaForFields guarantees the real one.
+  return result.data as GeneratedStepCopy & { changed: string };
 }
 
 function extractText(response: { content: Array<{ type: string; text?: string }> }): string {
