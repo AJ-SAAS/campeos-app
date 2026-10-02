@@ -1,19 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { IconRail } from "@/components/builder/IconRail";
 import { SetupPanel } from "@/components/builder/SetupPanel";
 import { Timeline, UIStep } from "@/components/builder/Timeline";
 import { StepEditor } from "@/components/builder/StepEditor";
-import { buildTimeline } from "@/lib/engine/buildTimeline";
+import { buildTimeline, ScheduledStep } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext } from "@/lib/ai/prompts";
+import { useAuth } from "@/lib/firebase/AuthProvider";
+import {
+  createCampaign,
+  getCampaignWithSteps,
+  saveStepCopy,
+  CampaignStepDoc,
+} from "@/lib/firebase/campaigns";
 
-// The Campaign Builder — Builder.dc.html, wired to the real engine and
-// the real /api/generate-step route instead of hardcoded mockup copy.
-// Steps start empty ("Not written yet"); "Generate campaign copy" calls
-// Claude once per step, in parallel, and fills them in.
-const EVENT_DATE = new Date("2026-10-15T19:00:00");
+// The Campaign Builder — Builder.dc.html, wired to the real engine, the
+// real /api/generate-step route, and real Firestore persistence.
+// New campaign: /builder — starts from the webinar template, nothing
+// saved until you click "Generate campaign copy."
+// Existing campaign: /builder?id=<campaignId> — loads saved steps and
+// copy instead of starting fresh.
+const DEFAULT_EVENT_DATE = new Date("2026-10-15T19:00:00");
 
 const SAMPLE_WINNING_COPY = [
   "The 3-step reset for busy people",
@@ -27,22 +37,81 @@ const SAMPLE_CALL_THEMES = [
   "Burned by a past program",
 ];
 
-export default function BuilderPage() {
-  const [offer, setOffer] = useState<OfferContext>({
-    name: "Fall Reset Program",
-    price: "$3,000",
-    audience: "People who want a fresh start this fall",
-    whatTheyGet: "A guided 3-step plan and weekly coaching calls",
-    tone: "Friendly",
-  });
+const DEFAULT_OFFER: OfferContext = {
+  name: "Fall Reset Program",
+  price: "$3,000",
+  audience: "People who want a fresh start this fall",
+  whatTheyGet: "A guided 3-step plan and weekly coaching calls",
+  tone: "Friendly",
+};
 
-  const scheduledSteps = useMemo(
-    () => buildTimeline(webinarTemplate, { event: EVENT_DATE }),
-    []
+export default function BuilderPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen flex items-center justify-center bg-ivory text-muted">
+          Loading...
+        </div>
+      }
+    >
+      <BuilderInner />
+    </Suspense>
+  );
+}
+
+function BuilderInner() {
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const existingId = searchParams.get("id");
+
+  const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [offer, setOffer] = useState<OfferContext>(DEFAULT_OFFER);
+  const [eventDate, setEventDate] = useState<Date>(DEFAULT_EVENT_DATE);
+  const [loadedSteps, setLoadedSteps] = useState<CampaignStepDoc[] | null>(null);
+  const [loadingCampaign, setLoadingCampaign] = useState(!!existingId);
+
+  // Load an existing campaign's saved steps and copy when ?id= is present.
+  useEffect(() => {
+    if (!existingId) return;
+    setLoadingCampaign(true);
+    getCampaignWithSteps(existingId)
+      .then((result) => {
+        if (!result) return;
+        setCampaignId(result.campaign.id);
+        setOffer(result.campaign.offer);
+        setEventDate(new Date(result.campaign.eventDate));
+        setLoadedSteps(result.steps);
+      })
+      .finally(() => setLoadingCampaign(false));
+  }, [existingId]);
+
+  // A brand-new campaign's schedule comes from the engine; a loaded one
+  // uses the dates already saved on each step.
+  const freshSteps = useMemo(
+    () => buildTimeline(webinarTemplate, { event: eventDate }),
+    [eventDate]
   );
 
+  const scheduledSteps: ScheduledStep[] = loadedSteps
+    ? loadedSteps.map((s) => ({ ...s, scheduledAt: new Date(s.scheduledAt) }))
+    : freshSteps;
+
   const [copyByStep, setCopyByStep] = useState<Record<string, Record<string, string>>>({});
-  const [selectedId, setSelectedId] = useState(scheduledSteps[0]?.templateStepId ?? "");
+
+  useEffect(() => {
+    if (!loadedSteps) return;
+    const copy: Record<string, Record<string, string>> = {};
+    for (const s of loadedSteps) {
+      if (s.copy) copy[s.templateStepId] = s.copy;
+    }
+    setCopyByStep(copy);
+  }, [loadedSteps]);
+
+  const [selectedId, setSelectedId] = useState("");
+  useEffect(() => {
+    if (!selectedId && scheduledSteps[0]) setSelectedId(scheduledSteps[0].templateStepId);
+  }, [scheduledSteps, selectedId]);
+
   const [generating, setGenerating] = useState(false);
   const [variationPending, setVariationPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +124,10 @@ export default function BuilderPage() {
   const selectedIndex = steps.findIndex((s) => s.templateStepId === selectedId);
 
   async function generateCampaign() {
+    if (!user) {
+      setError("Sign in first — campaigns are saved to your account.");
+      return;
+    }
     setGenerating(true);
     setError(null);
     try {
@@ -85,6 +158,36 @@ export default function BuilderPage() {
         next[r.templateStepId] = r.copy;
       }
       setCopyByStep(next);
+
+      // Save to Firestore: create the campaign the first time, or update
+      // each step's copy if it already exists.
+      if (!campaignId) {
+        const stepDocs: CampaignStepDoc[] = scheduledSteps.map((s) => ({
+          templateStepId: s.templateStepId,
+          channel: s.channel,
+          title: s.title,
+          purpose: s.purpose,
+          angle: s.angle,
+          fields: s.fields,
+          scheduledAt: s.scheduledAt.toISOString(),
+          copy: next[s.templateStepId] ?? null,
+        }));
+        const newId = await createCampaign(
+          user.uid,
+          offer.name || "Untitled campaign",
+          webinarTemplate.id,
+          offer,
+          eventDate,
+          stepDocs
+        );
+        setCampaignId(newId);
+      } else {
+        await Promise.all(
+          Object.entries(next).map(([templateStepId, copy]) =>
+            saveStepCopy(campaignId, templateStepId, copy)
+          )
+        );
+      }
 
       if (data.failed?.length) {
         setError(`${data.failed.length} step(s) failed to generate. Try again.`);
@@ -122,15 +225,25 @@ export default function BuilderPage() {
       if (!res.ok) throw new Error(data.error ?? "Variation failed.");
 
       const { changed, ...rest } = data.result;
-      setCopyByStep((prev) => ({
-        ...prev,
-        [selected.templateStepId]: { ...prev[selected.templateStepId], ...rest },
-      }));
+      const updatedCopy = { ...copyByStep[selected.templateStepId], ...rest };
+      setCopyByStep((prev) => ({ ...prev, [selected.templateStepId]: updatedCopy }));
+
+      if (campaignId) {
+        await saveStepCopy(campaignId, selected.templateStepId, updatedCopy);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setVariationPending(false);
     }
+  }
+
+  if (loadingCampaign) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-ivory text-muted">
+        Loading campaign...
+      </div>
+    );
   }
 
   return (
@@ -143,7 +256,7 @@ export default function BuilderPage() {
             {offer.name || "Untitled campaign"}
           </div>
           <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#ECE8DC] text-muted text-xs font-semibold">
-            Draft
+            {campaignId ? "Saved" : "Draft"}
           </span>
           {error && <span className="text-xs text-[#B42318]">{error}</span>}
           <div className="flex-grow" />
@@ -168,7 +281,7 @@ export default function BuilderPage() {
             steps={steps}
             selectedId={selectedId}
             onSelect={setSelectedId}
-            eventDate={EVENT_DATE}
+            eventDate={eventDate}
           />
           <StepEditor
             step={selected}
