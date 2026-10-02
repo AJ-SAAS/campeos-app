@@ -84,17 +84,19 @@ export async function POST(req: NextRequest) {
         )
       );
 
-      const succeeded = results
-        .filter((r): r is PromiseFulfilledResult<{ templateStepId: string; copy: unknown }> => r.status === "fulfilled")
-        .map((r) => r.value);
+      const succeeded: { templateStepId: string; copy: Awaited<ReturnType<typeof generateStepCopy>> }[] = [];
+      const failed: { templateStepId: string; error: string }[] = [];
 
-      const failed = steps
-        .map((s, i) => ({ templateStepId: s.templateStepId, result: results[i] }))
-        .filter((r) => r.result.status === "rejected")
-        .map((r) => ({
-          templateStepId: r.templateStepId,
-          error: (r.result as PromiseRejectedResult).reason?.message ?? "Unknown error",
-        }));
+      results.forEach((result, i) => {
+        if (result.status === "fulfilled") {
+          succeeded.push(result.value);
+        } else {
+          failed.push({
+            templateStepId: steps[i].templateStepId,
+            error: result.reason instanceof Error ? result.reason.message : "Unknown error",
+          });
+        }
+      });
 
       return NextResponse.json({ results: succeeded, failed });
     }
