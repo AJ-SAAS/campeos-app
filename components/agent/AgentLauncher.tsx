@@ -1,0 +1,56 @@
+"use client";
+
+import { useState } from "react";
+import { AgentPanel } from "./AgentPanel";
+
+// A floating entry point to the agent for pages that aren't the
+// dashboard — right now, the Campaign Builder. Same chat (same thread,
+// same Firestore history) as the dashboard's AgentPanel, just reachable
+// from anywhere via a hovering button instead of living in the page
+// layout. Today the agent can still only build a brand-new webinar
+// promo (see lib/ai/agent.ts) — it doesn't yet have a tool to edit the
+// campaign you're currently looking at. That's a real next step, not
+// this one.
+export function AgentLauncher() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label={open ? "Close the agent" : "Ask the agent"}
+        aria-expanded={open}
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-agent text-white shadow-[0_10px_28px_-4px_rgba(75,58,140,0.45)] flex items-center justify-center transition-transform duration-150 hover:scale-105 active:scale-95"
+      >
+        {open ? <CloseIcon /> : <SparkIcon />}
+      </button>
+
+      <div
+        role="dialog"
+        aria-label="Agent"
+        aria-hidden={!open}
+        className={`fixed bottom-24 right-6 z-40 w-[380px] max-h-[min(70vh,560px)] rounded-2xl shadow-[0_24px_64px_-12px_rgba(28,27,24,0.35)] origin-bottom-right transition-all duration-200 ${
+          open ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+        }`}
+      >
+        <AgentPanel />
+      </div>
+    </>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="#FFFFFF" aria-hidden="true">
+      <path d="M12 2l1.8 6.4L20 10l-6.2 1.6L12 18l-1.8-6.4L4 10l6.2-1.6z" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}

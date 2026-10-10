@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { ScheduledStep } from "@/lib/engine/buildTimeline";
 
 export interface UIStep extends ScheduledStep {
@@ -13,18 +14,51 @@ interface TimelineProps {
   eventDate: Date;
 }
 
-const LANES = [
+type ChannelKey = "ad" | "email" | "sms";
+
+const LANES: { key: ChannelKey; label: string; fg: string; bg: string }[] = [
   { key: "ad", label: "Facebook ads", fg: "#1B6B4F", bg: "#DFF0E8" },
   { key: "email", label: "Email", fg: "#1F5FA6", bg: "#E4EDF8" },
   { key: "sms", label: "Texts", fg: "#6B4FA3", bg: "#ECE7F5" },
-] as const;
+];
+
+const ALL_CHANNELS: ChannelKey[] = ["ad", "email", "sms"];
 
 // The day-by-day, 3-lane campaign timeline — a simplified, React-friendly
 // version of the absolute-grid layout in Builder.dc.html. Each day is its
-// own row; each lane is a column within that row. Faithful to the look
-// (white cards, colored lane badges, orange "live" banner) without
-// replicating the mockup's manual row-height math.
+// own row; each lane is a column within that row. The lane header row
+// doubles as a channel filter: "All" plus one toggle per channel. You can
+// narrow to one or two channels at a time; toggling all three back on
+// collapses back to "All" rather than sitting as three separately-lit
+// pills. The remaining lane(s) animate to fill the freed-up width.
 export function Timeline({ steps, selectedId, onSelect, eventDate }: TimelineProps) {
+  const [selectedChannels, setSelectedChannels] = useState<Set<ChannelKey>>(
+    new Set(ALL_CHANNELS)
+  );
+  const isAllActive = selectedChannels.size === ALL_CHANNELS.length;
+  const visibleLanes = useMemo(
+    () => LANES.filter((lane) => isAllActive || selectedChannels.has(lane.key)),
+    [isAllActive, selectedChannels]
+  );
+
+  function showAll() {
+    setSelectedChannels(new Set(ALL_CHANNELS));
+  }
+
+  function toggleChannel(key: ChannelKey) {
+    setSelectedChannels((prev) => {
+      const next = new Set(prev);
+      if (next.has(key) && !isAllActive) {
+        // Don't let the last visible lane disappear — leave at least one on.
+        if (next.size > 1) next.delete(key);
+      } else {
+        next.add(key);
+      }
+      // Selecting all three by hand is the same as "All" — collapse to it.
+      return next.size === ALL_CHANNELS.length ? new Set(ALL_CHANNELS) : next;
+    });
+  }
+
   const days = groupByCalendarDay(steps, eventDate);
   const needsCount = steps.filter((s) => needsInput(s)).length;
 
@@ -44,59 +78,96 @@ export function Timeline({ steps, selectedId, onSelect, eventDate }: TimelinePro
         )}
       </div>
 
-      <div className="grid grid-cols-[72px_repeat(3,minmax(0,1fr))] items-center">
-        <div />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={showAll}
+          aria-pressed={isAllActive}
+          className={`inline-flex items-center h-9 px-3.5 rounded-full text-sm font-semibold transition-colors duration-200 ${
+            isAllActive ? "bg-slate text-white" : "bg-white border border-[#DDD6C5] text-muted"
+          }`}
+        >
+          All
+        </button>
         {LANES.map((lane) => {
+          const active = !isAllActive && selectedChannels.has(lane.key);
           const count = steps.filter((s) => s.channel === lane.key).length;
           return (
-            <div key={lane.key} className="flex items-center gap-2 px-2">
+            <button
+              key={lane.key}
+              onClick={() => toggleChannel(lane.key)}
+              aria-pressed={active}
+              className="inline-flex items-center gap-2 h-9 pl-2.5 pr-3.5 rounded-full border transition-colors duration-200"
+              style={
+                active
+                  ? { background: lane.bg, borderColor: lane.fg, color: lane.fg }
+                  : { background: "#FFFFFF", borderColor: "#DDD6C5", color: "#5C584D" }
+              }
+            >
               <span
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ background: lane.bg }}
+                className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                style={{ background: active ? "rgba(255,255,255,0.6)" : lane.bg }}
               >
                 <LaneIcon channel={lane.key} color={lane.fg} />
               </span>
               <span className="text-sm font-semibold">{lane.label}</span>
-              <span className="font-mono text-xs text-faint">{count}</span>
-            </div>
+              <span className="font-mono text-xs opacity-70">{count}</span>
+            </button>
           );
         })}
       </div>
 
       <div className="flex flex-col gap-3">
-        {days.map(({ day, label, steps: dayStepsAll, isEventDay }) => (
-          <div key={day} className="flex flex-col gap-2">
-            <div className="flex items-center gap-2.5">
-              <span className="font-display text-[13px] font-bold uppercase tracking-wider">
-                {label}
-              </span>
-              {isEventDay && (
-                <span className="px-2.5 py-0.5 rounded-full bg-clay text-white text-xs font-semibold">
-                  Live {formatTime(eventDate)}
+        {days.map(({ day, label, steps: dayStepsAll, isEventDay }) => {
+          const dayHasVisibleStep = dayStepsAll.some((s) =>
+            visibleLanes.some((lane) => lane.key === s.channel)
+          );
+          if (!dayHasVisibleStep) return null;
+
+          return (
+            <div key={day} className="flex flex-col gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="font-display text-[13px] font-bold uppercase tracking-wider">
+                  {label}
                 </span>
-              )}
-              <span className="flex-grow h-px bg-[rgba(28,27,24,0.14)]" />
+                {isEventDay && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-clay text-white text-xs font-semibold">
+                    Live {formatTime(eventDate)}
+                  </span>
+                )}
+                <span className="flex-grow h-px bg-[rgba(28,27,24,0.14)]" />
+              </div>
+              <div className="flex gap-2 items-start">
+                {LANES.map((lane) => {
+                  const visible = isAllActive || selectedChannels.has(lane.key);
+                  return (
+                    <div
+                      key={lane.key}
+                      className="overflow-hidden transition-[flex-grow,opacity] duration-300 ease-out"
+                      style={{
+                        flex: visible ? "1 1 0%" : "0 0 0%",
+                        opacity: visible ? 1 : 0,
+                      }}
+                    >
+                      <div className="flex flex-col gap-2 min-w-[160px]">
+                        {dayStepsAll
+                          .filter((s) => s.channel === lane.key)
+                          .map((s) => (
+                            <StepCard
+                              key={s.templateStepId}
+                              step={s}
+                              lane={lane}
+                              selected={s.templateStepId === selectedId}
+                              onSelect={() => onSelect(s.templateStepId)}
+                            />
+                          ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div className="grid grid-cols-[72px_repeat(3,minmax(0,1fr))] gap-2">
-              <div />
-              {LANES.map((lane) => (
-                <div key={lane.key} className="flex flex-col gap-2">
-                  {dayStepsAll
-                    .filter((s) => s.channel === lane.key)
-                    .map((s) => (
-                      <StepCard
-                        key={s.templateStepId}
-                        step={s}
-                        lane={lane}
-                        selected={s.templateStepId === selectedId}
-                        onSelect={() => onSelect(s.templateStepId)}
-                      />
-                    ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
