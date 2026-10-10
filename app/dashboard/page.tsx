@@ -3,14 +3,24 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
+import { AgentPanel } from "@/components/agent/AgentPanel";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { Campaign, listCampaigns } from "@/lib/firebase/campaigns";
 
+// "Dashboard: in the works" — from Main.dc.html, redesigned around the
+// agent as the primary surface (the chat-first "Helena-style" flow) with
+// the campaign list and templates as the secondary, "here's what it
+// built" proof layer. The campaign list is real (Firestore for the
+// signed-in user). The "going out next" schedule panel from the mockup
+// is still mock data — that needs the per-step scheduling view built
+// out, a later step. Only the webinar promo template is wired to an
+// actual builder page right now; the other template cards are visual
+// only until more templates exist (see lib/templates/).
 const campaignTypes = [
-  { title: "48 hour flash sale", length: "2 days", description: "Warm up, open the sale, then a last chance push." },
-  { title: "Product launch", length: "2 weeks", description: "Build interest, open the cart, close it with a deadline." },
-  { title: "Webinar promo", length: "1 week", description: "Get signups, remind them, and follow up after." },
-  { title: "Holiday sale", length: "4 days", description: "A seasonal deal with a clear start and end." },
+  { title: "Webinar promo", length: "1 week", description: "Get signups, remind them, and follow up after.", href: "/builder" },
+  { title: "48 hour flash sale", length: "2 days", description: "Warm up, open the sale, then a last chance push.", href: "#" },
+  { title: "Product launch", length: "2 weeks", description: "Build interest, open the cart, close it with a deadline.", href: "#" },
+  { title: "Holiday sale", length: "4 days", description: "A seasonal deal with a clear start and end.", href: "#" },
 ];
 
 export default function Dashboard() {
@@ -45,16 +55,16 @@ export default function Dashboard() {
           </div>
           <Link
             href="/builder"
-            className="inline-flex items-center gap-2 h-12 px-5 rounded-xl bg-clay text-white text-[15px] font-semibold"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-[#DDD6C5] bg-white text-slate text-sm font-semibold"
           >
-            <PlusIcon /> New campaign
+            <PlusIcon small /> New campaign manually
           </Link>
         </div>
 
         {!authLoading && !user && (
           <div className="bg-white border border-[#DDD6C5] rounded-2xl px-6 py-5 flex items-center justify-between gap-4">
             <div className="text-sm text-muted">
-              Sign in to save campaigns to your account and see them here.
+              Sign in to talk to the agent and save campaigns to your account.
             </div>
             <button
               onClick={() => signIn()}
@@ -65,90 +75,72 @@ export default function Dashboard() {
           </div>
         )}
 
-        <section aria-label="Start a campaign" className="flex flex-col gap-3.5">
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-xl font-semibold">Start a campaign</h2>
-            <div className="text-sm text-faint">Pick a type. Add your offer. We build the rest.</div>
-          </div>
-          <div className="grid grid-cols-5 gap-4">
-            {campaignTypes.map((t) => (
-              <Link
-                key={t.title}
-                href="/builder"
-                className="flex flex-col gap-3 p-[18px] bg-white border border-[#DDD6C5] rounded-2xl"
-              >
-                <div className="h-10" aria-hidden="true" />
-                <div className="flex flex-col gap-1">
-                  <div className="font-display text-[17px] font-semibold">{t.title}</div>
-                  <div className="font-mono text-xs text-faint">{t.length}</div>
-                </div>
-                <div className="text-[13px] leading-relaxed text-[#4F4B42]">{t.description}</div>
-              </Link>
-            ))}
-            <Link
-              href="/builder"
-              className="flex flex-col gap-3 p-[18px] border-[1.5px] border-dashed border-faint rounded-2xl"
-            >
-              <div className="h-10 flex items-center">
-                <div className="w-8 h-8 rounded-full border-[1.5px] border-muted flex items-center justify-center">
-                  <PlusIcon small />
-                </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="font-display text-[17px] font-semibold">Start from scratch</div>
-                <div className="font-mono text-xs text-faint">Any length</div>
-              </div>
-              <div className="text-[13px] leading-relaxed text-[#4F4B42]">Pick your own steps and timing.</div>
-            </Link>
-          </div>
-        </section>
+        <div className="flex-grow min-h-0 grid grid-cols-[1.25fr_1fr] gap-6 items-start">
+          <AgentPanel />
 
-        <section aria-label="Campaigns" className="bg-white border border-[#DDD6C5] rounded-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4.5 border-b border-line">
-            <h2 className="font-display text-lg font-semibold">Your campaigns</h2>
-          </div>
-
-          {!user ? (
-            <div className="px-5 py-8 text-sm text-faint text-center">
-              Sign in to see your campaigns.
-            </div>
-          ) : campaigns === null ? (
-            <div className="px-5 py-8 text-sm text-faint text-center">Loading...</div>
-          ) : campaigns.length === 0 ? (
-            <div className="px-5 py-8 text-sm text-faint text-center">
-              No campaigns yet. Start one above.
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-[2.2fr_1fr_1.5fr] gap-4 px-5 py-2.5 font-mono text-[11px] uppercase tracking-wider text-faint bg-[#FAF7F0]">
-                <div>Campaign</div>
-                <div>Webinar date</div>
-                <div>Offer</div>
+          <div className="flex flex-col gap-5">
+            <section aria-label="Start a campaign" className="flex flex-col gap-2.5">
+              <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-faint">
+                <span className="w-1.5 h-1.5 rounded-full bg-agent" />
+                Or start from a template yourself
               </div>
-              {campaigns.map((c, i) => (
+              <div className="flex flex-wrap gap-2">
+                {campaignTypes.map((t) => (
+                  <Link
+                    key={t.title}
+                    href={t.href}
+                    title={t.description}
+                    className="inline-flex items-center h-9 px-3.5 rounded-full border border-[#DDD6C5] bg-white text-sm font-semibold text-slate"
+                  >
+                    {t.title}
+                  </Link>
+                ))}
                 <Link
-                  key={c.id}
-                  href={`/builder?id=${c.id}`}
-                  className={`grid grid-cols-[2.2fr_1fr_1.5fr] gap-4 items-center px-5 py-4 ${
-                    i < campaigns.length - 1 ? "border-b border-[#EFE9DB]" : ""
-                  }`}
+                  href="/builder"
+                  className="inline-flex items-center h-9 px-3.5 rounded-full border-[1.5px] border-dashed border-faint text-sm font-semibold text-slate"
                 >
-                  <div className="flex flex-col gap-0.5">
-                    <div className="text-[15px] font-semibold">{c.title}</div>
-                    <div className="text-[13px] text-faint">{c.offer.price}</div>
-                  </div>
-                  <div className="font-mono text-xs text-[#4F4B42]">
-                    {new Date(c.eventDate).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </div>
-                  <div className="text-[13px] text-muted truncate">{c.offer.audience}</div>
+                  Start from scratch
                 </Link>
-              ))}
-            </>
-          )}
-        </section>
+              </div>
+            </section>
+
+            <section aria-label="Campaigns" className="bg-white border border-[#DDD6C5] rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-line">
+                <h2 className="font-display text-sm font-semibold">Your campaigns</h2>
+              </div>
+
+              {!user ? (
+                <div className="px-4 py-6 text-sm text-faint text-center">
+                  Sign in to see your campaigns.
+                </div>
+              ) : campaigns === null ? (
+                <div className="px-4 py-6 text-sm text-faint text-center">Loading...</div>
+              ) : campaigns.length === 0 ? (
+                <div className="px-4 py-6 text-sm text-faint text-center">
+                  No campaigns yet. Ask the agent, or start one above.
+                </div>
+              ) : (
+                campaigns.map((c, i) => (
+                  <Link
+                    key={c.id}
+                    href={`/builder?id=${c.id}`}
+                    className={`flex items-center gap-3 px-4 py-3 ${
+                      i < campaigns.length - 1 ? "border-b border-[#EFE9DB]" : ""
+                    }`}
+                  >
+                    <div className="flex-grow min-w-0">
+                      <div className="text-[13.5px] font-semibold truncate">{c.title}</div>
+                      <div className="text-xs text-faint truncate">{c.offer.audience}</div>
+                    </div>
+                    <div className="font-mono text-xs text-[#4F4B42] shrink-0">
+                      {new Date(c.eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </div>
+                  </Link>
+                ))
+              )}
+            </section>
+          </div>
+        </div>
       </main>
     </div>
   );

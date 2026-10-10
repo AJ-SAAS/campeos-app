@@ -16,6 +16,8 @@ const config: Config = {
         line: "#E8E2D3",
         muted: "#5C584D",
         faint: "#8F897A",
+        agent: "#4B3A8C",
+        agentWash: "#ECE7F5",
       },
       fontFamily: {
         display: ["Bricolage Grotesque", "sans-serif"],

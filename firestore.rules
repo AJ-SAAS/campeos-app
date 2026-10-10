@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A campaign belongs to exactly one user (the "uid" field on the
+    // document). Only that user can read, create, update, or delete it
+    // or its steps. There's no sharing/collaboration in v1.
+    match /campaigns/{campaignId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+
+      match /steps/{stepId} {
+        allow read, write: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/campaigns/$(campaignId)).data.uid;
+      }
+    }
+
+    // Per-user library: pasted winning copy and sales-call themes. See
+    // lib/firebase/library.ts.
+    match /winners/{winnerId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+    }
+    match /salesCalls/{callId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+    }
+
+    // The agent's chat history, scoped to the user. See
+    // lib/firebase/agentThreads.ts.
+    match /agentMessages/{messageId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+    }
+
+    // Daily AI-generation usage counter, one doc per user, keyed by the
+    // user's own uid as the document id. See lib/firebase/usage.ts.
+    match /usage/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
