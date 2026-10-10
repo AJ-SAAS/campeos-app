@@ -47,8 +47,13 @@ export function Timeline({ steps, selectedId, onSelect, eventDate }: TimelinePro
 
   function toggleChannel(key: ChannelKey) {
     setSelectedChannels((prev) => {
+      // From "All," clicking any single lane narrows straight down to it —
+      // that's the main gesture ("click Facebook ads, see only Facebook ads").
+      if (prev.size === ALL_CHANNELS.length) {
+        return new Set([key]);
+      }
       const next = new Set(prev);
-      if (next.has(key) && !isAllActive) {
+      if (next.has(key)) {
         // Don't let the last visible lane disappear — leave at least one on.
         if (next.size > 1) next.delete(key);
       } else {

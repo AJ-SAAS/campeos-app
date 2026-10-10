@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AgentPanel } from "./AgentPanel";
 
 // A floating entry point to the agent for pages that aren't the
@@ -13,9 +13,33 @@ import { AgentPanel } from "./AgentPanel";
 // this one.
 export function AgentLauncher() {
   const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Three ways to dismiss: the FAB itself (toggle), clicking outside the
+  // panel, and Escape. A popover with only one way to close is a popover
+  // people get stuck in.
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
 
   return (
-    <>
+    <div ref={wrapperRef}>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close the agent" : "Ask the agent"}
@@ -33,9 +57,18 @@ export function AgentLauncher() {
           open ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
         }`}
       >
-        <AgentPanel />
+        <div className="relative h-full">
+          <button
+            onClick={() => setOpen(false)}
+            aria-label="Close the agent"
+            className="absolute top-3.5 right-4 z-10 w-7 h-7 rounded-full bg-[rgba(255,255,255,0.14)] text-ivory flex items-center justify-center hover:bg-[rgba(255,255,255,0.22)]"
+          >
+            <CloseIcon small />
+          </button>
+          <AgentPanel />
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -47,9 +80,10 @@ function SparkIcon() {
   );
 }
 
-function CloseIcon() {
+function CloseIcon({ small }: { small?: boolean }) {
+  const size = small ? 14 : 20;
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M6 6l12 12M18 6L6 18" />
     </svg>
   );
