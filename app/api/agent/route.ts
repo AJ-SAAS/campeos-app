@@ -22,6 +22,18 @@ const profileSchema = z.object({
   tone: z.string(),
 });
 
+const campaignStepSummarySchema = z.object({
+  templateStepId: z.string(),
+  channel: z.string(),
+  title: z.string(),
+  purpose: z.string(),
+  angle: z.string(),
+});
+
+const campaignContextSchema = z.object({
+  steps: z.array(campaignStepSummarySchema),
+});
+
 const requestSchema = z.object({
   history: z.array(messageSchema).max(20),
   message: z.string().min(1, "Say something first."),
@@ -29,6 +41,11 @@ const requestSchema = z.object({
   // previous campaign — see lib/firebase/businessProfile.ts. Optional:
   // a brand-new user has none yet.
   profile: profileSchema.nullable().optional(),
+  // Present only when the agent is being used from inside an already-open
+  // campaign (the builder page's floating launcher) — lets it offer the
+  // edit_step tool. Absent from the dashboard's "build something new"
+  // panel. See lib/ai/agent.ts.
+  campaignContext: campaignContextSchema.nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -51,7 +68,8 @@ export async function POST(req: NextRequest) {
     const result = await runAgentTurn(
       parsed.data.history,
       parsed.data.message,
-      parsed.data.profile ?? null
+      parsed.data.profile ?? null,
+      parsed.data.campaignContext ?? null
     );
     return NextResponse.json(result);
   } catch (err) {

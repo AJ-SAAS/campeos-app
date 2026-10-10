@@ -7,6 +7,7 @@ import { SetupPanel } from "@/components/builder/SetupPanel";
 import { Timeline, UIStep } from "@/components/builder/Timeline";
 import { StepEditor } from "@/components/builder/StepEditor";
 import { AgentLauncher } from "@/components/agent/AgentLauncher";
+import { AgentPanelCampaignStep } from "@/components/agent/AgentPanel";
 import { buildTimeline, ScheduledStep } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext } from "@/lib/ai/prompts";
@@ -17,6 +18,13 @@ import {
   saveStepCopy,
   CampaignStepDoc,
 } from "@/lib/firebase/campaigns";
+import {
+  addWinningCopy,
+  addSalesCall,
+  listWinningCopy,
+  listCallThemes,
+} from "@/lib/firebase/library";
+import { checkAndIncrementUsage } from "@/lib/firebase/usage";
 
 // The Campaign Builder — Builder.dc.html, wired to the real engine, the
 // real /api/generate-step route, and real Firestore persistence.
@@ -25,18 +33,6 @@ import {
 // Existing campaign: /builder?id=<campaignId> — loads saved steps and
 // copy instead of starting fresh.
 const DEFAULT_EVENT_DATE = new Date("2026-10-15T19:00:00");
-
-const SAMPLE_WINNING_COPY = [
-  "The 3-step reset for busy people",
-  "Stop guessing. Start with a plan.",
-  "Free live workshop: Thursday at 7 PM",
-];
-
-const SAMPLE_CALL_THEMES = [
-  "Tired of doing it alone",
-  "Wants a plan to follow",
-  "Burned by a past program",
-];
 
 const DEFAULT_OFFER: OfferContext = {
   name: "Fall Reset Program",
@@ -117,6 +113,41 @@ function BuilderInner() {
   const [variationPending, setVariationPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The user's own library of proven copy and sales-call themes — scoped
+  // to their account, reused across every campaign they build. See
+  // lib/firebase/library.ts.
+  const [winningCopy, setWinningCopy] = useState<string[]>([]);
+  const [callThemes, setCallThemes] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user) {
+      setWinningCopy([]);
+      setCallThemes([]);
+      return;
+    }
+    listWinningCopy(user.uid).then(setWinningCopy);
+    listCallThemes(user.uid).then(setCallThemes);
+  }, [user]);
+
+  async function handleAddWinningCopy(text: string) {
+    if (!user) throw new Error("Sign in first to save winning copy.");
+    await addWinningCopy(user.uid, text);
+    setWinningCopy(await listWinningCopy(user.uid));
+  }
+
+  async function handleAddSalesCall(transcript: string) {
+    if (!user) throw new Error("Sign in first to save a sales call.");
+    const res = await fetch("/api/analyze-call", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? "Couldn't analyze that call.");
+    await addSalesCall(user.uid, transcript, data.themes);
+    setCallThemes(await listCallThemes(user.uid));
+  }
+
   const steps: UIStep[] = scheduledSteps.map((s) => ({
     ...s,
     copy: copyByStep[s.templateStepId],
@@ -132,6 +163,19 @@ function BuilderInner() {
     setGenerating(true);
     setError(null);
     try {
+      // Same daily cap the agent's build path already enforces (see
+      // lib/firebase/usage.ts) — this was the one way to burn through
+      // the OpenAI budget with no limit at all, since it's a manual
+      // click a user can hit repeatedly.
+      const allowed = await checkAndIncrementUsage(user.uid, scheduledSteps.length);
+      if (!allowed) {
+        setError(
+          "You've hit today's generation limit for your account. Try again tomorrow, or generate fewer steps at a time."
+        );
+        setGenerating(false);
+        return;
+      }
+
       const res = await fetch("/api/generate-step", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -148,7 +192,7 @@ function BuilderInner() {
               fields: s.fields,
             },
           })),
-          source: { winningCopy: SAMPLE_WINNING_COPY, callThemes: SAMPLE_CALL_THEMES },
+          source: { winningCopy, callThemes },
         }),
       });
       const data = await res.json();
@@ -202,9 +246,22 @@ function BuilderInner() {
 
   async function requestVariation(instruction: string) {
     if (!selected) return;
+    if (!user) {
+      setError("Sign in first — campaigns are saved to your account.");
+      return;
+    }
     setVariationPending(true);
     setError(null);
     try {
+      const allowed = await checkAndIncrementUsage(user.uid, 1);
+      if (!allowed) {
+        setError(
+          "You've hit today's generation limit for your account. Try again tomorrow."
+        );
+        setVariationPending(false);
+        return;
+      }
+
       const res = await fetch("/api/generate-step", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -273,8 +330,10 @@ function BuilderInner() {
           <SetupPanel
             offer={offer}
             onOfferChange={setOffer}
-            winningCopy={SAMPLE_WINNING_COPY}
-            callThemes={SAMPLE_CALL_THEMES}
+            winningCopy={winningCopy}
+            callThemes={callThemes}
+            onAddWinningCopy={handleAddWinningCopy}
+            onAddSalesCall={handleAddSalesCall}
             onGenerate={generateCampaign}
             generating={generating}
           />
@@ -294,7 +353,33 @@ function BuilderInner() {
         </div>
       </div>
 
-      <AgentLauncher />
+      <AgentLauncher
+        // Only wired up for edit_step once this draft is actually saved —
+        // a brand-new unsaved campaign has no campaignId to write edits
+        // to yet. The agent can still build an unrelated new campaign
+        // from here either way (create_campaign doesn't need this).
+        campaign={
+          campaignId
+            ? {
+                campaignId,
+                offer,
+                steps: steps.map(
+                  (s): AgentPanelCampaignStep => ({
+                    templateStepId: s.templateStepId,
+                    channel: s.channel,
+                    title: s.title,
+                    purpose: s.purpose,
+                    angle: s.angle,
+                    fields: s.fields,
+                    copy: s.copy ?? null,
+                  })
+                ),
+                onStepUpdated: (templateStepId, copy) =>
+                  setCopyByStep((prev) => ({ ...prev, [templateStepId]: copy })),
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }

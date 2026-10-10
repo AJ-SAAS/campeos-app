@@ -5,26 +5,51 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { addAgentMessage, listAgentMessages } from "@/lib/firebase/agentThreads";
 import { getBusinessProfile, BusinessProfile } from "@/lib/firebase/businessProfile";
-import { executeCreateCampaign, UsageLimitError } from "@/lib/ai/agentActions";
-import { AgentChatMessage, CreateCampaignArgs } from "@/lib/ai/agent";
+import { executeCreateCampaign, executeEditStep, UsageLimitError } from "@/lib/ai/agentActions";
+import { AgentChatMessage, CreateCampaignArgs, EditStepArgs } from "@/lib/ai/agent";
 import { buildTimeline } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
+import { OfferContext, StepContext } from "@/lib/ai/prompts";
 
 interface DisplayMessage {
   role: "user" | "assistant";
   content: string;
 }
 
+/** One step of the campaign currently open in the builder, as the agent
+ * needs to see it: enough to pick the right one and to run a variation
+ * on it. Passed down from app/builder/page.tsx. */
+export interface AgentPanelCampaignStep extends StepContext {
+  templateStepId: string;
+  copy: Record<string, string> | null;
+}
+
+export interface AgentPanelCampaignContext {
+  campaignId: string;
+  offer: OfferContext;
+  steps: AgentPanelCampaignStep[];
+  /** Called after the agent successfully edits a step, so the builder
+   * page can update its own on-screen copy without a full reload. */
+  onStepUpdated: (templateStepId: string, copy: Record<string, string>) => void;
+}
+
+interface AgentPanelProps {
+  /** Present only when the agent should be able to edit an existing
+   * campaign, not just build new ones — see AgentLauncher. */
+  campaign?: AgentPanelCampaignContext;
+}
+
 // The dashboard's primary surface — from the "Agent" panel in
-// Main.dc.html. Real chat history (Firestore, scoped to the user),
-// real tool-calling against /api/agent, and a real build when the
-// agent has enough to go on. See lib/ai/agent.ts for what it can do
-// today: one tool, create_campaign, webinar promo only.
+// Main.dc.html — and also reachable from the Campaign Builder via the
+// floating launcher. Real chat history (Firestore, scoped to the user),
+// real tool-calling against /api/agent, and real builds/edits when the
+// agent has enough to go on. See lib/ai/agent.ts for what it can do:
+// create_campaign always, and edit_step when `campaign` is passed here.
 //
 // Loads the user's saved business profile (lib/firebase/businessProfile.ts)
 // so a second campaign doesn't start the conversation from zero — the
 // agent already knows the offer and only asks what's actually new.
-export function AgentPanel() {
+export function AgentPanel({ campaign }: AgentPanelProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -79,6 +104,17 @@ export function AgentPanel() {
                 tone: profile.tone,
               }
             : null,
+          campaignContext: campaign
+            ? {
+                steps: campaign.steps.map((s) => ({
+                  templateStepId: s.templateStepId,
+                  channel: s.channel,
+                  title: s.title,
+                  purpose: s.purpose,
+                  angle: s.angle,
+                })),
+              }
+            : null,
         }),
       });
       const data = await res.json();
@@ -89,6 +125,8 @@ export function AgentPanel() {
 
       if (data.toolCall?.name === "create_campaign") {
         await buildCampaign(user.uid, data.toolCall.arguments);
+      } else if (data.toolCall?.name === "edit_step" && campaign) {
+        await editStep(user.uid, data.toolCall.arguments, campaign);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -153,6 +191,44 @@ export function AgentPanel() {
     }
   }
 
+  async function editStep(uid: string, args: EditStepArgs, ctx: AgentPanelCampaignContext) {
+    const step = ctx.steps.find((s) => s.templateStepId === args.templateStepId);
+    if (!step) {
+      const message = "I picked a step that isn't actually in this campaign — try asking again.";
+      setMessages((prev) => [...prev, { role: "assistant", content: message }]);
+      await addAgentMessage(uid, "assistant", message);
+      return;
+    }
+
+    setBuildTrace([`Rewriting "${step.title}"...`]);
+    try {
+      const result = await executeEditStep(
+        uid,
+        ctx.campaignId,
+        step.templateStepId,
+        { channel: step.channel, title: step.title, purpose: step.purpose, angle: step.angle, fields: step.fields },
+        step.copy ?? {},
+        args.instruction,
+        ctx.offer
+      );
+      ctx.onStepUpdated(step.templateStepId, result.copy);
+      const doneMessage = result.changed ? `Done — changed ${result.changed}.` : "Done — take a look.";
+      setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
+      await addAgentMessage(uid, "assistant", doneMessage);
+    } catch (err) {
+      const message =
+        err instanceof UsageLimitError
+          ? err.message
+          : err instanceof Error
+            ? `I ran into a problem with that: ${err.message}`
+            : "I ran into a problem with that.";
+      setMessages((prev) => [...prev, { role: "assistant", content: message }]);
+      await addAgentMessage(uid, "assistant", message);
+    } finally {
+      setBuildTrace(null);
+    }
+  }
+
   if (!user) {
     return (
       <section className="flex flex-col bg-white border border-[#DDD6C5] rounded-2xl overflow-hidden min-h-[320px]">
@@ -166,6 +242,12 @@ export function AgentPanel() {
       </section>
     );
   }
+
+  const emptyStateText = campaign
+    ? "Ask the agent to change a step in this campaign, or build a new one."
+    : profile
+      ? `Tell the agent what you need — it already knows ${profile.name}.`
+      : 'Tell the agent what you need — "Build me a webinar promo for Thursday" works.';
 
   return (
     <section
@@ -182,13 +264,7 @@ export function AgentPanel() {
       </div>
 
       <div ref={scrollRef} className="flex-grow min-h-[260px] max-h-[460px] overflow-y-auto flex flex-col gap-3.5 px-5 py-5 bg-[#FAF8FC]">
-        {messages.length === 0 && (
-          <div className="text-sm text-faint">
-            {profile
-              ? `Tell the agent what you need — it already knows ${profile.name}.`
-              : 'Tell the agent what you need — "Build me a webinar promo for Thursday" works.'}
-          </div>
-        )}
+        {messages.length === 0 && <div className="text-sm text-faint">{emptyStateText}</div>}
         {messages.map((m, i) =>
           m.role === "user" ? (
             <div key={i} className="flex justify-end">
@@ -251,7 +327,9 @@ export function AgentPanel() {
               send();
             }
           }}
-          placeholder="Tell the agent what to build or change..."
+          placeholder={
+            campaign ? "Ask the agent to change something..." : "Tell the agent what to build or change..."
+          }
           disabled={sending || !!buildTrace}
           className="flex-grow min-w-0 h-[46px] border-[1.5px] border-agent rounded-xl px-3.5 text-[13.5px] font-body text-slate bg-white disabled:opacity-60"
         />

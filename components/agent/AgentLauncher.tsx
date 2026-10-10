@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AgentPanel } from "./AgentPanel";
+import { AgentPanel, AgentPanelCampaignContext } from "./AgentPanel";
+
+interface AgentLauncherProps {
+  /** Present when the agent should be able to edit the campaign
+   * currently open in the builder, not just build new ones. */
+  campaign?: AgentPanelCampaignContext;
+}
 
 // A floating entry point to the agent for pages that aren't the
 // dashboard — right now, the Campaign Builder. Same chat (same thread,
-// same Firestore history) as the dashboard's AgentPanel, just reachable
-// from anywhere via a hovering button instead of living in the page
-// layout. Today the agent can still only build a brand-new webinar
-// promo (see lib/ai/agent.ts) — it doesn't yet have a tool to edit the
-// campaign you're currently looking at. That's a real next step, not
-// this one.
-export function AgentLauncher() {
+// same Firestore history) as the dashboard's AgentPanel. When `campaign`
+// is passed, the agent also gets the edit_step tool, scoped to the steps
+// in that campaign — see lib/ai/agent.ts and components/agent/AgentPanel.tsx.
+export function AgentLauncher({ campaign }: AgentLauncherProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +68,7 @@ export function AgentLauncher() {
           >
             <CloseIcon small />
           </button>
-          <AgentPanel />
+          <AgentPanel campaign={campaign} />
         </div>
       </div>
     </div>
