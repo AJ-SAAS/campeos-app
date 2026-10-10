@@ -6,6 +6,7 @@ import { IconRail } from "@/components/builder/IconRail";
 import { SetupPanel } from "@/components/builder/SetupPanel";
 import { Timeline, UIStep } from "@/components/builder/Timeline";
 import { StepEditor } from "@/components/builder/StepEditor";
+import { AgentLauncher } from "@/components/agent/AgentLauncher";
 import { buildTimeline, ScheduledStep } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext } from "@/lib/ai/prompts";
@@ -292,6 +293,8 @@ function BuilderInner() {
           />
         </div>
       </div>
+
+      <AgentLauncher />
     </div>
   );
 }
