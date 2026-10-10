@@ -4,8 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { addAgentMessage, listAgentMessages } from "@/lib/firebase/agentThreads";
+import { getBusinessProfile, BusinessProfile } from "@/lib/firebase/businessProfile";
 import { executeCreateCampaign, UsageLimitError } from "@/lib/ai/agentActions";
-import { AgentChatMessage } from "@/lib/ai/agent";
+import { AgentChatMessage, CreateCampaignArgs } from "@/lib/ai/agent";
+import { buildTimeline } from "@/lib/engine/buildTimeline";
+import { webinarTemplate } from "@/lib/templates/webinar";
 
 interface DisplayMessage {
   role: "user" | "assistant";
@@ -17,29 +20,36 @@ interface DisplayMessage {
 // real tool-calling against /api/agent, and a real build when the
 // agent has enough to go on. See lib/ai/agent.ts for what it can do
 // today: one tool, create_campaign, webinar promo only.
+//
+// Loads the user's saved business profile (lib/firebase/businessProfile.ts)
+// so a second campaign doesn't start the conversation from zero — the
+// agent already knows the offer and only asks what's actually new.
 export function AgentPanel() {
   const { user } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [building, setBuilding] = useState(false);
+  const [buildTrace, setBuildTrace] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) {
       setMessages([]);
+      setProfile(null);
       return;
     }
     listAgentMessages(user.uid).then((history) =>
       setMessages(history.map((m) => ({ role: m.role, content: m.content })))
     );
+    getBusinessProfile(user.uid).then(setProfile);
   }, [user]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages, building]);
+  }, [messages, buildTrace]);
 
   async function send() {
     const text = input.trim();
@@ -57,7 +67,19 @@ export function AgentPanel() {
       const res = await fetch("/api/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ history, message: text }),
+        body: JSON.stringify({
+          history,
+          message: text,
+          profile: profile
+            ? {
+                name: profile.name,
+                price: profile.price,
+                audience: profile.audience,
+                whatTheyGet: profile.whatTheyGet,
+                tone: profile.tone,
+              }
+            : null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "The agent didn't respond.");
@@ -66,33 +88,68 @@ export function AgentPanel() {
       await addAgentMessage(user.uid, "assistant", data.reply);
 
       if (data.toolCall?.name === "create_campaign") {
-        setBuilding(true);
-        try {
-          const result = await executeCreateCampaign(user.uid, data.toolCall.arguments);
-          const doneMessage =
-            result.failedCount > 0
-              ? `Done. ${result.stepCount - result.failedCount} of ${result.stepCount} steps are ready — ${result.failedCount} failed to generate, you can retry those in the builder.`
-              : `Done. All ${result.stepCount} steps are ready. Want to take a look?`;
-          setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
-          await addAgentMessage(user.uid, "assistant", doneMessage);
-          router.push(`/builder?id=${result.campaignId}`);
-        } catch (err) {
-          const message =
-            err instanceof UsageLimitError
-              ? err.message
-              : err instanceof Error
-                ? `I ran into a problem building that: ${err.message}`
-                : "I ran into a problem building that.";
-          setMessages((prev) => [...prev, { role: "assistant", content: message }]);
-          await addAgentMessage(user.uid, "assistant", message);
-        } finally {
-          setBuilding(false);
-        }
+        await buildCampaign(user.uid, data.toolCall.arguments);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function buildCampaign(uid: string, args: CreateCampaignArgs) {
+    // An honest trace, not a fake progress bar: this is the real
+    // schedule buildTimeline() is about to generate, computed the same
+    // way executeCreateCampaign computes it, before any network call.
+    const trace: string[] = [];
+    if (profile) trace.push("Using what I already know about your business");
+
+    try {
+      const eventDate = new Date(`${args.webinarDate}T19:00:00`);
+      if (!Number.isNaN(eventDate.getTime())) {
+        const planned = buildTimeline(webinarTemplate, { event: eventDate });
+        const adCount = planned.filter((s) => s.channel === "ad").length;
+        const emailCount = planned.filter((s) => s.channel === "email").length;
+        const smsCount = planned.filter((s) => s.channel === "sms").length;
+        trace.push(
+          `Mapping a ${planned.length}-step timeline (${adCount} ads, ${emailCount} emails, ${smsCount} texts)`
+        );
+      }
+    } catch {
+      // If the date can't be parsed, skip the preview line — executeCreateCampaign
+      // below will surface the real error.
+    }
+    trace.push("Writing every step...");
+    setBuildTrace(trace);
+
+    try {
+      const result = await executeCreateCampaign(uid, args);
+      const doneMessage =
+        result.failedCount > 0
+          ? `Done. ${result.stepCount - result.failedCount} of ${result.stepCount} steps are ready — ${result.failedCount} failed to generate, you can retry those in the builder.`
+          : `Done. All ${result.stepCount} steps are ready. Want to take a look?`;
+      setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
+      await addAgentMessage(uid, "assistant", doneMessage);
+      setProfile((prev) => ({
+        name: args.offerName,
+        price: args.price,
+        audience: args.audience,
+        whatTheyGet: args.whatTheyGet,
+        tone: args.tone,
+        updatedAt: prev?.updatedAt,
+      }));
+      router.push(`/builder?id=${result.campaignId}`);
+    } catch (err) {
+      const message =
+        err instanceof UsageLimitError
+          ? err.message
+          : err instanceof Error
+            ? `I ran into a problem building that: ${err.message}`
+            : "I ran into a problem building that.";
+      setMessages((prev) => [...prev, { role: "assistant", content: message }]);
+      await addAgentMessage(uid, "assistant", message);
+    } finally {
+      setBuildTrace(null);
     }
   }
 
@@ -127,7 +184,9 @@ export function AgentPanel() {
       <div ref={scrollRef} className="flex-grow min-h-[260px] max-h-[460px] overflow-y-auto flex flex-col gap-3.5 px-5 py-5 bg-[#FAF8FC]">
         {messages.length === 0 && (
           <div className="text-sm text-faint">
-            Tell the agent what you need — "Build me a webinar promo for Thursday" works.
+            {profile
+              ? `Tell the agent what you need — it already knows ${profile.name}.`
+              : 'Tell the agent what you need — "Build me a webinar promo for Thursday" works.'}
           </div>
         )}
         {messages.map((m, i) =>
@@ -148,13 +207,32 @@ export function AgentPanel() {
             </div>
           )
         )}
-        {(sending || building) && (
+        {sending && !buildTrace && (
           <div className="flex gap-2.5 items-start">
             <span className="w-[26px] h-[26px] rounded-full bg-agent flex items-center justify-center shrink-0 mt-0.5">
               <AgentIcon small />
             </span>
             <div className="bg-white border border-[#E1DAF0] rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono">
-              {building ? "Writing your campaign..." : "..."}
+              ...
+            </div>
+          </div>
+        )}
+        {buildTrace && (
+          <div className="flex gap-2.5 items-start">
+            <span className="w-[26px] h-[26px] rounded-full bg-agent flex items-center justify-center shrink-0 mt-0.5">
+              <AgentIcon small />
+            </span>
+            <div className="bg-white border border-[#E1DAF0] rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono flex flex-col gap-1">
+              {buildTrace.map((line, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  {i === buildTrace.length - 1 ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-agent animate-pulse shrink-0" />
+                  ) : (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#1B6B4F] shrink-0" />
+                  )}
+                  {line}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -174,12 +252,12 @@ export function AgentPanel() {
             }
           }}
           placeholder="Tell the agent what to build or change..."
-          disabled={sending || building}
+          disabled={sending || !!buildTrace}
           className="flex-grow min-w-0 h-[46px] border-[1.5px] border-agent rounded-xl px-3.5 text-[13.5px] font-body text-slate bg-white disabled:opacity-60"
         />
         <button
           onClick={send}
-          disabled={sending || building || !input.trim()}
+          disabled={sending || !!buildTrace || !input.trim()}
           aria-label="Send"
           className="shrink-0 w-10 h-10 rounded-[11px] bg-agent text-white flex items-center justify-center disabled:opacity-50"
         >

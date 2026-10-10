@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getOpenAIClient, OPENAI_MODEL } from "./client";
+import { OfferContext } from "./prompts";
 
 // The agent's whole job: hold a conversation, ask whatever's missing,
 // and when it has enough, call create_campaign. It is NOT given free-form
@@ -43,12 +44,28 @@ Before calling create_campaign you need all of: an offer name, a price, who it's
 
 Keep replies short and conversational, like a capable coworker, not a sales page. No em dashes. Once you call create_campaign, say something short like "Building that now." — the actual "done" message comes later, after the copy is written.`;
 
+function buildSystemPrompt(knownProfile: OfferContext | null): string {
+  if (!knownProfile) return SYSTEM_PROMPT;
+
+  return `${SYSTEM_PROMPT}
+
+You already know this about the user's business from a previous campaign — don't ask for any of it again unless the user says it's changed for this one:
+- Offer name: ${knownProfile.name}
+- Price: ${knownProfile.price}
+- Audience: ${knownProfile.audience}
+- What they get: ${knownProfile.whatTheyGet}
+- Tone: ${knownProfile.tone}
+
+The only thing you're missing for a new campaign is the webinar date — ask for that. If the user wants to change the offer, price, audience, what they get, or tone for this campaign, use what they tell you instead of the values above.`;
+}
+
 export async function runAgentTurn(
   history: AgentChatMessage[],
-  message: string
+  message: string,
+  knownProfile: OfferContext | null = null
 ): Promise<AgentResult> {
   const messages = [
-    { role: "system" as const, content: SYSTEM_PROMPT },
+    { role: "system" as const, content: buildSystemPrompt(knownProfile) },
     ...history.map((m) => ({ role: m.role, content: m.content })),
     { role: "user" as const, content: message },
   ];

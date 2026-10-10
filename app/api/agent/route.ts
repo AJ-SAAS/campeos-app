@@ -14,9 +14,21 @@ const messageSchema = z.object({
   content: z.string(),
 });
 
+const profileSchema = z.object({
+  name: z.string(),
+  price: z.string(),
+  audience: z.string(),
+  whatTheyGet: z.string(),
+  tone: z.string(),
+});
+
 const requestSchema = z.object({
   history: z.array(messageSchema).max(20),
   message: z.string().min(1, "Say something first."),
+  // What the agent already knows about this user's business, from a
+  // previous campaign — see lib/firebase/businessProfile.ts. Optional:
+  // a brand-new user has none yet.
+  profile: profileSchema.nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -36,7 +48,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await runAgentTurn(parsed.data.history, parsed.data.message);
+    const result = await runAgentTurn(
+      parsed.data.history,
+      parsed.data.message,
+      parsed.data.profile ?? null
+    );
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

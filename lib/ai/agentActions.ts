@@ -5,12 +5,13 @@ import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext } from "@/lib/ai/prompts";
 import { createCampaign, CampaignStepDoc } from "@/lib/firebase/campaigns";
 import { checkAndIncrementUsage } from "@/lib/firebase/usage";
-import { CreateCampaignArgs } from "@/lib/ai/agent";
+import { saveBusinessProfile } from "@/lib/firebase/businessProfile";
 
 // NOTE: this does not yet pull in the user's winning copy / call themes
 // library (lib/firebase/library.ts) — that feature hasn't shipped to
 // this repo yet. When it does, pass real values in `source` below
 // instead of empty arrays, same as the builder's generateCampaign does.
+import { CreateCampaignArgs } from "@/lib/ai/agent";
 
 export class UsageLimitError extends Error {}
 
@@ -88,6 +89,15 @@ export async function executeCreateCampaign(
     eventDate,
     stepDocs
   );
+
+  // Remember this offer for next time — so a second campaign doesn't
+  // start the conversation from zero. Best-effort: a failure here
+  // shouldn't undo a campaign that already built successfully.
+  try {
+    await saveBusinessProfile(uid, offer);
+  } catch {
+    // Not fatal — the campaign is already saved either way.
+  }
 
   return {
     campaignId,
