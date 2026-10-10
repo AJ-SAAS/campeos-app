@@ -87,6 +87,9 @@ export async function runAgentTurn(
 
   if (toolCalls && toolCalls.length > 0) {
     const call = toolCalls[0];
+    if (call.type !== "function") {
+      throw new Error("Unexpected tool call type from the agent.");
+    }
     let args: unknown;
     try {
       args = JSON.parse(call.function.arguments);

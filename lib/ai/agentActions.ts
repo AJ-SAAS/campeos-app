@@ -4,9 +4,13 @@ import { buildTimeline } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext } from "@/lib/ai/prompts";
 import { createCampaign, CampaignStepDoc } from "@/lib/firebase/campaigns";
-import { listWinningCopy, listCallThemes } from "@/lib/firebase/library";
 import { checkAndIncrementUsage } from "@/lib/firebase/usage";
 import { CreateCampaignArgs } from "@/lib/ai/agent";
+
+// NOTE: this does not yet pull in the user's winning copy / call themes
+// library (lib/firebase/library.ts) — that feature hasn't shipped to
+// this repo yet. When it does, pass real values in `source` below
+// instead of empty arrays, same as the builder's generateCampaign does.
 
 export class UsageLimitError extends Error {}
 
@@ -44,11 +48,6 @@ export async function executeCreateCampaign(
     tone: args.tone,
   };
 
-  const [winningCopy, callThemes] = await Promise.all([
-    listWinningCopy(uid),
-    listCallThemes(uid),
-  ]);
-
   const res = await fetch("/api/generate-step", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -59,7 +58,7 @@ export async function executeCreateCampaign(
         templateStepId: s.templateStepId,
         step: { channel: s.channel, title: s.title, purpose: s.purpose, angle: s.angle, fields: s.fields },
       })),
-      source: { winningCopy, callThemes },
+      source: { winningCopy: [], callThemes: [] },
     }),
   });
   const data = await res.json();
