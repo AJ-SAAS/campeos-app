@@ -83,7 +83,15 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
     setInput("");
     setError(null);
     setSending(true);
-    const history: AgentChatMessage[] = messages.map((m) => ({ role: m.role, content: m.content }));
+    // /api/agent caps history at 20 messages (see app/api/agent/route.ts) —
+    // a long-running thread (this one keeps the same Firestore history
+    // across every campaign you've ever built) will eventually cross
+    // that, and sending the whole thing just makes every later message
+    // fail validation forever. Only the most recent messages matter for
+    // context anyway.
+    const history: AgentChatMessage[] = messages
+      .slice(-20)
+      .map((m) => ({ role: m.role, content: m.content }));
     setMessages((prev) => [...prev, { role: "user", content: text }]);
 
     try {
