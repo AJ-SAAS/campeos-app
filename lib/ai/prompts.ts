@@ -115,6 +115,9 @@ the original as makes sense.
 ${COPY_RULES}
 
 Return ONLY a JSON object with the same keys as the current copy above
-(not "source" — leave that out), plus a "changed" key describing in a
-few words what you changed.`;
+(not "source" — leave that out), plus a "changed" key: a short lowercase
+fragment completing the sentence "Done — changed ___", e.g. "the
+headline's angle to focus on readiness" (not "Changed the headline's
+angle...", and don't restate the word "changed" itself — the UI already
+shows it).`;
 }

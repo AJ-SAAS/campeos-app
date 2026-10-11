@@ -222,7 +222,11 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
         ctx.offer
       );
       ctx.onStepUpdated(step.templateStepId, result.copy);
-      const doneMessage = result.changed ? `Done — changed ${result.changed}.` : "Done — take a look.";
+      // The model is asked for a lowercase fragment ("the headline's
+      // angle..."), but strip a leading "changed " defensively in case
+      // it echoes the word back anyway — avoids "Done — changed Changed...".
+      const changedFragment = result.changed?.replace(/^changed\s+/i, "");
+      const doneMessage = changedFragment ? `Done — changed ${changedFragment}.` : "Done — take a look.";
       setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
       await addAgentMessage(uid, "assistant", doneMessage);
     } catch (err) {
