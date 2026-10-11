@@ -157,15 +157,17 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
       // If the date can't be parsed, skip the preview line — executeCreateCampaign
       // below will surface the real error.
     }
-    trace.push("Writing every step...");
+    trace.push(args.stepScope === "first" ? "Writing just the first step..." : "Writing every step...");
     setBuildTrace(trace);
 
     try {
       const result = await executeCreateCampaign(uid, args);
       const doneMessage =
         result.failedCount > 0
-          ? `Done. ${result.stepCount - result.failedCount} of ${result.stepCount} steps are ready — ${result.failedCount} failed to generate, you can retry those in the builder.`
-          : `Done. All ${result.stepCount} steps are ready. Want to take a look?`;
+          ? `Done. ${result.writtenCount - result.failedCount} of ${result.stepCount} steps are ready — ${result.failedCount} failed to generate, you can retry those in the builder.`
+          : result.writtenCount < result.stepCount
+            ? `Done. The schedule is saved and the first step is written — the other ${result.stepCount - result.writtenCount} are ready whenever you want them. Want to take a look?`
+            : `Done. All ${result.stepCount} steps are ready. Want to take a look?`;
       setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
       await addAgentMessage(uid, "assistant", doneMessage);
       setProfile((prev) => ({

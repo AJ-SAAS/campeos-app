@@ -22,7 +22,7 @@ export class UsageLimitError extends Error {}
 export async function executeCreateCampaign(
   uid: string,
   args: CreateCampaignArgs
-): Promise<{ campaignId: string; stepCount: number; failedCount: number }> {
+): Promise<{ campaignId: string; stepCount: number; writtenCount: number; failedCount: number }> {
   const eventDate = new Date(`${args.webinarDate}T19:00:00`);
   if (Number.isNaN(eventDate.getTime())) {
     throw new Error(`Couldn't understand the webinar date "${args.webinarDate}".`);
@@ -30,7 +30,17 @@ export async function executeCreateCampaign(
 
   const scheduledSteps = buildTimeline(webinarTemplate, { event: eventDate });
 
-  const allowed = await checkAndIncrementUsage(uid, scheduledSteps.length);
+  // The schedule (dates, titles, channels) always saves in full — it's
+  // free, deterministic date math. "stepScope" only controls how many
+  // steps actually get COPY written and billed against the usage cap.
+  // "first" picks the single earliest-dated step, since that's what
+  // "just do the first one" means on a freshly built timeline.
+  const stepsToWrite =
+    args.stepScope === "first"
+      ? [[...scheduledSteps].sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())[0]]
+      : scheduledSteps;
+
+  const allowed = await checkAndIncrementUsage(uid, stepsToWrite.length);
   if (!allowed) {
     throw new UsageLimitError(
       "You've hit today's generation limit for your account. Try again tomorrow, or generate fewer steps at a time."
@@ -60,7 +70,7 @@ export async function executeCreateCampaign(
     body: JSON.stringify({
       mode: "generate",
       offer,
-      steps: scheduledSteps.map((s) => ({
+      steps: stepsToWrite.map((s) => ({
         templateStepId: s.templateStepId,
         step: { channel: s.channel, title: s.title, purpose: s.purpose, angle: s.angle, fields: s.fields },
       })),
@@ -107,16 +117,18 @@ export async function executeCreateCampaign(
   return {
     campaignId,
     stepCount: scheduledSteps.length,
+    writtenCount: Object.keys(copyByStep).length,
     failedCount: data.failed?.length ?? 0,
   };
 }
 
 /**
- * Runs the agent's edit_step tool call for real: the same "variation"
- * request the builder's own StepEditor makes when you type an instruction
- * by hand, just triggered from the agent's floating launcher instead.
- * One change at a time — see the "variation" rules in CLAUDE.md and
- * lib/ai/prompts.ts, which this reuses unchanged.
+ * Runs the agent's edit_step tool call for real: writes or changes one
+ * step's copy. If the step already has copy, this behaves like the
+ * builder's own "variation" box — one change at a time. If the step has
+ * no copy yet (saved by create_campaign's "first"-only scope), there's
+ * nothing to vary, so this writes fresh copy instead, folding the user's
+ * instruction into the step's own angle.
  */
 export async function executeEditStep(
   uid: string,
@@ -132,6 +144,36 @@ export async function executeEditStep(
     throw new UsageLimitError(
       "You've hit today's generation limit for your account. Try again tomorrow."
     );
+  }
+
+  if (Object.keys(currentCopy).length === 0) {
+    const [winningCopy, callThemes] = await Promise.all([
+      listWinningCopy(uid),
+      listCallThemes(uid),
+    ]);
+    const res = await fetch("/api/generate-step", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "generate",
+        offer,
+        steps: [
+          {
+            templateStepId,
+            step: { ...step, angle: `${step.angle}. ${instruction}` },
+          },
+        ],
+        source: { winningCopy, callThemes },
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? "Generation failed.");
+    const result = data.results?.[0] as { templateStepId: string; copy: Record<string, string> } | undefined;
+    if (!result) {
+      throw new Error(data.failed?.[0]?.error ?? "That step failed to generate.");
+    }
+    await saveStepCopy(campaignId, templateStepId, result.copy);
+    return { copy: result.copy };
   }
 
   const res = await fetch("/api/generate-step", {

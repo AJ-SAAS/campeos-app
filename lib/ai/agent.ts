@@ -10,6 +10,8 @@ import { OfferContext } from "./prompts";
 // lib/ai/agentActions.ts.
 //
 // - create_campaign: always available. Builds a brand-new webinar promo.
+//   stepScope controls how much COPY gets written, separate from the
+//   schedule, which always saves in full — see executeCreateCampaign.
 // - edit_step: only available when the caller passes a CampaignContext —
 //   i.e. the agent is being used from inside an already-open campaign
 //   (the floating launcher on the Campaign Builder page, not the
@@ -34,6 +36,11 @@ const createCampaignArgsSchema = z.object({
   whatTheyGet: z.string().min(1),
   tone: z.enum(["Friendly", "Bold", "Calm"]),
   webinarDate: z.string().min(1), // "YYYY-MM-DD", the day the webinar goes live
+  // "all" (the default) writes copy for every step in the template.
+  // "first" saves the full 15-step schedule but only writes copy for the
+  // earliest-dated step — for when the user explicitly asks for just one
+  // step rather than the whole campaign. See executeCreateCampaign.
+  stepScope: z.enum(["all", "first"]).optional().default("all"),
 });
 export type CreateCampaignArgs = z.infer<typeof createCampaignArgsSchema>;
 
@@ -74,7 +81,11 @@ Campeos only has one real campaign type today: "webinar" (a 7 day high-ticket we
 
 Keep replies short and conversational, like a capable coworker, not a sales page. No em dashes.`;
 
-const CREATE_CAMPAIGN_PROMPT = `To build a new campaign with create_campaign you need all of: an offer name, a price, who it's for, what they get, a tone (Friendly, Bold, or Calm — default to Friendly if they never say), and the date the webinar goes live. Ask ONE short, plain question at a time for whatever's missing — never a list of questions at once. Never invent a detail the user hasn't given you; ask instead. Once you call create_campaign, say something short like "Building that now." — the real "done" message comes later, after the copy is written.`;
+const CREATE_CAMPAIGN_PROMPT = `To build a new campaign with create_campaign you need all of: an offer name, a price, who it's for, what they get, a tone (Friendly, Bold, or Calm — default to Friendly if they never say), and the date the webinar goes live. Ask ONE short, plain question at a time for whatever's missing — never a list of questions at once. Never invent a detail the user hasn't given you; ask instead.
+
+create_campaign always saves the full campaign schedule, but the stepScope argument controls how much COPY gets written: pass "all" (the default) when the user wants the whole campaign written now, or "first" when they ask you to write just one step, just the first one, or only a specific single step right now (the rest get saved with no copy yet, ready to write later). Never default to "all" after the user has specifically asked for only one — that silently does far more than they asked.
+
+Once you call create_campaign, say something short like "Building that now." — the real "done" message comes later, after the copy is written.`;
 
 function buildSystemPrompt(
   knownProfile: OfferContext | null,
@@ -100,7 +111,7 @@ For a new campaign, the only thing you're missing is the webinar date — ask fo
     prompt += `\n\nThe user is currently looking at an existing campaign with these steps:
 ${stepList}
 
-If they ask you to change, rewrite, tighten, or vary a specific step's copy, call edit_step with that exact templateStepId and a short, specific instruction describing the one thing to change — e.g. "make the headline more urgent" or "shorten the primary text," not "rewrite everything" (Campeos changes one thing at a time, never a full rewrite, so the user can tell what changed). If it's unclear which step they mean — more than one ad, say — ask which one, listing the short titles as options, before calling the tool. You can still call create_campaign if they explicitly ask for a brand-new campaign instead.`;
+If they ask you to change, rewrite, tighten, or vary a specific step's copy, call edit_step with that exact templateStepId and a short, specific instruction describing the one thing to change — e.g. "make the headline more urgent" or "shorten the primary text," not "rewrite everything" (Campeos changes one thing at a time, never a full rewrite, so the user can tell what changed). edit_step also works on a step that hasn't been written yet — use it the same way to write a specific step on request. If it's unclear which step they mean — more than one ad, say — ask which one, listing the short titles as options, before calling the tool. You can still call create_campaign if they explicitly ask for a brand-new campaign instead.`;
   }
 
   return prompt;
@@ -138,6 +149,12 @@ export async function runAgentTurn(
             whatTheyGet: { type: "string" },
             tone: { type: "string", enum: ["Friendly", "Bold", "Calm"] },
             webinarDate: { type: "string", description: "YYYY-MM-DD" },
+            stepScope: {
+              type: "string",
+              enum: ["all", "first"],
+              description:
+                "'all' writes copy for every step (default). 'first' saves the full schedule but only writes the earliest-dated step, for when the user asked for just one step.",
+            },
           },
           required: ["templateId", "offerName", "price", "audience", "whatTheyGet", "tone", "webinarDate"],
         },
@@ -152,18 +169,18 @@ export async function runAgentTurn(
       function: {
         name: "edit_step",
         description:
-          "Change one existing step's copy in the campaign currently open in the builder. One change at a time, never a full rewrite.",
+          "Write or change one step's copy in the campaign currently open in the builder — works whether that step already has copy or not. One change at a time, never a full rewrite.",
         parameters: {
           type: "object",
           properties: {
             templateStepId: {
               type: "string",
               enum: Array.from(validStepIds),
-              description: "The exact templateStepId of the step to change.",
+              description: "The exact templateStepId of the step to write or change.",
             },
             instruction: {
               type: "string",
-              description: "A short, specific instruction describing the one thing to change.",
+              description: "A short, specific instruction describing the one thing to write or change.",
             },
           },
           required: ["templateStepId", "instruction"],
