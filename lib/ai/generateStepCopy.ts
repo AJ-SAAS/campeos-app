@@ -56,8 +56,15 @@ export async function generateStepVariation(
 ): Promise<GeneratedStepCopy & { changed: string }> {
   const prompt = buildVariationPrompt(offer, step, currentCopy, instruction);
 
+  // "source" is metadata about where the copy came from ("your winning
+  // headline", "campaign template"), not editable copy — it shouldn't be
+  // part of what the model is asked to change or required to echo back.
+  // Requiring it here meant every variation request failed schema
+  // validation the moment the model (correctly, per the "change ONE
+  // thing" rule) left it out of a reply that only touched one other field.
   const shape: Record<string, z.ZodTypeAny> = { changed: z.string() };
   for (const key of Object.keys(currentCopy)) {
+    if (key === "source") continue;
     shape[key] = z.string();
   }
   const schema = z.object(shape);

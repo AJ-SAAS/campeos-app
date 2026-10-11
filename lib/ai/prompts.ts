@@ -93,7 +93,10 @@ export function buildVariationPrompt(
   currentCopy: Record<string, string>,
   instruction: string
 ): string {
+  // "source" is metadata about where this copy came from, not copy to
+  // vary — leave it out of what the model sees as editable.
   const currentBlock = Object.entries(currentCopy)
+    .filter(([key]) => key !== "source")
     .map(([key, value]) => `${key}: ${value}`)
     .join("\n");
 
@@ -111,6 +114,7 @@ the original as makes sense.
 
 ${COPY_RULES}
 
-Return ONLY a JSON object with the same keys as the current copy above,
-plus a "changed" key describing in a few words what you changed.`;
+Return ONLY a JSON object with the same keys as the current copy above
+(not "source" — leave that out), plus a "changed" key describing in a
+few words what you changed.`;
 }
