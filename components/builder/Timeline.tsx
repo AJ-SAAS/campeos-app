@@ -68,27 +68,27 @@ export function Timeline({ steps, selectedId, onSelect, eventDate }: TimelinePro
   const needsCount = steps.filter((s) => needsInput(s)).length;
 
   return (
-    <section aria-label="Campaign timeline" className="flex-grow min-w-0 p-6 flex flex-col gap-4 overflow-y-auto">
+    <section aria-label="Campaign timeline" className="flex-grow min-w-0 w-full p-4 sm:p-6 pb-24 sm:pb-6 flex flex-col gap-4 overflow-y-auto">
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="font-display text-[22px] font-semibold tracking-tight">Campaign timeline</h2>
+          <h2 className="font-display text-[20px] sm:text-[22px] font-semibold tracking-tight">Campaign timeline</h2>
           <div className="text-[13px] text-muted">
             {steps.length} steps with suggested send times.
           </div>
         </div>
         {needsCount > 0 && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FCEFC7] text-[#7A4B00] text-xs font-semibold whitespace-nowrap">
-            {needsCount} steps need your input
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-warnBg text-warnFg text-xs font-semibold whitespace-nowrap">
+            {needsCount} need input
           </span>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
           onClick={showAll}
           aria-pressed={isAllActive}
-          className={`inline-flex items-center h-9 px-3.5 rounded-full text-sm font-semibold transition-colors duration-200 ${
-            isAllActive ? "bg-slate text-white" : "bg-white border border-[#DDD6C5] text-muted"
+          className={`shrink-0 inline-flex items-center h-9 px-3.5 rounded-full text-sm font-semibold transition-colors duration-200 ${
+            isAllActive ? "bg-slate text-white" : "bg-paper border border-line text-muted"
           }`}
         >
           All
@@ -101,11 +101,11 @@ export function Timeline({ steps, selectedId, onSelect, eventDate }: TimelinePro
               key={lane.key}
               onClick={() => toggleChannel(lane.key)}
               aria-pressed={active}
-              className="inline-flex items-center gap-2 h-9 pl-2.5 pr-3.5 rounded-full border transition-colors duration-200"
+              className="shrink-0 inline-flex items-center gap-2 h-9 pl-2.5 pr-3.5 rounded-full border transition-colors duration-200"
               style={
                 active
                   ? { background: lane.bg, borderColor: lane.fg, color: lane.fg }
-                  : { background: "#FFFFFF", borderColor: "#DDD6C5", color: "#5C584D" }
+                  : { background: "#FFFFFF", borderColor: "#E3E6E1", color: "#5B6560" }
               }
             >
               <span
@@ -139,9 +139,13 @@ export function Timeline({ steps, selectedId, onSelect, eventDate }: TimelinePro
                     Live {formatTime(eventDate)}
                   </span>
                 )}
-                <span className="flex-grow h-px bg-[rgba(28,27,24,0.14)]" />
+                <span className="flex-grow h-px bg-line" />
               </div>
-              <div className="flex gap-2 items-start">
+              {/* Scrolls horizontally rather than breaking layout when all
+                  three lanes are visible on a narrow screen — each lane
+                  keeps its 160px working width instead of being squeezed
+                  unreadably thin. */}
+              <div className="flex gap-2 items-start overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
                 {LANES.map((lane) => {
                   const visible = isAllActive || selectedChannels.has(lane.key);
                   return (
@@ -196,7 +200,7 @@ function StepCard({
     <button
       onClick={onSelect}
       aria-pressed={selected}
-      className="w-full text-left bg-white border border-[#DDD6C5] rounded-xl px-3 py-2.5 flex flex-col gap-0.5"
+      className="w-full text-left bg-paper border border-line rounded-xl px-3 py-2.5 flex flex-col gap-0.5"
       style={selected ? { boxShadow: `0 0 0 2px ${lane.fg}` } : undefined}
     >
       <span className="flex items-center gap-1.5">
@@ -206,7 +210,7 @@ function StepCard({
         </span>
         <span className="flex-grow" />
         {needsInput(step) && (
-          <span className="px-1.5 py-0.5 rounded-full bg-[#FCEFC7] text-[#7A4B00] text-[11px] font-semibold">
+          <span className="px-1.5 py-0.5 rounded-full bg-warnBg text-warnFg text-[11px] font-semibold">
             Add details
           </span>
         )}

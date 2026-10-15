@@ -36,11 +36,11 @@ export default function Dashboard() {
   }, [user]);
 
   return (
-    <div className="min-h-screen flex bg-ivory text-slate font-body">
+    <div className="min-h-screen flex flex-col md:flex-row bg-paper text-slate font-body">
       <Sidebar active="dashboard" />
 
-      <main className="flex-grow min-w-0 px-12 py-10 flex flex-col gap-8">
-        <div className="flex items-end justify-between">
+      <main className="flex-grow min-w-0 px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 lg:gap-8 pb-24 md:pb-10">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <div className="font-mono text-xs uppercase tracking-wider text-faint">
               {new Date().toLocaleDateString(undefined, {
@@ -49,39 +49,39 @@ export default function Dashboard() {
                 day: "numeric",
               })}
             </div>
-            <h1 className="font-display text-[40px] leading-tight font-semibold tracking-tight">
+            <h1 className="font-display text-[28px] sm:text-[34px] lg:text-[40px] leading-tight font-semibold tracking-tight">
               Your campaigns
             </h1>
           </div>
           <Link
             href="/builder"
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-[#DDD6C5] bg-white text-slate text-sm font-semibold"
+            className="inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-line bg-paper text-slate text-sm font-semibold"
           >
             <PlusIcon small /> New campaign manually
           </Link>
         </div>
 
         {!authLoading && !user && (
-          <div className="bg-white border border-[#DDD6C5] rounded-2xl px-6 py-5 flex items-center justify-between gap-4">
+          <div className="bg-paper border border-line rounded-2xl px-5 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="text-sm text-muted">
               Sign in to talk to the agent and save campaigns to your account.
             </div>
             <button
               onClick={() => signIn()}
-              className="shrink-0 inline-flex items-center h-10 px-4 rounded-[10px] bg-slate text-white text-sm font-semibold"
+              className="shrink-0 inline-flex items-center justify-center h-10 px-4 rounded-[10px] bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold"
             >
               Sign in with Google
             </button>
           </div>
         )}
 
-        <div className="flex-grow min-h-0 grid grid-cols-[1.25fr_1fr] gap-6 items-start">
+        <div className="flex-grow min-h-0 grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-6 items-start">
           <AgentPanel />
 
           <div className="flex flex-col gap-5">
             <section aria-label="Start a campaign" className="flex flex-col gap-2.5">
               <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-faint">
-                <span className="w-1.5 h-1.5 rounded-full bg-agent" />
+                <span className="w-1.5 h-1.5 rounded-full bg-clay" />
                 Or start from a template yourself
               </div>
               <div className="flex flex-wrap gap-2">
@@ -90,7 +90,7 @@ export default function Dashboard() {
                     key={t.title}
                     href={t.href}
                     title={t.description}
-                    className="inline-flex items-center h-9 px-3.5 rounded-full border border-[#DDD6C5] bg-white text-sm font-semibold text-slate"
+                    className="inline-flex items-center h-9 px-3.5 rounded-full border border-line bg-paper text-sm font-semibold text-slate"
                   >
                     {t.title}
                   </Link>
@@ -104,7 +104,7 @@ export default function Dashboard() {
               </div>
             </section>
 
-            <section aria-label="Campaigns" className="bg-white border border-[#DDD6C5] rounded-2xl overflow-hidden">
+            <section aria-label="Campaigns" className="bg-paper border border-line rounded-2xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-line">
                 <h2 className="font-display text-sm font-semibold">Your campaigns</h2>
               </div>
@@ -125,14 +125,14 @@ export default function Dashboard() {
                     key={c.id}
                     href={`/builder?id=${c.id}`}
                     className={`flex items-center gap-3 px-4 py-3 ${
-                      i < campaigns.length - 1 ? "border-b border-[#EFE9DB]" : ""
+                      i < campaigns.length - 1 ? "border-b border-line" : ""
                     }`}
                   >
                     <div className="flex-grow min-w-0">
                       <div className="text-[13.5px] font-semibold truncate">{c.title}</div>
                       <div className="text-xs text-faint truncate">{c.offer.audience}</div>
                     </div>
-                    <div className="font-mono text-xs text-[#4F4B42] shrink-0">
+                    <div className="font-mono text-xs text-muted shrink-0">
                       {new Date(c.eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                     </div>
                   </Link>

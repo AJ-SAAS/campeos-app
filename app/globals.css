@@ -3,6 +3,15 @@
 @tailwind utilities;
 
 body {
-  background-color: #F5F1E8;
-  color: #1C1B18;
+  background-color: #FFFFFF;
+  color: #13171A;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid #1E4A2E;
+  outline-offset: 2px;
 }

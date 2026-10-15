@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { IconRail } from "@/components/builder/IconRail";
 import { SetupPanel } from "@/components/builder/SetupPanel";
@@ -46,7 +47,7 @@ export default function BuilderPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-screen flex items-center justify-center bg-ivory text-muted">
+        <div className="h-screen flex items-center justify-center bg-paper text-muted">
           Loading...
         </div>
       }
@@ -55,6 +56,8 @@ export default function BuilderPage() {
     </Suspense>
   );
 }
+
+type MobilePanel = "setup" | "timeline" | "step";
 
 function BuilderInner() {
   const { user } = useAuth();
@@ -108,6 +111,13 @@ function BuilderInner() {
   useEffect(() => {
     if (!selectedId && scheduledSteps[0]) setSelectedId(scheduledSteps[0].templateStepId);
   }, [scheduledSteps, selectedId]);
+
+  // Below lg, the 3-panel desktop layout (Setup / Timeline / Step) doesn't
+  // fit side by side — shown one at a time instead, picked with the tab
+  // row in the mobile header. Starts on "timeline" since that's the main
+  // view; tapping a step on mobile jumps straight to "step" (see
+  // Timeline's onSelect below), matching how tapping a card should feel.
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("timeline");
 
   const [generating, setGenerating] = useState(false);
   const [variationPending, setVariationPending] = useState(false);
@@ -298,58 +308,103 @@ function BuilderInner() {
 
   if (loadingCampaign) {
     return (
-      <div className="h-screen flex items-center justify-center bg-ivory text-muted">
+      <div className="h-screen flex items-center justify-center bg-paper text-muted">
         Loading campaign...
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex bg-ivory text-slate font-body">
+    <div className="h-screen flex bg-gradient-to-br from-violet-50 via-white to-pink-50 text-slate font-body">
       <IconRail />
 
       <div className="flex-grow min-w-0 flex flex-col">
-        <header className="h-16 shrink-0 bg-white border-b border-[#DDD6C5] flex items-center gap-4 px-6">
-          <div className="font-display text-lg font-semibold tracking-tight">
-            {offer.name || "Untitled campaign"}
+        <header className="shrink-0 bg-paper border-b border-line flex flex-col gap-3 px-4 py-3 sm:px-6 sm:h-16 sm:flex-row sm:items-center sm:gap-4 sm:py-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link
+              href="/dashboard"
+              aria-label="Back to dashboard"
+              className="lg:hidden shrink-0 w-8 h-8 rounded-lg border border-line flex items-center justify-center text-muted"
+            >
+              <BackIcon />
+            </Link>
+            <div className="font-display text-base sm:text-lg font-semibold tracking-tight truncate">
+              {offer.name || "Untitled campaign"}
+            </div>
+            <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full bg-ivory text-muted text-xs font-semibold">
+              {campaignId ? "Saved" : "Draft"}
+            </span>
           </div>
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#ECE8DC] text-muted text-xs font-semibold">
-            {campaignId ? "Saved" : "Draft"}
-          </span>
-          {error && <span className="text-xs text-[#B42318]">{error}</span>}
-          <div className="flex-grow" />
-          <button className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] border border-faint bg-white text-sm font-semibold">
-            Preview
-          </button>
-          <button className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] border border-slate bg-slate text-white text-sm font-semibold">
-            Copy campaign
-          </button>
+          {error && <span className="text-xs text-dangerFg sm:ml-0">{error}</span>}
+          <div className="hidden sm:flex flex-grow" />
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            <button className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] border border-line bg-paper text-sm font-semibold">
+              Preview
+            </button>
+            <button className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold">
+              Copy campaign
+            </button>
+          </div>
         </header>
 
-        <div className="flex-grow min-h-0 flex">
-          <SetupPanel
-            offer={offer}
-            onOfferChange={setOffer}
-            winningCopy={winningCopy}
-            callThemes={callThemes}
-            onAddWinningCopy={handleAddWinningCopy}
-            onAddSalesCall={handleAddSalesCall}
-            onGenerate={generateCampaign}
-            generating={generating}
-          />
-          <Timeline
-            steps={steps}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            eventDate={eventDate}
-          />
-          <StepEditor
-            step={selected}
-            stepNumber={selectedIndex + 1}
-            totalSteps={steps.length}
-            onRequestVariation={requestVariation}
-            variationPending={variationPending}
-          />
+        {/* Mobile-only: pick which single panel is showing. The desktop
+            3-column layout below renders all three at once (lg:flex),
+            so this row — and the panel visibility it controls — only
+            matters below that breakpoint. */}
+        <div className="lg:hidden shrink-0 flex items-center gap-1.5 px-4 py-2 border-b border-line overflow-x-auto">
+          {(
+            [
+              ["setup", "Setup"],
+              ["timeline", "Timeline"],
+              ["step", "Step"],
+            ] as [MobilePanel, string][]
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setMobilePanel(key)}
+              aria-pressed={mobilePanel === key}
+              className={`shrink-0 h-8 px-3.5 rounded-full text-[13px] font-semibold ${
+                mobilePanel === key ? "bg-slate text-white" : "bg-ivory text-muted"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-grow min-h-0 flex flex-col lg:flex-row gap-3 p-3 lg:gap-4 lg:p-4 overflow-y-auto lg:overflow-visible">
+          <div className={`${mobilePanel === "setup" ? "flex" : "hidden"} lg:flex min-h-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>
+            <SetupPanel
+              offer={offer}
+              onOfferChange={setOffer}
+              winningCopy={winningCopy}
+              callThemes={callThemes}
+              onAddWinningCopy={handleAddWinningCopy}
+              onAddSalesCall={handleAddSalesCall}
+              onGenerate={generateCampaign}
+              generating={generating}
+            />
+          </div>
+          <div className={`${mobilePanel === "timeline" ? "flex" : "hidden"} lg:flex min-h-0 flex-grow min-w-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>
+            <Timeline
+              steps={steps}
+              selectedId={selectedId}
+              onSelect={(id) => {
+                setSelectedId(id);
+                setMobilePanel("step");
+              }}
+              eventDate={eventDate}
+            />
+          </div>
+          <div className={`${mobilePanel === "step" ? "flex" : "hidden"} lg:flex min-h-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>
+            <StepEditor
+              step={selected}
+              stepNumber={selectedIndex + 1}
+              totalSteps={steps.length}
+              onRequestVariation={requestVariation}
+              variationPending={variationPending}
+            />
+          </div>
         </div>
       </div>
 
@@ -381,5 +436,13 @@ function BuilderInner() {
         }
       />
     </div>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
   );
 }

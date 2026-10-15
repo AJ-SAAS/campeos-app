@@ -1,15 +1,17 @@
 import Link from "next/link";
 
-// The narrow dark icon-only nav on the left of the Campaign Builder —
-// from Builder.dc.html. Separate from the wider Sidebar used on the
-// dashboard pages; the builder needs the extra horizontal space.
+// The narrow icon-only nav on the left of the Campaign Builder. Light
+// theme to match the rest of the redesign (was a dark slab). Hidden
+// below lg — on a phone, someone deep in building one campaign doesn't
+// need the full nav rail; the builder page's own mobile header carries
+// a back-to-dashboard link instead, which is what they actually need.
 export function IconRail() {
   return (
-    <nav aria-label="Main" className="w-[72px] shrink-0 bg-slate flex flex-col items-center py-3.5 gap-1.5">
+    <nav aria-label="Main" className="hidden lg:flex w-[72px] shrink-0 bg-paper border-r border-line flex-col items-center py-3.5 gap-1.5">
       <Link
         href="/dashboard"
         aria-label="Campeos home"
-        className="w-9 h-9 rounded-[10px] bg-clay flex items-center justify-center mb-3.5"
+        className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-clay to-pink flex items-center justify-center mb-3.5"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" />
@@ -51,7 +53,7 @@ function RailIcon({
       aria-label={label}
       aria-current={active ? "page" : undefined}
       className={`w-11 h-11 rounded-xl flex items-center justify-center ${
-        active ? "bg-[#2E2C27] text-white" : "text-[#A9A497]"
+        active ? "bg-ivory text-clay" : "text-faint hover:bg-ivory"
       }`}
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

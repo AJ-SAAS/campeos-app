@@ -47,16 +47,21 @@ export function AgentLauncher({ campaign }: AgentLauncherProps) {
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close the agent" : "Ask the agent"}
         aria-expanded={open}
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-agent text-white shadow-[0_10px_28px_-4px_rgba(75,58,140,0.45)] flex items-center justify-center transition-transform duration-150 hover:scale-105 active:scale-95"
+        className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-clay to-pink text-white shadow-[0_10px_28px_-4px_rgba(124,58,237,0.4)] flex items-center justify-center transition-transform duration-150 hover:scale-105 active:scale-95"
       >
         {open ? <CloseIcon /> : <SparkIcon />}
       </button>
 
+      {/* Mobile: a near-full-screen sheet, since a fixed 380px popover
+          overflows a phone viewport entirely. Desktop keeps the original
+          anchored popover. */}
       <div
         role="dialog"
         aria-label="Agent"
         aria-hidden={!open}
-        className={`fixed bottom-24 right-6 z-40 w-[380px] max-h-[min(70vh,560px)] rounded-2xl shadow-[0_24px_64px_-12px_rgba(28,27,24,0.35)] origin-bottom-right transition-all duration-200 ${
+        className={`fixed z-40 rounded-2xl shadow-[0_24px_64px_-12px_rgba(19,23,26,0.3)] transition-all duration-200
+          inset-x-3 bottom-20 top-16 sm:inset-x-auto sm:top-auto sm:bottom-24 sm:right-6 sm:w-[380px] sm:max-h-[min(70vh,560px)]
+          origin-bottom-right ${
           open ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
         }`}
       >
@@ -64,7 +69,7 @@ export function AgentLauncher({ campaign }: AgentLauncherProps) {
           <button
             onClick={() => setOpen(false)}
             aria-label="Close the agent"
-            className="absolute top-3.5 right-4 z-10 w-7 h-7 rounded-full bg-[rgba(255,255,255,0.14)] text-ivory flex items-center justify-center hover:bg-[rgba(255,255,255,0.22)]"
+            className="absolute top-3.5 right-4 z-10 w-7 h-7 rounded-full bg-[rgba(255,255,255,0.16)] text-white flex items-center justify-center hover:bg-[rgba(255,255,255,0.26)]"
           >
             <CloseIcon small />
           </button>

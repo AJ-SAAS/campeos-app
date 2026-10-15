@@ -33,7 +33,7 @@ export function SetupPanel({
   }
 
   return (
-    <aside aria-label="Campaign setup" className="w-80 shrink-0 bg-white border-r border-[#DDD6C5] p-5 flex flex-col gap-4.5 overflow-y-auto">
+    <aside aria-label="Campaign setup" className="w-full lg:w-80 shrink-0 bg-paper p-4 sm:p-5 pb-24 lg:pb-5 flex flex-col gap-4.5 overflow-y-auto">
       <h2 className="font-display text-lg font-semibold">Campaign setup</h2>
 
       <div className="flex items-center justify-between gap-2 p-3.5 bg-ivory rounded-xl">
@@ -63,7 +63,7 @@ export function SetupPanel({
               className={`min-h-10 px-3.5 rounded-full text-[13px] font-semibold border ${
                 offer.tone === t
                   ? "bg-slate text-white border-slate"
-                  : "bg-white text-slate border-faint font-medium"
+                  : "bg-paper text-slate border-faint font-medium"
               }`}
             >
               {t}
@@ -77,7 +77,7 @@ export function SetupPanel({
       <button
         onClick={onGenerate}
         disabled={generating}
-        className="flex items-center justify-center gap-2 min-h-12 rounded-xl border border-slate bg-white text-slate text-sm font-semibold disabled:opacity-50"
+        className="flex items-center justify-center gap-2 min-h-12 rounded-xl bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold shadow-[0_8px_20px_-6px_rgba(124,58,237,0.5)] disabled:opacity-50"
       >
         {generating ? "Writing your campaign..." : "Generate campaign copy"}
       </button>
@@ -113,7 +113,7 @@ function WinningCopyCard({
   }
 
   return (
-    <div className="flex flex-col gap-2.5 p-3.5 border border-[#DDD6C5] rounded-xl">
+    <div className="flex flex-col gap-2.5 p-3.5 border border-line rounded-xl">
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold">What already works</div>
         <span className="font-mono text-xs text-muted">{winningCopy.length} winners</span>
@@ -136,9 +136,9 @@ function WinningCopyCard({
             onChange={(e) => setValue(e.target.value)}
             placeholder="Paste a headline or subject line that already converted..."
             rows={3}
-            className="border border-faint rounded-[10px] px-3 py-2 text-sm bg-white resize-none"
+            className="border border-faint rounded-[10px] px-3 py-2 text-sm bg-paper resize-none"
           />
-          {error && <div className="text-xs text-[#B42318]">{error}</div>}
+          {error && <div className="text-xs text-dangerFg">{error}</div>}
           <div className="flex gap-2">
             <button
               onClick={save}
@@ -153,7 +153,7 @@ function WinningCopyCard({
                 setValue("");
                 setError(null);
               }}
-              className="min-h-10 px-3 rounded-[10px] border border-faint bg-white text-sm font-semibold"
+              className="min-h-10 px-3 rounded-[10px] border border-faint bg-paper text-sm font-semibold"
             >
               Cancel
             </button>
@@ -162,7 +162,7 @@ function WinningCopyCard({
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center justify-center gap-1.5 min-h-11 rounded-[10px] border border-faint bg-white text-sm font-semibold"
+          className="inline-flex items-center justify-center gap-1.5 min-h-11 rounded-[10px] border border-faint bg-paper text-sm font-semibold"
         >
           + Add winning copy
         </button>
@@ -199,7 +199,7 @@ function SalesCallCard({
   }
 
   return (
-    <div className="flex flex-col gap-2.5 p-3.5 border border-[#DDD6C5] rounded-xl">
+    <div className="flex flex-col gap-2.5 p-3.5 border border-line rounded-xl">
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold">Why people buy</div>
         <span className="font-mono text-xs text-muted">{callThemes.length} themes</span>
@@ -222,9 +222,9 @@ function SalesCallCard({
             onChange={(e) => setValue(e.target.value)}
             placeholder="Paste the sales call transcript. We'll pull out the buyer's real reasons automatically."
             rows={5}
-            className="border border-faint rounded-[10px] px-3 py-2 text-sm bg-white resize-none"
+            className="border border-faint rounded-[10px] px-3 py-2 text-sm bg-paper resize-none"
           />
-          {error && <div className="text-xs text-[#B42318]">{error}</div>}
+          {error && <div className="text-xs text-dangerFg">{error}</div>}
           <div className="flex gap-2">
             <button
               onClick={save}
@@ -239,7 +239,7 @@ function SalesCallCard({
                 setValue("");
                 setError(null);
               }}
-              className="min-h-10 px-3 rounded-[10px] border border-faint bg-white text-sm font-semibold"
+              className="min-h-10 px-3 rounded-[10px] border border-faint bg-paper text-sm font-semibold"
             >
               Cancel
             </button>
@@ -248,7 +248,7 @@ function SalesCallCard({
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center justify-center gap-1.5 min-h-11 rounded-[10px] border border-faint bg-white text-sm font-semibold"
+          className="inline-flex items-center justify-center gap-1.5 min-h-11 rounded-[10px] border border-faint bg-paper text-sm font-semibold"
         >
           + Add a sales call
         </button>
@@ -273,7 +273,7 @@ function Field({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-11 border border-faint rounded-[10px] px-3 text-sm bg-white"
+        className="h-11 border border-faint rounded-[10px] px-3 text-sm bg-paper"
       />
     </div>
   );

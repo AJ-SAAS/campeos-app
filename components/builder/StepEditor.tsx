@@ -34,7 +34,7 @@ export function StepEditor({
 
   if (!step) {
     return (
-      <aside aria-label="Selected step" className="w-[360px] shrink-0 bg-white border-l border-[#DDD6C5] p-6 flex items-center justify-center text-sm text-faint">
+      <aside aria-label="Selected step" className="w-full lg:w-[360px] shrink-0 bg-paper p-6 flex items-center justify-center text-sm text-faint">
         Pick a step on the timeline.
       </aside>
     );
@@ -49,7 +49,7 @@ export function StepEditor({
   }
 
   return (
-    <aside aria-label="Selected step" className="w-[360px] shrink-0 bg-white border-l border-[#DDD6C5] p-6 flex flex-col gap-4 overflow-y-auto">
+    <aside aria-label="Selected step" className="w-full lg:w-[360px] shrink-0 bg-paper p-4 sm:p-6 pb-24 lg:pb-6 flex flex-col gap-4 overflow-y-auto">
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#E4EDF8] text-[#1F5FA6]">
           {LANE_LABEL[step.channel] ?? step.channel}
@@ -87,7 +87,7 @@ export function StepEditor({
         <div className="text-sm leading-relaxed">{step.purpose}</div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-mono text-[11px] uppercase tracking-wider text-muted">Built from</span>
-          <span className="px-2 py-0.5 rounded-full bg-white border border-[#DDD6C5] text-xs font-semibold">
+          <span className="px-2 py-0.5 rounded-full bg-paper border border-line text-xs font-semibold">
             {step.copy?.source ?? "Not generated yet"}
           </span>
         </div>
@@ -107,7 +107,7 @@ export function StepEditor({
       ))}
 
       {needs && (
-        <div className="px-3 py-2.5 rounded-[10px] bg-[#FCEFC7] text-[#7A4B00] text-[13px] leading-snug">
+        <div className="px-3 py-2.5 rounded-[10px] bg-warnBg text-warnFg text-[13px] leading-snug">
           Fill in the parts in [CAPS] before you copy this step.
         </div>
       )}
@@ -127,7 +127,7 @@ export function StepEditor({
             Make it shorter
           </SuggestionChip>
         </div>
-        <div className="flex items-center gap-2 min-h-11 px-1 pl-3.5 border border-faint rounded-xl bg-white">
+        <div className="flex items-center gap-2 min-h-11 px-1 pl-3.5 border border-faint rounded-xl bg-paper">
           <input
             type="text"
             value={instruction}
@@ -158,7 +158,7 @@ function SuggestionChip({ children, onClick }: { children: React.ReactNode; onCl
   return (
     <button
       onClick={onClick}
-      className="min-h-8 px-2.5 rounded-full border border-line bg-white text-[#4F4B42] text-xs font-medium"
+      className="min-h-8 px-2.5 rounded-full border border-line bg-paper text-muted text-xs font-medium"
     >
       {children}
     </button>
@@ -173,7 +173,7 @@ function needsInput(step: UIStep): boolean {
 
 function ClockIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C584D" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B6560" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
     </svg>
   );

@@ -245,10 +245,10 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
 
   if (!user) {
     return (
-      <section className="flex flex-col bg-white border border-[#DDD6C5] rounded-2xl overflow-hidden min-h-[320px]">
-        <div className="bg-slate flex items-center gap-2.5 px-5 py-4">
+      <section className="flex flex-col bg-paper border border-line rounded-2xl overflow-hidden min-h-[280px] sm:min-h-[320px]">
+        <div className="bg-gradient-to-r from-clay to-pink flex items-center gap-2.5 px-5 py-4">
           <AgentIcon />
-          <span className="font-display text-base font-semibold text-ivory">Agent</span>
+          <span className="font-display text-base font-semibold text-white">Agent</span>
         </div>
         <div className="flex-grow flex items-center justify-center text-sm text-faint px-6 text-center">
           Sign in to talk to the agent and build a campaign.
@@ -266,32 +266,32 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
   return (
     <section
       aria-label="Agent"
-      className="flex flex-col min-h-0 bg-white border border-[#DDD6C5] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(28,27,24,0.04),0_28px_56px_-26px_rgba(75,58,140,0.3)]"
+      className="flex flex-col min-h-0 bg-paper border border-line rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(19,23,26,0.04),0_20px_44px_-24px_rgba(19,23,26,0.25)]"
     >
-      <div className="shrink-0 bg-slate flex items-center gap-2.5 px-5 py-4">
+      <div className="shrink-0 bg-gradient-to-r from-clay to-pink flex items-center gap-2.5 px-5 py-4">
         <AgentIcon />
-        <span className="font-display text-base font-semibold text-ivory">Agent</span>
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[rgba(27,107,79,0.3)] text-[#8FD9BB] text-[11px] font-semibold">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#4ADE9A]" />
+        <span className="font-display text-base font-semibold text-white">Agent</span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[rgba(255,255,255,0.16)] text-lime text-[11px] font-semibold">
+          <span className="w-1.5 h-1.5 rounded-full bg-lime" />
           Online
         </span>
       </div>
 
-      <div ref={scrollRef} className="flex-grow min-h-[260px] max-h-[460px] overflow-y-auto flex flex-col gap-3.5 px-5 py-5 bg-[#FAF8FC]">
+      <div ref={scrollRef} className="flex-grow min-h-[240px] sm:min-h-[260px] max-h-[460px] overflow-y-auto flex flex-col gap-3.5 px-4 sm:px-5 py-5 bg-ivory">
         {messages.length === 0 && <div className="text-sm text-faint">{emptyStateText}</div>}
         {messages.map((m, i) =>
           m.role === "user" ? (
             <div key={i} className="flex justify-end">
-              <div className="bg-slate text-ivory rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-[13.5px] leading-relaxed max-w-[420px]">
+              <div className="bg-slate text-white rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-[13.5px] leading-relaxed max-w-[85%] sm:max-w-[420px]">
                 {m.content}
               </div>
             </div>
           ) : (
-            <div key={i} className="flex gap-2.5 items-start">
-              <span className="w-[26px] h-[26px] rounded-full bg-agent flex items-center justify-center shrink-0 mt-0.5">
+            <div key={i} className="flex gap-2.5 items-start max-w-[90%] sm:max-w-[440px]">
+              <span className="w-[26px] h-[26px] rounded-full bg-clay flex items-center justify-center shrink-0 mt-0.5">
                 <AgentIcon small />
               </span>
-              <div className="bg-white border border-[#E1DAF0] rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[13.5px] leading-relaxed max-w-[440px] whitespace-pre-line">
+              <div className="bg-paper border border-line rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-line">
                 {m.content}
               </div>
             </div>
@@ -299,26 +299,26 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
         )}
         {sending && !buildTrace && (
           <div className="flex gap-2.5 items-start">
-            <span className="w-[26px] h-[26px] rounded-full bg-agent flex items-center justify-center shrink-0 mt-0.5">
+            <span className="w-[26px] h-[26px] rounded-full bg-clay flex items-center justify-center shrink-0 mt-0.5">
               <AgentIcon small />
             </span>
-            <div className="bg-white border border-[#E1DAF0] rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono">
+            <div className="bg-paper border border-line rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono">
               ...
             </div>
           </div>
         )}
         {buildTrace && (
           <div className="flex gap-2.5 items-start">
-            <span className="w-[26px] h-[26px] rounded-full bg-agent flex items-center justify-center shrink-0 mt-0.5">
+            <span className="w-[26px] h-[26px] rounded-full bg-clay flex items-center justify-center shrink-0 mt-0.5">
               <AgentIcon small />
             </span>
-            <div className="bg-white border border-[#E1DAF0] rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono flex flex-col gap-1">
+            <div className="bg-paper border border-line rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono flex flex-col gap-1">
               {buildTrace.map((line, i) => (
                 <div key={i} className="flex items-center gap-1.5">
                   {i === buildTrace.length - 1 ? (
-                    <span className="w-1.5 h-1.5 rounded-full bg-agent animate-pulse shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-clay animate-pulse shrink-0" />
                   ) : (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#1B6B4F] shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-clay shrink-0" />
                   )}
                   {line}
                 </div>
@@ -328,9 +328,9 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
         )}
       </div>
 
-      {error && <div className="px-5 pt-2 text-xs text-[#B42318]">{error}</div>}
+      {error && <div className="px-5 pt-2 text-xs text-dangerFg">{error}</div>}
 
-      <div className="shrink-0 flex items-center gap-2 px-5 py-4 border-t border-line">
+      <div className="shrink-0 flex items-center gap-2 px-4 sm:px-5 py-4 border-t border-line">
         <input
           type="text"
           value={input}
@@ -345,13 +345,13 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
             campaign ? "Ask the agent to change something..." : "Tell the agent what to build or change..."
           }
           disabled={sending || !!buildTrace}
-          className="flex-grow min-w-0 h-[46px] border-[1.5px] border-agent rounded-xl px-3.5 text-[13.5px] font-body text-slate bg-white disabled:opacity-60"
+          className="flex-grow min-w-0 h-[46px] border-[1.5px] border-clay rounded-xl px-3.5 text-[13.5px] font-body text-slate bg-paper disabled:opacity-60"
         />
         <button
           onClick={send}
           disabled={sending || !!buildTrace || !input.trim()}
           aria-label="Send"
-          className="shrink-0 w-10 h-10 rounded-[11px] bg-agent text-white flex items-center justify-center disabled:opacity-50"
+          className="shrink-0 w-10 h-10 rounded-[11px] bg-gradient-to-br from-clay to-pink text-white flex items-center justify-center disabled:opacity-50"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 19V5M5 12l7-7 7 7" />
