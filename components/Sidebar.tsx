@@ -27,9 +27,8 @@ export function Sidebar({ active }: { active: "dashboard" | "campaigns" }) {
     <>
       <aside className="hidden md:flex w-60 shrink-0 bg-paper border-r border-line text-slate flex-col p-4 gap-7">
         <div className="flex items-center gap-2.5 px-1">
-          <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-clay to-pink flex items-center justify-center">
-            <LogoMark />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
+          <img src="/logo-mark.png" alt="" className="w-9 h-9 rounded-[10px] object-contain" />
           <div className="font-display text-xl font-semibold tracking-tight">
             Campeos
           </div>
@@ -95,9 +94,8 @@ export function Sidebar({ active }: { active: "dashboard" | "campaigns" }) {
           has room for the four nav destinations. */}
       <header className="md:hidden flex items-center justify-between h-14 px-4 border-b border-line bg-paper">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-[8px] bg-gradient-to-br from-clay to-pink flex items-center justify-center">
-            <LogoMark small />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
+          <img src="/logo-mark.png" alt="" className="w-7 h-7 rounded-[8px] object-contain" />
           <span className="font-display text-base font-semibold tracking-tight">Campeos</span>
         </div>
         {!loading && (
@@ -189,15 +187,6 @@ function MobileNavItem({
   );
 }
 
-function LogoMark({ small }: { small?: boolean }) {
-  const size = small ? 16 : 20;
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" />
-      <path d="M7 6h4c3 0 4 2 4 4M7 18h4c3 0 4-2 4-4" />
-    </svg>
-  );
-}
 function GridIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

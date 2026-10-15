@@ -8,15 +8,9 @@ import Link from "next/link";
 export function IconRail() {
   return (
     <nav aria-label="Main" className="hidden lg:flex w-[72px] shrink-0 bg-paper border-r border-line flex-col items-center py-3.5 gap-1.5">
-      <Link
-        href="/dashboard"
-        aria-label="Campeos home"
-        className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-clay to-pink flex items-center justify-center mb-3.5"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" />
-          <path d="M7 6h4c3 0 4 2 4 4M7 18h4c3 0 4-2 4-4" />
-        </svg>
+      <Link href="/dashboard" aria-label="Campeos home" className="mb-3.5">
+        {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
+        <img src="/logo-mark.png" alt="" className="w-9 h-9 rounded-[10px] object-contain" />
       </Link>
       <RailIcon href="/dashboard" label="Dashboard">
         <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
