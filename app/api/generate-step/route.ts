@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { generateStepCopy, generateStepVariation } from "@/lib/ai/generateStepCopy";
+import { canGenerate } from "@/lib/access";
 
 // This route does two jobs, picked by the "mode" field:
 //   "generate"  — write fresh copy for one or more steps (called in
@@ -38,6 +39,7 @@ const sourceSchema = z.object({
 
 const generateRequestSchema = z.object({
   mode: z.literal("generate"),
+  uid: z.string(),
   offer: offerSchema,
   steps: z.array(z.object({ templateStepId: z.string(), step: stepSchema })),
   source: sourceSchema,
@@ -45,6 +47,7 @@ const generateRequestSchema = z.object({
 
 const variationRequestSchema = z.object({
   mode: z.literal("variation"),
+  uid: z.string(),
   offer: offerSchema,
   step: stepSchema,
   currentCopy: z.record(z.string()),
@@ -66,6 +69,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Request didn't match the expected shape.", details: parsed.error.flatten() },
       { status: 400 }
+    );
+  }
+
+  // Paid only, no free tier — this is the one route that actually spends
+  // OpenAI money, so it's the real paywall. See lib/access.ts.
+  const allowed = await canGenerate(parsed.data.uid);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Subscribe to generate campaign copy — see /billing." },
+      { status: 402 }
     );
   }
 

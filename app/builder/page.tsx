@@ -191,6 +191,7 @@ function BuilderInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "generate",
+          uid: user.uid,
           offer,
           steps: scheduledSteps.map((s) => ({
             templateStepId: s.templateStepId,
@@ -277,6 +278,7 @@ function BuilderInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "variation",
+          uid: user.uid,
           offer,
           step: {
             channel: selected.channel,
