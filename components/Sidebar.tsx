@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/firebase/AuthProvider";
+import { useSubscription } from "@/lib/firebase/useSubscription";
 
 // Light, hairline-bordered nav — Cloudflare's own left nav is a quiet
 // white column, not a dark slab, so this moved off bg-slate entirely.
@@ -16,6 +17,7 @@ export function Sidebar({
   active: "dashboard" | "campaigns" | "winning-copy" | "buyer-insights";
 }) {
   const { user, loading, signIn, signOut } = useAuth();
+  const { sub, loading: subLoading, active: subActive } = useSubscription();
   const [authError, setAuthError] = useState<string | null>(null);
 
   async function handleSignIn() {
@@ -68,8 +70,16 @@ export function Sidebar({
                   <PersonIcon />
                 )}
               </div>
-              <div className="flex-grow min-w-0 text-sm font-medium truncate">
-                {user.displayName ?? user.email}
+              <div className="flex-grow min-w-0">
+                <div className="text-sm font-medium truncate">{user.displayName ?? user.email}</div>
+                {!subLoading && (
+                  <Link
+                    href="/billing"
+                    className={`text-xs truncate ${subActive ? "text-muted" : "text-clay font-semibold"}`}
+                  >
+                    {subActive ? `${planLabel(sub?.plan)} plan` : "No plan — subscribe"}
+                  </Link>
+                )}
               </div>
               <button
                 onClick={() => signOut()}
@@ -221,6 +231,12 @@ function BarsIcon() {
     </svg>
   );
 }
+function planLabel(plan: "starter" | "pro" | null | undefined): string {
+  if (plan === "starter") return "Starter";
+  if (plan === "pro") return "Pro";
+  return "";
+}
+
 function PersonIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A9089" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -4,24 +4,18 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
-import { getSubscription, isActive } from "@/lib/firebase/subscription";
-import { PlanKey } from "@/lib/stripe/client";
+import { getBusinessProfile } from "@/lib/firebase/businessProfile";
 
-// The one sign-in/create-account page for the whole app. Hard paywall —
-// "you want access, you pay" — so "create account" always ends at
-// Stripe Checkout for a chosen plan, never at a free dashboard.
-// "sign in" is for a returning user: if their subscription is active
-// they land on /dashboard, if not they land on /billing to pick one.
+// The one sign-in/create-account page for the whole app. Soft gate,
+// mailcheap.ai-style — create an account, answer a few onboarding
+// questions, land in the dashboard. Payment happens later, at
+// generate-time or from the dashboard's nag banner, not here. So
+// "create account" always ends at /onboarding, never at Stripe
+// Checkout — there's no plan to pick yet.
 //
 // Arrives here two ways:
-//   /auth                 - nav "Sign in", defaults to the sign-in tab
-//   /auth?plan=starter    - a pricing-page plan button, defaults to the
-//                           create-account tab with that plan selected
-const PLAN_COPY: Record<PlanKey, { name: string; price: string }> = {
-  starter: { name: "Starter", price: "$39/mo" },
-  pro: { name: "Pro", price: "$99/mo" },
-};
-
+//   /auth          - nav "Sign in", defaults to the sign-in tab
+//   /auth?signup   - a landing-page CTA, defaults to the create-account tab
 export default function AuthPage() {
   return (
     <Suspense
@@ -40,11 +34,9 @@ function AuthInner() {
   const { user, loading: authLoading, signIn, signUpWithEmail, signInWithEmail } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const planParam = searchParams.get("plan");
-  const initialPlan: PlanKey = planParam === "pro" ? "pro" : "starter";
+  const wantsSignup = searchParams.has("signup");
 
-  const [mode, setMode] = useState<"signup" | "signin">(planParam ? "signup" : "signin");
-  const [plan, setPlan] = useState<PlanKey>(initialPlan);
+  const [mode, setMode] = useState<"signup" | "signin">(wantsSignup ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -52,31 +44,21 @@ function AuthInner() {
 
   // Already signed in and lands here anyway (bookmark, back button) —
   // route the same way a fresh sign-in would, instead of showing the form.
+  // useRequireAccess (run from the destination page) is what actually
+  // decides dashboard vs. onboarding; this just gets them off /auth.
   useEffect(() => {
     if (authLoading || !user) return;
-    getSubscription(user.uid).then((sub) => {
-      router.replace(isActive(sub) ? "/dashboard" : "/billing");
+    getBusinessProfile(user.uid).then((profile) => {
+      router.replace(profile ? "/dashboard" : "/onboarding");
     });
   }, [authLoading, user, router]);
 
-  async function afterSignUp(uid: string, userEmail: string | null) {
-    if (!userEmail) {
-      setError("That account has no email address to bill — try a different sign-in method.");
-      return;
-    }
-    const res = await fetch("/api/stripe/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uid, email: userEmail, plan }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? "Checkout failed.");
-    window.location.href = data.url;
+  function afterSignUp() {
+    router.push("/onboarding");
   }
 
-  async function afterSignIn(uid: string) {
-    const sub = await getSubscription(uid);
-    router.push(isActive(sub) ? "/dashboard" : "/billing");
+  function afterSignIn() {
+    router.push("/dashboard");
   }
 
   async function handleEmailSubmit(e: React.FormEvent) {
@@ -86,23 +68,10 @@ function AuthInner() {
     try {
       if (mode === "signup") {
         await signUpWithEmail(email, password);
-        // onAuthStateChanged hasn't necessarily fired with the new user
-        // yet, but createUserWithEmailAndPassword's own resolved result
-        // isn't threaded here — read auth.currentUser indirectly via a
-        // fresh signIn is unnecessary; Firebase sets it synchronously
-        // with the promise resolving, so `auth.currentUser` is already
-        // this user by the time we get here.
-        const { auth } = await import("@/lib/firebase/client");
-        const uid = auth.currentUser?.uid;
-        const userEmail = auth.currentUser?.email ?? email;
-        if (!uid) throw new Error("Account created, but sign-in didn't complete. Try signing in.");
-        await afterSignUp(uid, userEmail);
+        afterSignUp();
       } else {
         await signInWithEmail(email, password);
-        const { auth } = await import("@/lib/firebase/client");
-        const uid = auth.currentUser?.uid;
-        if (!uid) throw new Error("Sign-in didn't complete. Try again.");
-        await afterSignIn(uid);
+        afterSignIn();
       }
     } catch (err) {
       setError(err instanceof Error ? friendlyAuthError(err.message) : "Something went wrong.");
@@ -115,14 +84,10 @@ function AuthInner() {
     setPending("google");
     try {
       await signIn();
-      const { auth } = await import("@/lib/firebase/client");
-      const uid = auth.currentUser?.uid;
-      const userEmail = auth.currentUser?.email ?? null;
-      if (!uid) throw new Error("Sign-in didn't complete. Try again.");
       if (mode === "signup") {
-        await afterSignUp(uid, userEmail);
+        afterSignUp();
       } else {
-        await afterSignIn(uid);
+        afterSignIn();
       }
     } catch (err) {
       setError(err instanceof Error ? friendlyAuthError(err.message) : "Something went wrong.");
@@ -147,30 +112,10 @@ function AuthInner() {
             </h1>
             <p className="text-sm text-muted">
               {mode === "signup"
-                ? "Pick a plan, create your account, and you're straight into the builder."
+                ? "Create your account — a few quick questions, then you're in."
                 : "Welcome back."}
             </p>
           </div>
-
-          {mode === "signup" && (
-            <div className="flex gap-2.5" role="radiogroup" aria-label="Plan">
-              {(Object.keys(PLAN_COPY) as PlanKey[]).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  role="radio"
-                  aria-checked={plan === key}
-                  onClick={() => setPlan(key)}
-                  className={`flex-1 text-left rounded-2xl border px-4 py-3.5 transition-colors ${
-                    plan === key ? "border-clay bg-agentWash" : "border-line bg-paper"
-                  }`}
-                >
-                  <div className="text-sm font-bold">{PLAN_COPY[key].name}</div>
-                  <div className="font-mono text-xs text-muted">{PLAN_COPY[key].price}</div>
-                </button>
-              ))}
-            </div>
-          )}
 
           {error && (
             <div className="px-4 py-3 rounded-xl bg-warnBg text-warnFg text-sm leading-snug">{error}</div>
@@ -223,7 +168,7 @@ function AuthInner() {
               {pending === "email"
                 ? "Working..."
                 : mode === "signup"
-                ? `Continue to checkout — ${PLAN_COPY[plan].price}`
+                ? "Create account"
                 : "Sign in"}
             </button>
           </form>
@@ -254,7 +199,7 @@ function AuthInner() {
                   }}
                   className="font-semibold text-slate"
                 >
-                  Pick a plan
+                  Create one
                 </button>
               </>
             )}

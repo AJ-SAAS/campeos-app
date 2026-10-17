@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
+import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { AgentPanel } from "@/components/agent/AgentPanel";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
+import { useSubscription } from "@/lib/firebase/useSubscription";
 import { Campaign, listCampaigns } from "@/lib/firebase/campaigns";
 
 // "Dashboard: in the works" — from Main.dc.html, redesigned around the
@@ -28,6 +30,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const { ready } = useRequireAccess();
+  const { loading: subLoading, active } = useSubscription();
 
   useEffect(() => {
     if (!user) {
@@ -37,15 +40,18 @@ export default function Dashboard() {
     listCampaigns(user.uid).then(setCampaigns);
   }, [user]);
 
-  // Not signed in / not subscribed -> useRequireAccess is already
-  // redirecting to /auth or /billing. Don't flash the dashboard shell
-  // in the meantime.
+  // Not signed in / onboarding not finished -> useRequireAccess is
+  // already redirecting to /auth or /onboarding. Don't flash the
+  // dashboard shell in the meantime. No subscription check here — the
+  // dashboard itself is free to browse (see useRequireAccess's comment).
   if (!ready) {
     return <div className="min-h-screen bg-paper" />;
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-paper text-slate font-body">
+    <div className="min-h-screen flex flex-col bg-paper text-slate font-body">
+      {!subLoading && !active && <SubscribeBanner />}
+      <div className="flex-grow flex flex-col md:flex-row min-h-0">
       <Sidebar active="dashboard" />
 
       <main className="flex-grow min-w-0 px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 lg:gap-8 pb-24 md:pb-10">
@@ -137,6 +143,7 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+      </div>
     </div>
   );
 }

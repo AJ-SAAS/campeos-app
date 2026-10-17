@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
+import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
+import { useSubscription } from "@/lib/firebase/useSubscription";
 import {
   WinningCopyEntry,
   addWinningCopy,
@@ -20,6 +22,7 @@ import {
 export default function WinningCopyPage() {
   const { user } = useAuth();
   const { ready } = useRequireAccess();
+  const { loading: subLoading, active } = useSubscription();
   const [entries, setEntries] = useState<WinningCopyEntry[] | null>(null);
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -64,7 +67,9 @@ export default function WinningCopyPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-paper text-slate font-body">
+    <div className="min-h-screen flex flex-col bg-paper text-slate font-body">
+      {!subLoading && !active && <SubscribeBanner />}
+      <div className="flex-grow flex flex-col md:flex-row">
       <Sidebar active="winning-copy" />
 
       <main className="flex-grow min-w-0 px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 pb-24 md:pb-10 max-w-2xl">
@@ -129,6 +134,7 @@ export default function WinningCopyPage() {
           ))}
         </div>
       </main>
+      </div>
     </div>
   );
 }

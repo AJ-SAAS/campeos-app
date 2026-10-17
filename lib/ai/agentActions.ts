@@ -7,9 +7,11 @@ import { createCampaign, CampaignStepDoc, saveStepCopy } from "@/lib/firebase/ca
 import { checkAndIncrementUsage } from "@/lib/firebase/usage";
 import { saveBusinessProfile } from "@/lib/firebase/businessProfile";
 import { listWinningCopy, listCallThemes } from "@/lib/firebase/library";
+import { getSubscription, isActive } from "@/lib/firebase/subscription";
 import { CreateCampaignArgs } from "@/lib/ai/agent";
 
 export class UsageLimitError extends Error {}
+export class SubscriptionRequiredError extends Error {}
 
 /**
  * Runs the agent's create_campaign tool call for real: builds the
@@ -31,6 +33,17 @@ export async function executeCreateCampaign(
   const eventDate = new Date(`${args.webinarDate}T19:00:00`);
   if (Number.isNaN(eventDate.getTime())) {
     throw new Error(`Couldn't understand the webinar date "${args.webinarDate}".`);
+  }
+
+  // The dashboard and builder are visible without a subscription (soft
+  // gate) — this is the actual enforcement point, the moment copy would
+  // get written. Mirrors the same check in app/builder/page.tsx's
+  // generateCampaign(), which is the other path to this same write.
+  const sub = await getSubscription(uid);
+  if (!isActive(sub)) {
+    throw new SubscriptionRequiredError(
+      "Pick a plan before I can write your campaign — head to Billing to subscribe, then come back."
+    );
   }
 
   const scheduledSteps = buildTimeline(webinarTemplate, { event: eventDate });

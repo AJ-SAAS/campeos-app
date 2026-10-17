@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IconRail } from "@/components/builder/IconRail";
+import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { SetupPanel } from "@/components/builder/SetupPanel";
 import { Timeline, UIStep } from "@/components/builder/Timeline";
 import { StepEditor } from "@/components/builder/StepEditor";
@@ -14,6 +15,8 @@ import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext, formatForPrompt } from "@/lib/ai/prompts";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
+import { useSubscription } from "@/lib/firebase/useSubscription";
+import { getSubscription, isActive } from "@/lib/firebase/subscription";
 import {
   createCampaign,
   getCampaignWithSteps,
@@ -64,6 +67,7 @@ type MobilePanel = "setup" | "timeline" | "step";
 function BuilderInner() {
   const { user } = useAuth();
   const { ready } = useRequireAccess();
+  const { loading: subLoading, active } = useSubscription();
   const router = useRouter();
   const searchParams = useSearchParams();
   const existingId = searchParams.get("id");
@@ -177,6 +181,17 @@ function BuilderInner() {
     setGenerating(true);
     setError(null);
     try {
+      // Soft gate: the dashboard and builder are visible without a
+      // subscription, but writing copy is the actual paid action — same
+      // check lib/ai/agentActions.ts's executeCreateCampaign makes for
+      // the agent's build path.
+      const sub = await getSubscription(user.uid);
+      if (!isActive(sub)) {
+        setError("Pick a plan to generate campaign copy — click your plan in the sidebar to subscribe.");
+        setGenerating(false);
+        return;
+      }
+
       // Same daily cap the agent's build path already enforces (see
       // lib/firebase/usage.ts) — this was the one way to burn through
       // the OpenAI budget with no limit at all, since it's a manual
@@ -353,7 +368,9 @@ function BuilderInner() {
   }
 
   return (
-    <div className="h-screen flex bg-gradient-to-br from-violet-50 via-white to-pink-50 text-slate font-body">
+    <div className="h-screen flex flex-col bg-paper text-slate font-body">
+      {!subLoading && !active && <SubscribeBanner />}
+      <div className="flex-grow min-h-0 flex bg-gradient-to-br from-violet-50 via-white to-pink-50">
       <IconRail />
 
       <div className="flex-grow min-w-0 flex flex-col">
@@ -481,6 +498,7 @@ function BuilderInner() {
             : undefined
         }
       />
+      </div>
     </div>
   );
 }

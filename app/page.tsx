@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
-import { getSubscription, isActive } from "@/lib/firebase/subscription";
 import { PlanKey } from "@/lib/stripe/client";
 
 // The marketing/sales page at campeos.com — the first-touch page for
@@ -192,14 +191,12 @@ export default function MarketingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   // Signed-in users who land on "/" (bookmark, back button) belong on
-  // the dashboard if they're subscribed, or on billing to finish
-  // subscribing if they're not — hard paywall, so there's no free
-  // dashboard to send them to either way.
+  // the dashboard — soft gate, so no subscription check gates it.
+  // useRequireAccess (run from the dashboard itself) is what sends an
+  // onboarding-incomplete user on to /onboarding instead.
   useEffect(() => {
     if (authLoading || !user) return;
-    getSubscription(user.uid).then((sub) => {
-      router.replace(isActive(sub) ? "/dashboard" : "/billing");
-    });
+    router.replace("/dashboard");
   }, [authLoading, user, router]);
 
   // Signed-in users get an empty shell for the instant it takes the
@@ -489,7 +486,7 @@ export default function MarketingPage() {
                 ))}
               </ul>
               <Link
-                href={`/auth?plan=${p.key}`}
+                href="/auth?signup"
                 className={`mt-1 text-center text-sm font-bold py-3 rounded-[11px] ${
                   p.dark ? "bg-white text-slate" : "bg-ivory text-slate border border-line"
                 }`}

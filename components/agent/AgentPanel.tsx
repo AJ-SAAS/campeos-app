@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { addAgentMessage, listAgentMessages } from "@/lib/firebase/agentThreads";
 import { getBusinessProfile, BusinessProfile } from "@/lib/firebase/businessProfile";
-import { executeCreateCampaign, executeEditStep, UsageLimitError } from "@/lib/ai/agentActions";
+import { executeCreateCampaign, executeEditStep, UsageLimitError, SubscriptionRequiredError } from "@/lib/ai/agentActions";
 import { AgentChatMessage, CreateCampaignArgs, EditStepArgs } from "@/lib/ai/agent";
 import { buildTimeline } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
@@ -190,7 +190,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
       router.push(`/builder?id=${result.campaignId}`);
     } catch (err) {
       const message =
-        err instanceof UsageLimitError
+        err instanceof UsageLimitError || err instanceof SubscriptionRequiredError
           ? err.message
           : err instanceof Error
             ? `I ran into a problem building that: ${err.message}`
