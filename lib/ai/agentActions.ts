@@ -2,7 +2,7 @@
 
 import { buildTimeline } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
-import { OfferContext, StepContext } from "@/lib/ai/prompts";
+import { OfferContext, StepContext, formatForPrompt } from "@/lib/ai/prompts";
 import { createCampaign, CampaignStepDoc, saveStepCopy } from "@/lib/firebase/campaigns";
 import { checkAndIncrementUsage } from "@/lib/firebase/usage";
 import { saveBusinessProfile } from "@/lib/firebase/businessProfile";
@@ -21,7 +21,12 @@ export class UsageLimitError extends Error {}
  */
 export async function executeCreateCampaign(
   uid: string,
-  args: CreateCampaignArgs
+  args: CreateCampaignArgs,
+  // The signed-in user's display name, for real email sign-offs instead of
+  // a [YOUR NAME] placeholder — see OfferContext.fromName in
+  // lib/ai/prompts.ts. Passed in by the caller (AgentPanel.tsx) rather than
+  // looked up here, since this file has no access to Firebase Auth state.
+  fromName?: string
 ): Promise<{ campaignId: string; stepCount: number; writtenCount: number; failedCount: number }> {
   const eventDate = new Date(`${args.webinarDate}T19:00:00`);
   if (Number.isNaN(eventDate.getTime())) {
@@ -53,7 +58,10 @@ export async function executeCreateCampaign(
     audience: args.audience,
     whatTheyGet: args.whatTheyGet,
     tone: args.tone,
+    fromName,
   };
+
+  const eventAt = formatForPrompt(eventDate);
 
   // Same source material the builder's own "Generate campaign copy"
   // button uses (lib/firebase/library.ts) — the agent's path was
@@ -81,6 +89,8 @@ export async function executeCreateCampaign(
           persuasionElements: s.persuasionElements,
           phaseName: s.phaseName,
           phaseObjective: s.phaseObjective,
+          scheduledAt: formatForPrompt(s.scheduledAt),
+          eventAt,
           fields: s.fields,
         },
       })),

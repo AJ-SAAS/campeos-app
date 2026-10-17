@@ -11,7 +11,7 @@ import { AgentLauncher } from "@/components/agent/AgentLauncher";
 import { AgentPanelCampaignStep } from "@/components/agent/AgentPanel";
 import { buildTimeline, ScheduledStep } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
-import { OfferContext } from "@/lib/ai/prompts";
+import { OfferContext, formatForPrompt } from "@/lib/ai/prompts";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import {
   createCampaign,
@@ -188,13 +188,14 @@ function BuilderInner() {
         return;
       }
 
+      const eventAt = formatForPrompt(eventDate);
       const res = await fetch("/api/generate-step", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "generate",
           uid: user.uid,
-          offer,
+          offer: { ...offer, fromName: user.displayName ?? undefined },
           steps: scheduledSteps.map((s) => ({
             templateStepId: s.templateStepId,
             step: {
@@ -206,6 +207,8 @@ function BuilderInner() {
               persuasionElements: s.persuasionElements,
               phaseName: s.phaseName,
               phaseObjective: s.phaseObjective,
+              scheduledAt: formatForPrompt(s.scheduledAt),
+              eventAt,
               fields: s.fields,
             },
           })),
@@ -294,7 +297,7 @@ function BuilderInner() {
         body: JSON.stringify({
           mode: "variation",
           uid: user.uid,
-          offer,
+          offer: { ...offer, fromName: user.displayName ?? undefined },
           step: {
             channel: selected.channel,
             title: selected.title,
@@ -304,6 +307,8 @@ function BuilderInner() {
             persuasionElements: selected.persuasionElements,
             phaseName: selected.phaseName,
             phaseObjective: selected.phaseObjective,
+            scheduledAt: formatForPrompt(selected.scheduledAt),
+            eventAt: formatForPrompt(eventDate),
             fields: selected.fields,
           },
           currentCopy: selected.copy ?? {},
@@ -440,7 +445,7 @@ function BuilderInner() {
           campaignId
             ? {
                 campaignId,
-                offer,
+                offer: { ...offer, fromName: user?.displayName ?? undefined },
                 steps: steps.map(
                   (s): AgentPanelCampaignStep => ({
                     templateStepId: s.templateStepId,
@@ -452,6 +457,8 @@ function BuilderInner() {
                     persuasionElements: s.persuasionElements,
                     phaseName: s.phaseName,
                     phaseObjective: s.phaseObjective,
+                    scheduledAt: formatForPrompt(s.scheduledAt),
+                    eventAt: formatForPrompt(eventDate),
                     fields: s.fields,
                     copy: s.copy ?? null,
                   })

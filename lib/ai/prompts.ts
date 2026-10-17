@@ -21,6 +21,15 @@ export interface OfferContext {
    * memory) built before this existed still compile and still work.
    */
   readingLevel?: string;
+  /**
+   * The signed-in user's own display name, used to sign off emails for
+   * real instead of leaving a [YOUR NAME] placeholder — which, before
+   * this existed, was the single biggest source of "needs input" flags
+   * across a campaign (every email ends with a sign-off). Optional:
+   * when missing, the prompt tells the model to sign off without a name
+   * at all rather than invent a bracket placeholder for it.
+   */
+  fromName?: string;
 }
 
 export interface StepContext {
@@ -42,7 +51,33 @@ export interface StepContext {
    * Also optional for the same reason as `goals`. */
   phaseName?: string;
   phaseObjective?: string;
+  /**
+   * When this specific step is scheduled to go out, formatted for a human
+   * (e.g. "Thursday, October 15 at 7:00 PM") — so copy that needs to
+   * reference a real day or time doesn't fall back to a [TIME] or [DATE]
+   * placeholder it didn't need to.
+   */
+  scheduledAt?: string;
+  /** When the webinar itself goes live, same formatting as scheduledAt —
+   * distinct from scheduledAt because most steps need to reference the
+   * EVENT's time ("set your alarm for 7 PM"), not their own send time. */
+  eventAt?: string;
   fields: StepFieldSpec[];
+}
+
+// Turns a Date into something the AI prompt can quote directly in copy
+// ("set your alarm for 7:00 PM") instead of falling back to a [TIME] or
+// [DATE] placeholder — see StepContext.scheduledAt/eventAt above. Shared
+// so the Builder page and the agent's own campaign-building path
+// (lib/ai/agentActions.ts) format it identically.
+export function formatForPrompt(date: Date): string {
+  return date.toLocaleString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export interface SourceMaterial {
@@ -66,14 +101,23 @@ const READING_LEVEL_INSTRUCTION: Record<ReadingLevel, string> = {
     "Write for a professional, informed reader. Industry terms the audience would actually use are fine and expected. Still plain and direct, never bureaucratic or padded with hedging.",
 };
 
-function buildCopyRules(readingLevel: string): string {
+function buildCopyRules(readingLevel: string, fromName?: string): string {
   const instruction =
     READING_LEVEL_INSTRUCTION[readingLevel as ReadingLevel] ??
     READING_LEVEL_INSTRUCTION["5th grade"];
+  const signOffRule = fromName
+    ? `- When an email needs a sign-off name, use "${fromName}" — that's who's sending this. Don't invent a placeholder for it.`
+    : `- When an email needs a sign-off, close warmly without a name line ("Talk soon," is enough) rather than inventing a [YOUR NAME] placeholder — no name was given for this campaign.`;
   return `Rules you must follow:
 - Never invent facts: no testimonials, customer names, numbers, or results
   the offer details don't include. If a fact is missing, write a
   placeholder in [ALL CAPS], like [CUSTOMER NAME] or [RESULT].
+- To address the reader by name in an email, use exactly the tag
+  [FIRST NAME] (that exact phrase, nothing else inside the brackets) —
+  it's treated as an intentional merge tag an email tool fills in later,
+  not a missing fact, so use it freely wherever a first name would read
+  naturally. Never invent a specific reader name.
+${signOffRule}
 - ${instruction}
 - Never use the em dash character (—) anywhere, in a headline or a body.
   Use a period, a comma, or "and" instead. This is a hard rule, not a
@@ -152,6 +196,13 @@ export function buildStepCopyPrompt(
     ? `This step is part of the "${step.phaseName}" phase of the campaign. That phase's objective: ${step.phaseObjective}`
     : "";
 
+  const timingParts: string[] = [];
+  if (step.eventAt) timingParts.push(`The webinar itself goes live: ${step.eventAt}.`);
+  if (step.scheduledAt) timingParts.push(`This step is scheduled to send: ${step.scheduledAt}.`);
+  const timingBlock = timingParts.length
+    ? `${timingParts.join(" ")} Use these real values whenever the copy needs to reference a specific day or time (e.g. "set your alarm for 7 PM" or "tomorrow at 7 PM") instead of a [TIME] or [DATE] placeholder — that information isn't actually missing.`
+    : "";
+
   return `You are writing one step of a marketing campaign for this offer:
 
 Offer: ${offer.name}
@@ -161,6 +212,8 @@ What they get: ${offer.whatTheyGet}
 Tone: ${offer.tone}
 
 ${phaseBlock}
+
+${timingBlock}
 
 This step:
 Channel: ${step.channel}
@@ -187,7 +240,7 @@ ${winningCopyBlock}
 
 ${callThemesBlock}
 
-${buildCopyRules(readingLevel)}
+${buildCopyRules(readingLevel, offer.fromName)}
 
 Return ONLY a JSON object with these exact keys and nothing else:
 ${fieldsBlock}
@@ -221,7 +274,7 @@ if they asked to shorten it, only shorten it; if they asked for a
 different angle, only change the angle and keep the rest as close to
 the original as makes sense.
 
-${buildCopyRules(offer.readingLevel ?? "5th grade")}
+${buildCopyRules(offer.readingLevel ?? "5th grade", offer.fromName)}
 
 Return ONLY a JSON object with the same keys as the current copy above
 (not "source" — leave that out), plus a "changed" key: a short lowercase

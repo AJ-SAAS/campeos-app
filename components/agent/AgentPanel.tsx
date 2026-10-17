@@ -170,7 +170,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
     setBuildTrace(trace);
 
     try {
-      const result = await executeCreateCampaign(uid, args);
+      const result = await executeCreateCampaign(uid, args, user?.displayName ?? undefined);
       const doneMessage =
         result.failedCount > 0
           ? `Done. ${result.writtenCount - result.failedCount} of ${result.stepCount} steps are ready — ${result.failedCount} failed to generate, you can retry those in the builder.`
@@ -226,6 +226,8 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
           persuasionElements: step.persuasionElements,
           phaseName: step.phaseName,
           phaseObjective: step.phaseObjective,
+          scheduledAt: step.scheduledAt,
+          eventAt: step.eventAt,
           fields: step.fields,
         },
         step.copy ?? {},

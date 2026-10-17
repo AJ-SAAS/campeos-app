@@ -400,7 +400,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 function needsInput(step: UIStep): boolean {
   if (!step.copy) return false;
   const text = Object.values(step.copy).join(" ");
-  return /\[(?!LINK\])[A-Z0-9 ]+\]/.test(text);
+  return /\[(?!LINK\]|FIRST NAME\])[A-Z0-9 ]+\]/.test(text);
 }
 
 function formatTime(date: Date): string {
