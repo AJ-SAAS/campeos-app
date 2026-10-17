@@ -51,30 +51,10 @@ export function SetupPanel({
       <Field label="Who it's for" value={offer.audience} onChange={(v) => set("audience", v)} />
       <Field label="What they get" value={offer.whatTheyGet} onChange={(v) => set("whatTheyGet", v)} />
 
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold">Reading level</div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {READING_LEVELS.map((level) => (
-            <button
-              key={level}
-              aria-pressed={(offer.readingLevel ?? "5th grade") === level}
-              onClick={() => set("readingLevel", level)}
-              className={`min-h-10 px-3.5 rounded-full text-[13px] font-semibold border ${
-                (offer.readingLevel ?? "5th grade") === level
-                  ? "bg-slate text-white border-slate"
-                  : "bg-paper text-slate border-faint font-medium"
-              }`}
-            >
-              {level}
-            </button>
-          ))}
-        </div>
-        <div className="text-xs text-faint">
-          How simple or sophisticated the actual sentences should read. Applies to every step.
-        </div>
-      </div>
+      <ReadingLevelSlider
+        value={offer.readingLevel ?? "5th grade"}
+        onChange={(v) => set("readingLevel", v)}
+      />
 
       <WinningCopyCard winningCopy={winningCopy} onAdd={onAddWinningCopy} />
       <SalesCallCard callThemes={callThemes} onAdd={onAddSalesCall} />
@@ -280,6 +260,48 @@ function SalesCallCard({
           + Add a sales call
         </button>
       )}
+    </div>
+  );
+}
+
+function ReadingLevelSlider({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: (typeof READING_LEVELS)[number]) => void;
+}) {
+  const index = Math.max(0, READING_LEVELS.indexOf(value as (typeof READING_LEVELS)[number]));
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="text-sm font-semibold">Reading level</div>
+      <input
+        type="range"
+        min={0}
+        max={READING_LEVELS.length - 1}
+        step={1}
+        value={index}
+        onChange={(e) => onChange(READING_LEVELS[Number(e.target.value)])}
+        aria-valuetext={READING_LEVELS[index]}
+        className="w-full h-2 rounded-full appearance-none bg-ivory accent-clay cursor-pointer"
+      />
+      <div className="flex justify-between">
+        {READING_LEVELS.map((level, i) => (
+          <button
+            key={level}
+            onClick={() => onChange(level)}
+            className={`text-[11px] font-semibold px-0.5 ${
+              i === index ? "text-slate" : "text-faint font-medium"
+            }`}
+          >
+            {level}
+          </button>
+        ))}
+      </div>
+      <div className="text-xs text-faint">
+        How simple or sophisticated the actual sentences should read. Applies to every step.
+      </div>
     </div>
   );
 }
