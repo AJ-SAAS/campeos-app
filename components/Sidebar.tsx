@@ -10,7 +10,11 @@ import { useAuth } from "@/lib/firebase/AuthProvider";
 // fit a phone screen, and a hamburger drawer hides navigation behind an
 // extra tap for what's only four destinations — a bottom bar keeps them
 // one tap away, which is the standard mobile pattern for this count.
-export function Sidebar({ active }: { active: "dashboard" | "campaigns" }) {
+export function Sidebar({
+  active,
+}: {
+  active: "dashboard" | "campaigns" | "winning-copy" | "buyer-insights";
+}) {
   const { user, loading, signIn, signOut } = useAuth();
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -41,10 +45,10 @@ export function Sidebar({ active }: { active: "dashboard" | "campaigns" }) {
           <NavItem href="/builder" label="Campaigns" active={active === "campaigns"}>
             <CampaignsIcon />
           </NavItem>
-          <NavItem href="#" label="Winning copy">
+          <NavItem href="/winning-copy" label="Winning copy" active={active === "winning-copy"}>
             <TrophyIcon />
           </NavItem>
-          <NavItem href="#" label="Buyer insights">
+          <NavItem href="/buyer-insights" label="Buyer insights" active={active === "buyer-insights"}>
             <BarsIcon />
           </NavItem>
         </nav>
@@ -124,10 +128,10 @@ export function Sidebar({ active }: { active: "dashboard" | "campaigns" }) {
         <MobileNavItem href="/builder" label="Campaigns" active={active === "campaigns"}>
           <CampaignsIcon />
         </MobileNavItem>
-        <MobileNavItem href="#" label="Winning copy">
+        <MobileNavItem href="/winning-copy" label="Winning copy" active={active === "winning-copy"}>
           <TrophyIcon />
         </MobileNavItem>
-        <MobileNavItem href="#" label="Insights">
+        <MobileNavItem href="/buyer-insights" label="Insights" active={active === "buyer-insights"}>
           <BarsIcon />
         </MobileNavItem>
       </nav>

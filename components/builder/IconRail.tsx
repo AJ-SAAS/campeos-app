@@ -20,10 +20,10 @@ export function IconRail() {
         <circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" />
         <path d="M7 6h4c3 0 4 2 4 4M7 18h4c3 0 4-2 4-4" />
       </RailIcon>
-      <RailIcon href="#" label="Winning copy">
+      <RailIcon href="/winning-copy" label="Winning copy">
         <path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8" />
       </RailIcon>
-      <RailIcon href="#" label="Buyer insights">
+      <RailIcon href="/buyer-insights" label="Buyer insights">
         <path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4" />
       </RailIcon>
     </nav>
