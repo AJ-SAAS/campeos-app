@@ -416,6 +416,7 @@ function BuilderInner() {
               }}
               eventDate={eventDate}
               phases={webinarTemplate.phases}
+              generating={generating}
             />
           </div>
           <div className={`${mobilePanel === "step" ? "flex" : "hidden"} lg:flex min-h-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>

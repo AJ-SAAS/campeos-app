@@ -86,6 +86,7 @@ export function SetupPanel({
         disabled={generating}
         className="flex items-center justify-center gap-2 min-h-12 rounded-xl bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold shadow-[0_8px_20px_-6px_rgba(124,58,237,0.5)] disabled:opacity-50"
       >
+        {generating && <Spinner />}
         {generating ? "Writing your campaign..." : "Generate campaign copy"}
       </button>
     </aside>
@@ -303,6 +304,22 @@ function ReadingLevelSlider({
         How simple or sophisticated the actual sentences should read. Applies to every step.
       </div>
     </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="shrink-0 animate-spin"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.3" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
   );
 }
 

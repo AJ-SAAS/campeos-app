@@ -17,6 +17,14 @@ interface TimelineProps {
    * strategy overview" above the timeline, so the big-picture plan is
    * visible before diving into any one step. See CampaignPhase. */
   phases: CampaignPhase[];
+  /** True while a "Generate campaign copy" request is in flight — steps
+   * with no copy yet show a shimmering placeholder instead of "Not
+   * written yet", so it's clear something is actively happening rather
+   * than looking like the generate click didn't do anything. The
+   * generate button (SetupPanel) has its own spinner too, but that's
+   * easy to scroll past, especially on mobile where it's a different
+   * panel entirely. */
+  generating?: boolean;
 }
 
 type ChannelKey = "ad" | "email" | "sms";
@@ -36,7 +44,7 @@ const ALL_CHANNELS: ChannelKey[] = ["ad", "email", "sms"];
 // narrow to one or two channels at a time; toggling all three back on
 // collapses back to "All" rather than sitting as three separately-lit
 // pills. The remaining lane(s) animate to fill the freed-up width.
-export function Timeline({ steps, selectedId, onSelect, eventDate, phases }: TimelineProps) {
+export function Timeline({ steps, selectedId, onSelect, eventDate, phases, generating }: TimelineProps) {
   const [selectedChannels, setSelectedChannels] = useState<Set<ChannelKey>>(
     new Set(ALL_CHANNELS)
   );
@@ -82,10 +90,17 @@ export function Timeline({ steps, selectedId, onSelect, eventDate, phases }: Tim
             {steps.length} steps with suggested send times.
           </div>
         </div>
-        {needsCount > 0 && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-warnBg text-warnFg text-xs font-semibold whitespace-nowrap">
-            {needsCount} need input
+        {generating ? (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ivory text-slate text-xs font-semibold whitespace-nowrap">
+            <Spinner />
+            Writing your campaign...
           </span>
+        ) : (
+          needsCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-warnBg text-warnFg text-xs font-semibold whitespace-nowrap">
+              {needsCount} need input
+            </span>
+          )
         )}
       </div>
 
@@ -202,6 +217,7 @@ export function Timeline({ steps, selectedId, onSelect, eventDate, phases }: Tim
                               lane={lane}
                               selected={s.templateStepId === selectedId}
                               onSelect={() => onSelect(s.templateStepId)}
+                              generating={!!generating}
                             />
                           ))}
                       </div>
@@ -222,14 +238,17 @@ function StepCard({
   lane,
   selected,
   onSelect,
+  generating,
 }: {
   step: UIStep;
   lane: (typeof LANES)[number];
   selected: boolean;
   onSelect: () => void;
+  generating: boolean;
 }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const firstField = step.fields[0];
+  const isWaiting = generating && !step.copy;
   const preview = step.copy?.[firstField?.key ?? ""] ?? "Not written yet";
 
   return (
@@ -276,9 +295,13 @@ function StepCard({
           </span>
         </span>
         <span className="text-[13px] font-semibold leading-snug">{step.title}</span>
-        <span className="text-xs text-muted whitespace-nowrap overflow-hidden text-ellipsis">
-          {preview}
-        </span>
+        {isWaiting ? (
+          <span className="h-3 w-4/5 rounded bg-ivory animate-pulse" aria-label="Writing..." />
+        ) : (
+          <span className="text-xs text-muted whitespace-nowrap overflow-hidden text-ellipsis">
+            {preview}
+          </span>
+        )}
       </button>
       {infoOpen && (
         <div className="flex flex-col gap-1.5 px-3 pb-3 pt-0.5 border-t border-line bg-ivory/50">
@@ -334,6 +357,15 @@ function LaneIcon({ channel, color }: { channel: string; color: string }) {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" />
+    </svg>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="shrink-0 animate-spin" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" opacity="0.3" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
   );
 }
