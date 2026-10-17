@@ -43,6 +43,35 @@ const config: Config = {
         body: ["DM Sans", "sans-serif"],
         mono: ["DM Mono", "monospace"],
       },
+      // Added for the marketing page (app/page.tsx) — the rest of the app
+      // sticks to Tailwind's built-in animate-pulse/animate-spin, but the
+      // hero's drifting background orbs and the final CTA's moving
+      // gradient need their own keyframes. Kept here (not inline <style>)
+      // so they're ordinary Tailwind utility classes like everything else.
+      keyframes: {
+        drift: {
+          "0%, 100%": { transform: "translate(0,0) scale(1)" },
+          "50%": { transform: "translate(-30px,24px) scale(1.06)" },
+        },
+        drift2: {
+          "0%, 100%": { transform: "translate(0,0) scale(1)" },
+          "50%": { transform: "translate(26px,-20px) scale(1.08)" },
+        },
+        floaty: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-8px)" },
+        },
+        "gradient-move": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
+      },
+      animation: {
+        drift: "drift 13s ease-in-out infinite",
+        drift2: "drift2 15s ease-in-out infinite",
+        floaty: "floaty 5s ease-in-out infinite",
+        "gradient-move": "gradient-move 10s ease-in-out infinite",
+      },
     },
   },
   plugins: [],
