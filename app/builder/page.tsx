@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { IconRail } from "@/components/builder/IconRail";
 import { SetupPanel } from "@/components/builder/SetupPanel";
 import { Timeline, UIStep } from "@/components/builder/Timeline";
@@ -61,6 +61,7 @@ type MobilePanel = "setup" | "timeline" | "step";
 
 function BuilderInner() {
   const { user } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const existingId = searchParams.get("id");
 
@@ -237,6 +238,11 @@ function BuilderInner() {
           stepDocs
         );
         setCampaignId(newId);
+        // Bake the new campaign into the URL so browser back/forward and
+        // refresh don't lose it — without this, forward-navigating here
+        // reloads a blank /builder with nothing to load (the page only
+        // knows to load an existing campaign from ?id= on mount).
+        router.replace(`/builder?id=${newId}`);
       } else {
         await Promise.all(
           Object.entries(next).map(([templateStepId, copy]) =>
@@ -374,7 +380,7 @@ function BuilderInner() {
           ))}
         </div>
 
-        <div className="flex-grow min-h-0 flex flex-col lg:flex-row gap-3 p-3 lg:gap-4 lg:p-4 overflow-y-auto lg:overflow-visible">
+        <div className="flex-grow min-h-0 flex flex-col lg:flex-row gap-3 p-3 lg:gap-4 lg:p-4 overflow-y-auto lg:overflow-hidden">
           <div className={`${mobilePanel === "setup" ? "flex" : "hidden"} lg:flex min-h-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>
             <SetupPanel
               offer={offer}
@@ -387,7 +393,7 @@ function BuilderInner() {
               generating={generating}
             />
           </div>
-          <div className={`${mobilePanel === "timeline" ? "flex" : "hidden"} lg:flex min-h-0 flex-grow min-w-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>
+          <div className={`${mobilePanel === "timeline" ? "flex" : "hidden"} lg:flex min-h-0 flex-1 min-w-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>
             <Timeline
               steps={steps}
               selectedId={selectedId}
