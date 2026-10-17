@@ -588,17 +588,6 @@ export default function MarketingPage() {
 }
 
 function Logo({ size }: { size: number }) {
-  const gradId = `logoGrad-${size}`;
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <defs>
-        <linearGradient id={gradId} x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#7C3AED" />
-          <stop offset="1" stopColor="#EC4899" />
-        </linearGradient>
-      </defs>
-      <circle cx="20" cy="20" r="16" stroke={`url(#${gradId})`} strokeWidth="5" />
-      <circle cx="28" cy="13" r="4.5" fill="#EC4899" />
-    </svg>
-  );
+  // eslint-disable-next-line @next/next/no-img-element -- local /public asset
+  return <img src="/logo-mark.png" alt="" width={size} height={size} className="object-contain" />;
 }
