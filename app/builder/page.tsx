@@ -264,7 +264,13 @@ function BuilderInner() {
       }
 
       if (data.failed?.length) {
-        setError(`${data.failed.length} step(s) failed to generate. Try again.`);
+        const failedList = (data.failed as { templateStepId: string; error: string }[])
+          .map((f) => {
+            const title = scheduledSteps.find((s) => s.templateStepId === f.templateStepId)?.title;
+            return title ? `"${title}" (${f.error})` : f.error;
+          })
+          .join(", ");
+        setError(`${data.failed.length} step(s) failed to generate: ${failedList}. Try again.`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");

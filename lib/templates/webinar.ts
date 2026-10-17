@@ -76,9 +76,11 @@ export const webinarTemplate: CampaignTemplate = {
       title: "Registration ad",
       phaseId: "registration",
       purpose:
-        "Cold traffic has never heard of this webinar. The ad's only job is to earn a registration, not to explain everything — curiosity gets the click.",
-      angle: "Curiosity-driven cold ad",
+        "Cold traffic has never heard of this webinar and is mid-scroll, not looking for a solution. The ad's only job is to interrupt that scroll with a moment the reader recognizes as her own, then earn the registration — not to explain or sell the full program.",
+      angle: "Pattern interrupt + open loop",
       goals: [
+        "Stop the scroll with one specific, recognizable moment from her actual day, not a description of 'busy moms'",
+        "Open a curiosity gap about what the fix looks like, without resolving it in the ad",
         "Get a first registration from someone who's never heard of you",
         "Earn the click without over-explaining the offer",
       ],
@@ -127,11 +129,12 @@ export const webinarTemplate: CampaignTemplate = {
       title: "What you'll learn",
       phaseId: "registration",
       purpose:
-        "A registration isn't a show-up. This email sells the value of actually attending, so sign-ups don't quietly ghost the webinar.",
-      angle: "Value preview",
+        "A registration isn't a show-up — most registrants quietly ghost. This email's only job is to make missing the live session feel like a real loss, by previewing exactly what happens in it in terms specific enough to picture.",
+      angle: "Specificity + future pacing",
       goals: [
-        "Give registrants a concrete reason to clear their calendar",
-        "Preview 2-3 specific things they'll learn, not just the general topic",
+        "Preview 3 concrete, nameable things she'll walk away with — each one a specific teachable moment or step, never a vague benefit like 'calmer mornings'",
+        "Future-pace one moment from a morning after the method is working, specific enough she can picture herself in it",
+        "Give registrants a concrete reason to clear their calendar for the exact date and time",
       ],
       persuasionElements: ["Desire: specific outcome preview", "Optimization: clarity on what they'll get"],
       fields: shortLong,
@@ -280,11 +283,12 @@ export const webinarTemplate: CampaignTemplate = {
       title: "A confession",
       phaseId: "consideration-connection",
       purpose:
-        "Nobody buys from a highlight reel. This is where the mask comes off — a real, specific struggle that makes the eventual offer feel earned instead of lucky.",
-      angle: "Vulnerable story bonding",
+        "Nobody buys from a highlight reel. This is where the mask comes off — one real, specific moment of struggle, told honestly enough that the reader feels understood rather than marketed to, which makes the eventual offer feel earned instead of lucky.",
+      angle: "Vulnerability + identification",
       goals: [
-        "Create a personal connection by showing a real struggle, not just wins",
-        "Make the bond emotional, not just informational",
+        "Admit to one specific, slightly embarrassing moment of the same struggle the reader has, not a vague 'I used to struggle too'",
+        "Write it like a real person being honest, not a brand being relatable — no tidy lesson learned in the same breath as the confession",
+        "Make the bond emotional, not just informational, before pointing anywhere near the offer",
         "Lead naturally back to the replay for anyone who hasn't seen it",
       ],
       persuasionElements: ["Story: protagonist's original situation and turning point", "Identity: who they'll become"],

@@ -117,6 +117,12 @@ function buildCopyRules(readingLevel: string, fromName?: string): string {
   it's treated as an intentional merge tag an email tool fills in later,
   not a missing fact, so use it freely wherever a first name would read
   naturally. Never invent a specific reader name.
+- Whenever copy needs to point somewhere (register, watch the replay,
+  check out, join the call), use exactly the tag [LINK] — that exact
+  word, nothing else inside the brackets. Never write a descriptive
+  variant like [WEBINAR LINK], [REGISTRATION LINK], or [CHECKOUT LINK];
+  [LINK] is the one placeholder the app always fills in automatically,
+  and only that exact spelling is recognized as such.
 ${signOffRule}
 - ${instruction}
 - Never use the em dash character (—) anywhere, in a headline or a body.
@@ -141,6 +147,17 @@ ${signOffRule}
   filling fast" unless the offer itself actually has a hard cap you
   were told about. Prefer a specific, slightly uncomfortable detail
   over a polite generality every time.
+- Open with one concrete, lived-in moment, not a description of the
+  audience as a category. "Busy moms feel chaotic in the morning" is a
+  category description and is banned. "6:52 and you've found one shoe"
+  is a moment. Invent a small, plausible, illustrative scene like this
+  whenever the offer doesn't hand you one directly — it's a relatable
+  snapshot, not a claim of fact about a real person, so it does NOT need
+  a [PLACEHOLDER] the way a testimonial or number would. If the opening
+  line could describe literally any member of the audience on any day,
+  it hasn't done this yet; rewrite it until it's specific enough that
+  the reader thinks "that's oddly exactly my morning," not "I guess
+  that's sort of true."
 - If winning copy or call themes are given below, use them as the raw
   material for this step's angle. Don't just repeat them word for word;
   write new copy that carries the same idea.`;
