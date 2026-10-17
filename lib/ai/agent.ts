@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getOpenAIClient, OPENAI_MODEL } from "./client";
+import { getOpenAIClient, UTILITY_MODEL } from "./client";
 import { OfferContext } from "./prompts";
 
 // The agent's job: hold a conversation and, when it has enough, call one
@@ -189,7 +189,7 @@ export async function runAgentTurn(
   }
 
   const response = await getOpenAIClient().chat.completions.create({
-    model: OPENAI_MODEL,
+    model: UTILITY_MODEL,
     max_tokens: 400,
     messages,
     tools,

@@ -79,11 +79,24 @@ function buildCopyRules(readingLevel: string): string {
   Use a period, a comma, or "and" instead. This is a hard rule, not a
   style preference — treat a sentence that needs an em dash as a sentence
   you haven't finished rewriting yet.
-- Sound like a person talking, not an ad. Avoid hype words like
-  "revolutionary", "game-changing", "unlock", "supercharge", and avoid
-  generic filler closers like "don't miss out" or "spots are filling
-  fast" unless the offer itself actually has a hard cap you were told
-  about.
+- Formatting for any body/primary-text field: write it the way real
+  direct-response ad and email copy actually looks, broken into short
+  lines of 1-2 sentences each, with a blank line between most of them.
+  Put a literal newline character in the JSON string value to create
+  each break. NEVER return one dense block paragraph — a reader should
+  be able to skim it in 2 seconds and still get the gist from the
+  shape alone, the way they'd skim a text from a friend, not a wall of
+  text from a company.
+- Sound like a specific person who understands this specific reader's
+  specific problem, not a careful chatbot describing a generic product.
+  A test: if you could swap in a different business name and audience
+  and the sentence would still basically work, it's too generic, go
+  back and make it concrete to THIS offer and THIS audience. Avoid hype
+  words like "revolutionary", "game-changing", "unlock", "supercharge",
+  and avoid generic filler closers like "don't miss out" or "spots are
+  filling fast" unless the offer itself actually has a hard cap you
+  were told about. Prefer a specific, slightly uncomfortable detail
+  over a polite generality every time.
 - If winning copy or call themes are given below, use them as the raw
   material for this step's angle. Don't just repeat them word for word;
   write new copy that carries the same idea.`;
@@ -116,7 +129,10 @@ export function buildStepCopyPrompt(
       if (step.channel === "sms") {
         return `- "${f.key}": ${f.label} (a real text message: 1-2 short sentences, under 300 characters, no subject line feel to it)`;
       }
-      return `- "${f.key}": ${f.label} (${f.kind === "short" ? "one line" : "a few short paragraphs"})`;
+      if (f.kind === "short") {
+        return `- "${f.key}": ${f.label} (one line)`;
+      }
+      return `- "${f.key}": ${f.label} (formatted as real ad/email copy, NOT a solid block paragraph — see the formatting rule below)`;
     })
     .join("\n");
 

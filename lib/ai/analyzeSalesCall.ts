@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getOpenAIClient, OPENAI_MODEL } from "./client";
+import { getOpenAIClient, UTILITY_MODEL } from "./client";
 
 const themesSchema = z.object({ themes: z.array(z.string()).min(1).max(5) });
 
@@ -23,7 +23,7 @@ to follow".
 Return ONLY a JSON object in this exact shape: { "themes": ["...", "...", ...] }`;
 
   const response = await getOpenAIClient().chat.completions.create({
-    model: OPENAI_MODEL,
+    model: UTILITY_MODEL,
     max_tokens: 300,
     response_format: { type: "json_object" },
     messages: [{ role: "user", content: prompt }],
