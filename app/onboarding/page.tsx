@@ -122,7 +122,7 @@ export default function OnboardingPage() {
       <div className="px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <Logo size={24} />
-          <span className="font-display font-extrabold text-base tracking-tight">CAMPEOS</span>
+          <span className="font-display font-bold text-base tracking-wide">CAMPEOS</span>
         </div>
         <button onClick={() => useAuth().signOut()} className="text-xs text-muted font-medium">
           Sign out

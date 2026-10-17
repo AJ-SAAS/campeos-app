@@ -214,7 +214,7 @@ export default function MarketingPage() {
         <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center gap-7">
           <div className="flex items-center gap-2.5 flex-grow min-w-0">
             <Logo size={26} />
-            <span className="font-display font-extrabold text-[19px] tracking-tight">CAMPEOS</span>
+            <span className="font-display font-bold text-[19px] tracking-wide">CAMPEOS</span>
           </div>
           <div className="hidden md:flex items-center gap-6 font-mono shrink-0">
             <a href="#how" className="text-[13px] text-muted font-medium">How it works</a>
@@ -578,7 +578,7 @@ export default function MarketingPage() {
         <div className="max-w-[1200px] mx-auto flex flex-wrap gap-5 items-center justify-between">
           <div className="flex items-center gap-2">
             <Logo size={20} />
-            <span className="font-display font-extrabold text-sm">CAMPEOS</span>
+            <span className="font-display font-bold text-sm tracking-wide">CAMPEOS</span>
           </div>
           <p className="font-mono text-[11.5px] text-faint">&copy; 2026 Campeos. Built for marketers who never start from zero.</p>
         </div>

@@ -37,9 +37,13 @@ const config: Config = {
         dangerFg: "#B42318",
       },
       fontFamily: {
-        // One family, varying weight — no separate display face. DM Mono
-        // stays for timestamps, counts and other data-shaped labels.
-        display: ["DM Sans", "sans-serif"],
+        // Space Grotesk for the wordmark and headings — geometric with
+        // sharp, slightly squared letterforms, which actually pairs with
+        // the angular cut-corner logo mark instead of sitting next to it
+        // as generic grotesque type. DM Sans stays for body copy (reads
+        // better at paragraph sizes) and DM Mono for timestamps, counts
+        // and other data-shaped labels.
+        display: ["Space Grotesk", "sans-serif"],
         body: ["DM Sans", "sans-serif"],
         mono: ["DM Mono", "monospace"],
       },

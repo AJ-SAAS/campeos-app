@@ -100,7 +100,7 @@ function AuthInner() {
       <div className="px-6 py-5">
         <Link href="/" className="inline-flex items-center gap-2.5">
           <Logo size={24} />
-          <span className="font-display font-extrabold text-base tracking-tight">CAMPEOS</span>
+          <span className="font-display font-bold text-base tracking-wide">CAMPEOS</span>
         </Link>
       </div>
 
