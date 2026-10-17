@@ -13,6 +13,7 @@ import { buildTimeline, ScheduledStep } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext, formatForPrompt } from "@/lib/ai/prompts";
 import { useAuth } from "@/lib/firebase/AuthProvider";
+import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
 import {
   createCampaign,
   getCampaignWithSteps,
@@ -62,6 +63,7 @@ type MobilePanel = "setup" | "timeline" | "step";
 
 function BuilderInner() {
   const { user } = useAuth();
+  const { ready } = useRequireAccess();
   const router = useRouter();
   const searchParams = useSearchParams();
   const existingId = searchParams.get("id");
@@ -336,6 +338,10 @@ function BuilderInner() {
     } finally {
       setVariationPending(false);
     }
+  }
+
+  if (!ready) {
+    return <div className="h-screen bg-paper" />;
   }
 
   if (loadingCampaign) {

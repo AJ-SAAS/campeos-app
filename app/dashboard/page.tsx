@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { AgentPanel } from "@/components/agent/AgentPanel";
 import { useAuth } from "@/lib/firebase/AuthProvider";
+import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
 import { Campaign, listCampaigns } from "@/lib/firebase/campaigns";
 
 // "Dashboard: in the works" — from Main.dc.html, redesigned around the
@@ -24,8 +25,9 @@ const campaignTypes = [
 ];
 
 export default function Dashboard() {
-  const { user, loading: authLoading, signIn } = useAuth();
+  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
+  const { ready } = useRequireAccess();
 
   useEffect(() => {
     if (!user) {
@@ -34,6 +36,13 @@ export default function Dashboard() {
     }
     listCampaigns(user.uid).then(setCampaigns);
   }, [user]);
+
+  // Not signed in / not subscribed -> useRequireAccess is already
+  // redirecting to /auth or /billing. Don't flash the dashboard shell
+  // in the meantime.
+  if (!ready) {
+    return <div className="min-h-screen bg-paper" />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-paper text-slate font-body">
@@ -60,20 +69,6 @@ export default function Dashboard() {
             <PlusIcon small /> New campaign manually
           </Link>
         </div>
-
-        {!authLoading && !user && (
-          <div className="bg-paper border border-line rounded-2xl px-5 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="text-sm text-muted">
-              Sign in to talk to the agent and save campaigns to your account.
-            </div>
-            <button
-              onClick={() => signIn()}
-              className="shrink-0 inline-flex items-center justify-center h-10 px-4 rounded-[10px] bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold"
-            >
-              Sign in with Google
-            </button>
-          </div>
-        )}
 
         <div className="flex-grow min-h-0 grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-6 items-start">
           <AgentPanel />

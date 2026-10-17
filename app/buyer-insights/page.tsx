@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { useAuth } from "@/lib/firebase/AuthProvider";
+import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
 import {
   SalesCallEntry,
   addSalesCall,
@@ -16,7 +17,8 @@ import {
 // /api/analyze-call to pull out buyer-language themes, same as the
 // Builder's flow, then saves both to Firestore (salesCalls collection).
 export default function BuyerInsightsPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const { ready } = useRequireAccess();
   const [calls, setCalls] = useState<SalesCallEntry[] | null>(null);
   const [transcript, setTranscript] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
@@ -62,6 +64,10 @@ export default function BuyerInsightsPage() {
     }
   }
 
+  if (!ready) {
+    return <div className="min-h-screen bg-paper" />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-paper text-slate font-body">
       <Sidebar active="buyer-insights" />
@@ -76,12 +82,6 @@ export default function BuyerInsightsPage() {
             buyers&apos; own words — used automatically in every campaign you build.
           </p>
         </div>
-
-        {!authLoading && !user && (
-          <div className="bg-paper border border-line rounded-2xl px-5 py-4 text-sm text-muted">
-            Sign in to save and see your buyer insights.
-          </div>
-        )}
 
         {user && (
           <div className="flex flex-col gap-2.5 p-4 border border-line rounded-2xl">

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
+import { getSubscription, isActive } from "@/lib/firebase/subscription";
+import { PlanKey } from "@/lib/stripe/client";
 
 // The marketing/sales page at campeos.com — the first-touch page for
 // everyone who isn't signed in yet. Previously "/" just redirected
@@ -129,11 +131,19 @@ const READING_LEVELS = [
   { text: "PRO", full: "Professional", sample: "Your next launch, written for an informed reader who expects precision, category language, and zero hedging." },
 ];
 
-const PLANS = [
+const PLANS: {
+  key: PlanKey;
+  name: string;
+  price: string;
+  cta: string;
+  dark: boolean;
+  items: string[];
+}[] = [
   {
+    key: "starter",
     name: "STARTER",
     price: "$39",
-    cta: "Start building free",
+    cta: "Choose Starter",
     dark: false,
     items: [
       "Every campaign type",
@@ -144,9 +154,10 @@ const PLANS = [
     ],
   },
   {
+    key: "pro",
     name: "PRO",
     price: "$99",
-    cta: "Start building free",
+    cta: "Choose Pro",
     dark: true,
     items: [
       "Everything in Starter",
@@ -175,29 +186,21 @@ const MOCK_ROWS = [
 ];
 
 export default function MarketingPage() {
-  const { user, loading: authLoading, signIn } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [level, setLevel] = useState(1);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [signingIn, setSigningIn] = useState(false);
 
   // Signed-in users who land on "/" (bookmark, back button) belong on
-  // the dashboard, not the pitch.
+  // the dashboard if they're subscribed, or on billing to finish
+  // subscribing if they're not — hard paywall, so there's no free
+  // dashboard to send them to either way.
   useEffect(() => {
-    if (!authLoading && user) {
-      router.replace("/dashboard");
-    }
+    if (authLoading || !user) return;
+    getSubscription(user.uid).then((sub) => {
+      router.replace(isActive(sub) ? "/dashboard" : "/billing");
+    });
   }, [authLoading, user, router]);
-
-  async function handleSignIn() {
-    setSigningIn(true);
-    try {
-      await signIn();
-      router.push("/dashboard");
-    } finally {
-      setSigningIn(false);
-    }
-  }
 
   // Signed-in users get an empty shell for the instant it takes the
   // effect above to redirect, rather than a flash of the sales pitch.
@@ -223,20 +226,15 @@ export default function MarketingPage() {
             <a href="#faq" className="text-[13px] text-muted font-medium">FAQ</a>
           </div>
           <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              onClick={handleSignIn}
-              disabled={signingIn}
-              className="text-[13px] font-semibold text-slate px-1.5 py-2"
-            >
+            <Link href="/auth" className="text-[13px] font-semibold text-slate px-1.5 py-2">
               Sign in
-            </button>
-            <button
-              onClick={handleSignIn}
-              disabled={signingIn}
-              className="text-[13px] font-bold text-white px-[18px] py-2.5 rounded-[10px] bg-gradient-to-r from-clay to-pink whitespace-nowrap disabled:opacity-60"
+            </Link>
+            <a
+              href="#pricing"
+              className="text-[13px] font-bold text-white px-[18px] py-2.5 rounded-[10px] bg-gradient-to-r from-clay to-pink whitespace-nowrap"
             >
-              Start free
-            </button>
+              Get started
+            </a>
           </div>
         </div>
       </div>
@@ -268,19 +266,18 @@ export default function MarketingPage() {
               Give Campeos your offer. Pick a campaign type. Get every ad, email and text written, sequenced and timed, laid out on one timeline.
             </p>
             <div className="flex items-center gap-3.5 flex-wrap pt-1.5">
-              <button
-                onClick={handleSignIn}
-                disabled={signingIn}
-                className="inline-flex items-center gap-2 text-[15px] font-bold text-white px-[22px] py-3.5 rounded-xl bg-gradient-to-r from-clay to-pink shadow-[0_10px_30px_-10px_rgba(124,58,237,.55)] disabled:opacity-60"
+              <a
+                href="#pricing"
+                className="inline-flex items-center gap-2 text-[15px] font-bold text-white px-[22px] py-3.5 rounded-xl bg-gradient-to-r from-clay to-pink shadow-[0_10px_30px_-10px_rgba(124,58,237,.55)]"
               >
-                Start building free
+                Get started
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M5 12h14M13 5l7 7-7 7" />
                 </svg>
-              </button>
+              </a>
               <a href="#pricing" className="text-sm font-semibold text-slate px-2.5 py-3.5">See pricing &rarr;</a>
             </div>
-            <p className="font-mono text-xs text-faint pt-0.5">No card to look around. Pay when you generate your first campaign.</p>
+            <p className="font-mono text-xs text-faint pt-0.5">Two plans. No free trial.</p>
           </div>
 
           <div className="flex-1 min-w-[300px] basis-[440px] flex justify-center">
@@ -449,8 +446,8 @@ export default function MarketingPage() {
       <div id="pricing" className="max-w-[1000px] mx-auto px-6 py-24">
         <div className="text-center flex flex-col gap-3 mb-12">
           <span className="font-mono text-xs font-bold text-clay tracking-wider">PRICING</span>
-          <h2 className="font-display text-[34px] font-extrabold">Two plans. No free trial, no card to explore.</h2>
-          <p className="text-[15px] text-muted">Sign up free, build in the dashboard, and subscribe the moment you generate your first campaign.</p>
+          <h2 className="font-display text-[34px] font-extrabold">Two plans. No free trial.</h2>
+          <p className="text-[15px] text-muted">Pick one, create your account, and you&apos;re straight into the builder.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {PLANS.map((p) => (
@@ -491,15 +488,14 @@ export default function MarketingPage() {
                   </li>
                 ))}
               </ul>
-              <button
-                onClick={handleSignIn}
-                disabled={signingIn}
-                className={`mt-1 text-center text-sm font-bold py-3 rounded-[11px] disabled:opacity-60 ${
+              <Link
+                href={`/auth?plan=${p.key}`}
+                className={`mt-1 text-center text-sm font-bold py-3 rounded-[11px] ${
                   p.dark ? "bg-white text-slate" : "bg-ivory text-slate border border-line"
                 }`}
               >
                 {p.cta}
-              </button>
+              </Link>
             </div>
           ))}
         </div>
@@ -567,17 +563,16 @@ export default function MarketingPage() {
           <h2 className="font-display text-4xl font-extrabold text-white leading-[1.15]">
             Write your next campaign in minutes, not days.
           </h2>
-          <button
-            onClick={handleSignIn}
-            disabled={signingIn}
-            className="inline-flex items-center gap-2 text-[15px] font-bold text-slate px-[26px] py-4 rounded-xl bg-white disabled:opacity-60"
+          <a
+            href="#pricing"
+            className="inline-flex items-center gap-2 text-[15px] font-bold text-slate px-[26px] py-4 rounded-xl bg-white"
           >
-            Start building free
+            Get started
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 12h14M13 5l7 7-7 7" />
             </svg>
-          </button>
-          <p className="font-mono text-xs text-[#9A9FA3]">No card to look around. Pay when you generate your first campaign.</p>
+          </a>
+          <p className="font-mono text-xs text-[#9A9FA3]">Two plans. No free trial.</p>
         </div>
       </div>
 

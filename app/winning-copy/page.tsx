@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { useAuth } from "@/lib/firebase/AuthProvider";
+import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
 import {
   WinningCopyEntry,
   addWinningCopy,
@@ -17,7 +18,8 @@ import {
 // add more, delete what's no longer useful. Every campaign you build
 // still draws on this same library automatically.
 export default function WinningCopyPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const { ready } = useRequireAccess();
   const [entries, setEntries] = useState<WinningCopyEntry[] | null>(null);
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -57,6 +59,10 @@ export default function WinningCopyPage() {
     }
   }
 
+  if (!ready) {
+    return <div className="min-h-screen bg-paper" />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-paper text-slate font-body">
       <Sidebar active="winning-copy" />
@@ -71,12 +77,6 @@ export default function WinningCopyPage() {
             build draws on this automatically.
           </p>
         </div>
-
-        {!authLoading && !user && (
-          <div className="bg-paper border border-line rounded-2xl px-5 py-4 text-sm text-muted">
-            Sign in to save and see your winning copy.
-          </div>
-        )}
 
         {user && (
           <div className="flex flex-col gap-2.5 p-4 border border-line rounded-2xl">
