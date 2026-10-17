@@ -72,7 +72,16 @@ export async function executeCreateCampaign(
       offer,
       steps: stepsToWrite.map((s) => ({
         templateStepId: s.templateStepId,
-        step: { channel: s.channel, title: s.title, purpose: s.purpose, angle: s.angle, fields: s.fields },
+        step: {
+          channel: s.channel,
+          title: s.title,
+          purpose: s.purpose,
+          angle: s.angle,
+          goals: s.goals,
+          phaseName: s.phaseName,
+          phaseObjective: s.phaseObjective,
+          fields: s.fields,
+        },
       })),
       source: { winningCopy, callThemes },
     }),
@@ -91,6 +100,9 @@ export async function executeCreateCampaign(
     title: s.title,
     purpose: s.purpose,
     angle: s.angle,
+    goals: s.goals,
+    phaseName: s.phaseName,
+    phaseObjective: s.phaseObjective,
     fields: s.fields,
     scheduledAt: s.scheduledAt.toISOString(),
     copy: copyByStep[s.templateStepId] ?? null,
@@ -123,12 +135,11 @@ export async function executeCreateCampaign(
 }
 
 /**
- * Runs the agent's edit_step tool call for real: writes or changes one
- * step's copy. If the step already has copy, this behaves like the
- * builder's own "variation" box — one change at a time. If the step has
- * no copy yet (saved by create_campaign's "first"-only scope), there's
- * nothing to vary, so this writes fresh copy instead, folding the user's
- * instruction into the step's own angle.
+ * Runs the agent's edit_step tool call for real: the same "variation"
+ * request the builder's own StepEditor makes when you type an instruction
+ * by hand, just triggered from the agent's floating launcher instead.
+ * One change at a time — see the "variation" rules in CLAUDE.md and
+ * lib/ai/prompts.ts, which this reuses unchanged.
  */
 export async function executeEditStep(
   uid: string,
@@ -146,6 +157,11 @@ export async function executeEditStep(
     );
   }
 
+  // A step saved by create_campaign's "first"-only scope has no copy yet
+  // (see executeCreateCampaign) — there's nothing to vary, so this is a
+  // first write, not a change. "variation" mode needs existing copy to
+  // react to; "generate" mode writes fresh copy from the step's own
+  // purpose and angle, so fold the instruction in there instead.
   if (Object.keys(currentCopy).length === 0) {
     const [winningCopy, callThemes] = await Promise.all([
       listWinningCopy(uid),

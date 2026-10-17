@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ScheduledStep } from "@/lib/engine/buildTimeline";
+import { CampaignPhase } from "@/lib/templates/types";
 
 export interface UIStep extends ScheduledStep {
   copy?: Record<string, string>;
@@ -12,6 +13,10 @@ interface TimelineProps {
   selectedId: string;
   onSelect: (templateStepId: string) => void;
   eventDate: Date;
+  /** The campaign's named stages, in order — renders as the "Campaign
+   * strategy overview" above the timeline, so the big-picture plan is
+   * visible before diving into any one step. See CampaignPhase. */
+  phases: CampaignPhase[];
 }
 
 type ChannelKey = "ad" | "email" | "sms";
@@ -31,10 +36,11 @@ const ALL_CHANNELS: ChannelKey[] = ["ad", "email", "sms"];
 // narrow to one or two channels at a time; toggling all three back on
 // collapses back to "All" rather than sitting as three separately-lit
 // pills. The remaining lane(s) animate to fill the freed-up width.
-export function Timeline({ steps, selectedId, onSelect, eventDate }: TimelineProps) {
+export function Timeline({ steps, selectedId, onSelect, eventDate, phases }: TimelineProps) {
   const [selectedChannels, setSelectedChannels] = useState<Set<ChannelKey>>(
     new Set(ALL_CHANNELS)
   );
+  const [overviewOpen, setOverviewOpen] = useState(false);
   const isAllActive = selectedChannels.size === ALL_CHANNELS.length;
   const visibleLanes = useMemo(
     () => LANES.filter((lane) => isAllActive || selectedChannels.has(lane.key)),
@@ -82,6 +88,35 @@ export function Timeline({ steps, selectedId, onSelect, eventDate }: TimelinePro
           </span>
         )}
       </div>
+
+      {phases.length > 0 && (
+        <div className="border border-line rounded-xl bg-ivory/60">
+          <button
+            onClick={() => setOverviewOpen((v) => !v)}
+            aria-expanded={overviewOpen}
+            className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-left"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <InfoIcon />
+              Campaign strategy overview
+            </span>
+            <ChevronIcon open={overviewOpen} />
+          </button>
+          {overviewOpen && (
+            <ol className="flex flex-col gap-2 px-3.5 pb-3.5">
+              {phases.map((phase, i) => (
+                <li key={phase.id} className="flex gap-2.5 text-[13px] leading-snug">
+                  <span className="shrink-0 font-mono text-faint">{i + 1}.</span>
+                  <span>
+                    <span className="font-semibold">{phase.name}.</span>{" "}
+                    <span className="text-muted">{phase.objective}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
@@ -193,33 +228,82 @@ function StepCard({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const [infoOpen, setInfoOpen] = useState(false);
   const firstField = step.fields[0];
   const preview = step.copy?.[firstField?.key ?? ""] ?? "Not written yet";
 
   return (
-    <button
-      onClick={onSelect}
-      aria-pressed={selected}
-      className="w-full text-left bg-paper border border-line rounded-xl px-3 py-2.5 flex flex-col gap-0.5"
+    <div
+      className="w-full bg-paper border border-line rounded-xl overflow-hidden"
       style={selected ? { boxShadow: `0 0 0 2px ${lane.fg}` } : undefined}
     >
-      <span className="flex items-center gap-1.5">
-        <LaneIcon channel={step.channel} color={lane.fg} />
-        <span className="font-mono text-[11px] font-medium" style={{ color: lane.fg }}>
-          {formatTime(step.scheduledAt)}
-        </span>
-        <span className="flex-grow" />
-        {needsInput(step) && (
-          <span className="px-1.5 py-0.5 rounded-full bg-warnBg text-warnFg text-[11px] font-semibold">
-            Add details
+      <button onClick={onSelect} aria-pressed={selected} className="w-full text-left px-3 py-2.5 flex flex-col gap-0.5">
+        <span className="flex items-center gap-1.5">
+          <LaneIcon channel={step.channel} color={lane.fg} />
+          <span className="font-mono text-[11px] font-medium" style={{ color: lane.fg }}>
+            {formatTime(step.scheduledAt)}
           </span>
-        )}
-      </span>
-      <span className="text-[13px] font-semibold leading-snug">{step.title}</span>
-      <span className="text-xs text-muted whitespace-nowrap overflow-hidden text-ellipsis">
-        {preview}
-      </span>
-    </button>
+          <span className="flex-grow" />
+          {needsInput(step) && (
+            <span className="px-1.5 py-0.5 rounded-full bg-warnBg text-warnFg text-[11px] font-semibold">
+              Add details
+            </span>
+          )}
+          {/* Separate button, not a nested <button>, so this can sit
+              inside the card's own select button without invalid HTML or
+              triggering onSelect when tapped. */}
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label="Why this step"
+            aria-expanded={infoOpen}
+            onClick={(e) => {
+              e.stopPropagation();
+              setInfoOpen((v) => !v);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+                e.preventDefault();
+                setInfoOpen((v) => !v);
+              }
+            }}
+            className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+              infoOpen ? "bg-slate text-white" : "text-faint hover:bg-ivory"
+            }`}
+          >
+            <InfoIcon />
+          </span>
+        </span>
+        <span className="text-[13px] font-semibold leading-snug">{step.title}</span>
+        <span className="text-xs text-muted whitespace-nowrap overflow-hidden text-ellipsis">
+          {preview}
+        </span>
+      </button>
+      {infoOpen && (
+        <div className="flex flex-col gap-1.5 px-3 pb-3 pt-0.5 border-t border-line bg-ivory/50">
+          {step.phaseName && (
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted">
+              {step.phaseName}
+            </span>
+          )}
+          <span className="inline-flex self-start px-2 py-0.5 rounded-full bg-slate text-ivory text-[11px] font-semibold">
+            {step.angle}
+          </span>
+          <span className="text-[12px] leading-relaxed text-slate">{step.purpose}</span>
+          {step.goals.length > 0 && (
+            <ul className="flex flex-col gap-0.5 pl-0.5">
+              {step.goals.map((g, i) => (
+                <li key={i} className="text-[12px] leading-relaxed text-muted flex gap-1.5">
+                  <span className="shrink-0">•</span>
+                  <span>{g}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -241,6 +325,33 @@ function LaneIcon({ channel, color }: { channel: string; color: string }) {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><circle cx="12" cy="8" r="0.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`text-muted transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+    >
+      <path d="M6 9l6 6 6-6" />
     </svg>
   );
 }

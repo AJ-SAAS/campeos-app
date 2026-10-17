@@ -201,6 +201,9 @@ function BuilderInner() {
               title: s.title,
               purpose: s.purpose,
               angle: s.angle,
+              goals: s.goals,
+              phaseName: s.phaseName,
+              phaseObjective: s.phaseObjective,
               fields: s.fields,
             },
           })),
@@ -225,6 +228,9 @@ function BuilderInner() {
           title: s.title,
           purpose: s.purpose,
           angle: s.angle,
+          goals: s.goals,
+          phaseName: s.phaseName,
+          phaseObjective: s.phaseObjective,
           fields: s.fields,
           scheduledAt: s.scheduledAt.toISOString(),
           copy: next[s.templateStepId] ?? null,
@@ -291,6 +297,9 @@ function BuilderInner() {
             title: selected.title,
             purpose: selected.purpose,
             angle: selected.angle,
+            goals: selected.goals,
+            phaseName: selected.phaseName,
+            phaseObjective: selected.phaseObjective,
             fields: selected.fields,
           },
           currentCopy: selected.copy ?? {},
@@ -402,6 +411,7 @@ function BuilderInner() {
                 setMobilePanel("step");
               }}
               eventDate={eventDate}
+              phases={webinarTemplate.phases}
             />
           </div>
           <div className={`${mobilePanel === "step" ? "flex" : "hidden"} lg:flex min-h-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>
@@ -433,6 +443,9 @@ function BuilderInner() {
                     title: s.title,
                     purpose: s.purpose,
                     angle: s.angle,
+                    goals: s.goals,
+                    phaseName: s.phaseName,
+                    phaseObjective: s.phaseObjective,
                     fields: s.fields,
                     copy: s.copy ?? null,
                   })

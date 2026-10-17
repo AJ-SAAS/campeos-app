@@ -120,6 +120,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
                   title: s.title,
                   purpose: s.purpose,
                   angle: s.angle,
+                  phaseName: s.phaseName,
                 })),
               }
             : null,
@@ -216,7 +217,16 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
         uid,
         ctx.campaignId,
         step.templateStepId,
-        { channel: step.channel, title: step.title, purpose: step.purpose, angle: step.angle, fields: step.fields },
+        {
+          channel: step.channel,
+          title: step.title,
+          purpose: step.purpose,
+          angle: step.angle,
+          goals: step.goals,
+          phaseName: step.phaseName,
+          phaseObjective: step.phaseObjective,
+          fields: step.fields,
+        },
         step.copy ?? {},
         args.instruction,
         ctx.offer

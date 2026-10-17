@@ -12,26 +12,76 @@ const adFields = [
 
 const smsFields = [{ key: "body", label: "Text", kind: "long" as const }];
 
-// A 7-day, 3-lane (Facebook ads / Email / Texts) webinar promo campaign.
-// Timing is relative to the "event" anchor (the webinar's start time) and
-// the "end" anchor (when the offer closes, typically 48-72 hours after).
-// This matches the layout built in the Campeos Builder mockup.
+// A full-lifecycle webinar campaign: fill the room, get people to show up,
+// then run an 11-day backend sequence that sells the offer. The backend
+// sequence (every step in the consumption / consideration-connection /
+// conversion / marketing-intel phases) is modeled directly on a real
+// copywriter's own fill-in-the-blank template for exactly this kind of
+// post-webinar follow-up — the structure, the phase objectives, and the
+// named techniques below all come from that source, not invented from
+// scratch. This is Campeos's first "blueprint" template: get this one
+// right, and the same phase/technique/goals shape applies to every other
+// campaign type.
 export const webinarTemplate: CampaignTemplate = {
   id: "webinar",
-  name: "Webinar promo",
+  name: "Webinar launch",
   description:
-    "Fill seats for a live webinar, then sell the offer hard for 48–72 hours after it ends.",
+    "Fill seats for a live webinar, then run a full 11-day backend sequence that turns registrants into buyers.",
   kind: "webinar",
+  phases: [
+    {
+      id: "registration",
+      name: "Registration",
+      objective:
+        "Turn cold and warm traffic into confirmed registrants before the room fills.",
+    },
+    {
+      id: "live-event",
+      name: "Live event",
+      objective:
+        "Get registered people to actually show up — most registrants never do, so these final touches carry real weight.",
+    },
+    {
+      id: "consumption",
+      name: "Consumption",
+      objective:
+        "Funnel registrants back to the replay. On average only 25-40% of registrants ever watch, so recovering that lost audience comes before anything else.",
+    },
+    {
+      id: "consideration-connection",
+      name: "Consideration & connection",
+      objective:
+        "Build personal rapport, credibility, and social proof so the direct ask in the next phase lands as trustworthy, not pushy.",
+    },
+    {
+      id: "conversion",
+      name: "Conversion",
+      objective:
+        "Make the direct ask. This is the one phase whose only job is maximizing sales.",
+    },
+    {
+      id: "marketing-intel",
+      name: "Marketing intel",
+      objective:
+        "Recover a few last-minute sales and learn exactly why everyone else didn't buy, in their own words.",
+    },
+  ],
   steps: [
-    // --- Registration drive: 6 days out to day before ---
+    // --- Registration: 6 days out to day before ---
     {
       id: "ad-open",
       channel: "ad",
       anchor: "event",
       offsetHours: -144, // 6 days before
       title: "Registration ad",
-      purpose: "Cold traffic sees the webinar for the first time and registers.",
-      angle: "curiosity",
+      phaseId: "registration",
+      purpose:
+        "Cold traffic has never heard of this webinar. The ad's only job is to earn a registration, not to explain everything — curiosity gets the click.",
+      angle: "Curiosity-driven cold ad",
+      goals: [
+        "Get a first registration from someone who's never heard of you",
+        "Earn the click without over-explaining the offer",
+      ],
       fields: adFields,
     },
     {
@@ -40,8 +90,14 @@ export const webinarTemplate: CampaignTemplate = {
       anchor: "event",
       offsetHours: -120, // 5 days before
       title: "You're invited",
-      purpose: "Tell the list the webinar exists and get the first wave of registrations.",
-      angle: "invitation",
+      phaseId: "registration",
+      purpose:
+        "The list already trusts you, so this is a plain, no-pressure invite — most of this list's registrations come from this one email.",
+      angle: "Direct list invitation",
+      goals: [
+        "Tell the list the webinar exists",
+        "Get the first wave of registrations from people who already trust you",
+      ],
       fields: shortLong,
     },
     {
@@ -50,8 +106,14 @@ export const webinarTemplate: CampaignTemplate = {
       anchor: "event",
       offsetHours: -96, // 4 days before
       title: "Retargeting ad",
-      purpose: "Bring back people who saw the first ad but didn't register.",
-      angle: "objection handling",
+      phaseId: "registration",
+      purpose:
+        "Anyone who saw the first ad but didn't register already has some interest — this ad answers the hesitation that stopped them the first time.",
+      angle: "Retargeting objection handling",
+      goals: [
+        "Bring back warm traffic that didn't convert the first time",
+        "Handle the specific hesitation a second look usually reveals",
+      ],
       fields: adFields,
     },
     {
@@ -60,8 +122,14 @@ export const webinarTemplate: CampaignTemplate = {
       anchor: "event",
       offsetHours: -72, // 3 days before
       title: "What you'll learn",
-      purpose: "Give registrants a reason to actually show up, not just sign up.",
-      angle: "value preview",
+      phaseId: "registration",
+      purpose:
+        "A registration isn't a show-up. This email sells the value of actually attending, so sign-ups don't quietly ghost the webinar.",
+      angle: "Value preview",
+      goals: [
+        "Give registrants a concrete reason to clear their calendar",
+        "Preview 2-3 specific things they'll learn, not just the general topic",
+      ],
       fields: shortLong,
     },
     {
@@ -70,30 +138,44 @@ export const webinarTemplate: CampaignTemplate = {
       anchor: "event",
       offsetHours: -48, // 2 days before
       title: "Save your seat text",
-      purpose: "Short nudge to people who registered but haven't confirmed.",
-      angle: "reminder",
+      phaseId: "registration",
+      purpose:
+        "A short text cuts through where email gets ignored — this catches anyone who registered but never confirmed they're actually coming.",
+      angle: "Confirmation nudge",
+      goals: [
+        "Get an explicit yes from registrants who haven't engaged since signing up",
+      ],
       fields: smsFields,
     },
+
+    // --- Live event: day before through go-live ---
     {
       id: "email-story",
       channel: "email",
       anchor: "event",
       offsetHours: -30,
       title: "Why this matters now",
-      purpose: "A story-driven email that builds urgency for the day before.",
-      angle: "story",
+      phaseId: "live-event",
+      purpose:
+        "By the day before, generic reminders stop working. A story earns attention and gives people an emotional reason to show up tomorrow, not just a logistical one.",
+      angle: "Pre-event urgency story",
+      goals: [
+        "Build urgency for tomorrow through a story, not a checklist",
+        "Remind registrants why they signed up in the first place",
+      ],
       fields: shortLong,
     },
-
-    // --- Day before / day of: reminders ---
     {
       id: "sms-tomorrow",
       channel: "sms",
       anchor: "event",
       offsetHours: -24,
       title: "Tomorrow reminder",
-      purpose: "Remind registrants the webinar is tomorrow.",
-      angle: "reminder",
+      phaseId: "live-event",
+      purpose:
+        "One more short nudge the day before — texts get read when inboxes don't.",
+      angle: "Day-before reminder",
+      goals: ["Keep the webinar top of mind the night before"],
       fields: smsFields,
     },
     {
@@ -102,8 +184,14 @@ export const webinarTemplate: CampaignTemplate = {
       anchor: "event",
       offsetHours: -3,
       title: "Starting soon",
-      purpose: "Last email before doors open, with the join link front and center.",
-      angle: "reminder",
+      phaseId: "live-event",
+      purpose:
+        "This is the last email before doors open. The only job left is getting the join link in front of every registrant one more time.",
+      angle: "Final-hour reminder",
+      goals: [
+        "Put the join link front and center one last time",
+        "Catch anyone who forgot it was today",
+      ],
       fields: shortLong,
     },
     {
@@ -112,20 +200,30 @@ export const webinarTemplate: CampaignTemplate = {
       anchor: "event",
       offsetHours: 0,
       title: "We're live",
-      purpose: "Catch people who forgot the moment it starts.",
-      angle: "urgency",
+      phaseId: "live-event",
+      purpose:
+        "The moment the webinar starts, a chunk of registrants are mid-scroll somewhere else. This catches them the second it matters.",
+      angle: "Live-now urgency",
+      goals: ["Catch registrants who forgot the moment it starts"],
       fields: smsFields,
     },
 
-    // --- Post-webinar: sell the offer ---
+    // --- Consumption: funnel people back to the replay ---
     {
-      id: "email-replay",
+      id: "email-welcome",
       channel: "email",
       anchor: "event",
       offsetHours: 3,
-      title: "Replay + offer opens",
-      purpose: "Send the replay and open the cart for people who missed it live.",
-      angle: "value recap",
+      title: "Welcome + replay link",
+      phaseId: "consumption",
+      purpose:
+        "40% or more of your paid leads never actually watch the webinar. This email's whole job is sending them back to the replay before anything else gets in the way.",
+      angle: "Reciprocity opener",
+      goals: [
+        "Hand over the replay link immediately, no gatekeeping",
+        "Get a reply to start a real conversation (and improve deliverability)",
+        "Set up anticipation for the emails still to come",
+      ],
       fields: shortLong,
     },
     {
@@ -134,49 +232,203 @@ export const webinarTemplate: CampaignTemplate = {
       anchor: "event",
       offsetHours: 6,
       title: "Offer is open",
-      purpose: "Tell warm traffic the offer from the webinar is live.",
-      angle: "offer reveal",
+      phaseId: "consumption",
+      purpose:
+        "Warm traffic who engaged with the webinar already knows the offer exists — this is the moment to say it plainly instead of waiting for them to go looking.",
+      angle: "Warm-traffic offer reveal",
+      goals: [
+        "Tell people who engaged with the webinar that the offer is live",
+        "Make the next step obvious with no extra steps to find it",
+      ],
       fields: adFields,
     },
     {
-      id: "email-objections",
+      id: "email-second-chance",
       channel: "email",
       anchor: "event",
-      offsetHours: 24,
-      title: "Handle the objections",
-      purpose: "Answer the top reasons people hesitate to buy.",
-      angle: "objection handling",
+      offsetHours: 27, // ~1 day after the welcome email
+      title: "Did you catch the replay?",
+      phaseId: "consumption",
+      purpose:
+        "A day later, most people still haven't watched. This is the second — not last — nudge back to the replay, with just enough social proof to make it worth the time.",
+      angle: "Second-chance exposure",
+      goals: [
+        "Increase replay viewership from people who skipped it the first time",
+        "Add light social proof to justify the time investment",
+      ],
       fields: shortLong,
     },
+
+    // --- Consideration & connection: rapport, credibility, social proof ---
     {
-      id: "sms-cart-closing-soon",
-      channel: "sms",
-      anchor: "end",
-      offsetHours: -24,
-      title: "Cart closes tomorrow",
-      purpose: "Create urgency as the close date approaches.",
-      angle: "urgency",
-      fields: smsFields,
-    },
-    {
-      id: "email-last-call",
+      id: "email-story-time",
       channel: "email",
-      anchor: "end",
-      offsetHours: -4,
-      title: "Last call",
-      purpose: "Final push before the cart closes for good.",
-      angle: "urgency",
+      anchor: "event",
+      offsetHours: 51, // ~1 day after email-second-chance
+      title: "A confession",
+      phaseId: "consideration-connection",
+      purpose:
+        "Nobody buys from a highlight reel. This is where the mask comes off — a real, specific struggle that makes the eventual offer feel earned instead of lucky.",
+      angle: "Vulnerable story bonding",
+      goals: [
+        "Create a personal connection by showing a real struggle, not just wins",
+        "Make the bond emotional, not just informational",
+        "Lead naturally back to the replay for anyone who hasn't seen it",
+      ],
       fields: shortLong,
     },
     {
-      id: "sms-closes-tonight",
+      id: "email-paradigm-shift",
+      channel: "email",
+      anchor: "event",
+      offsetHours: 75, // ~1 day after email-story-time
+      title: "The ugly truth about [common belief]",
+      phaseId: "consideration-connection",
+      purpose:
+        "Take something this audience already believes and flip it on its head. Shifting how someone thinks earns more influence than any single fact ever could.",
+      angle: "Kill the sacred cow",
+      goals: [
+        "Name a common belief in this space and show why it's wrong",
+        "Replace it with a clearer, truer way to think about the problem",
+        "Position this offer as the one built around that truer model",
+      ],
+      fields: shortLong,
+    },
+    {
+      id: "email-social-proof",
+      channel: "email",
+      anchor: "event",
+      offsetHours: 99, // ~1 day after email-paradigm-shift
+      title: "Will this work for you?",
+      phaseId: "consideration-connection",
+      purpose:
+        "By now the skeptical question isn't 'does this work' but 'will it work for me.' This email answers that with real results, not more claims.",
+      angle: "FOMO via social proof stack",
+      goals: [
+        "Show results from more than one kind of person, not a single outlier",
+        "Make clear the same path is open to this reader specifically",
+        "Point straight at the next step for anyone who's convinced",
+      ],
+      fields: shortLong,
+    },
+
+    // --- Conversion: the direct ask ---
+    {
+      id: "email-takeaway-selling",
+      channel: "email",
+      anchor: "event",
+      offsetHours: 123, // ~1 day after email-social-proof
+      title: "Who should NOT buy this",
+      phaseId: "conversion",
+      purpose:
+        "Counterintuitively, telling people who this ISN'T for sells harder than telling everyone to buy. It filters for the right buyers and makes the ones who stay feel chosen, not sold to.",
+      angle: "Takeaway selling",
+      goals: [
+        "Name 2-3 kinds of people who should NOT buy",
+        "Make clear this isn't a fit for everyone, on purpose",
+        "Let the right buyers self-select in, not be pushed in",
+      ],
+      fields: shortLong,
+    },
+    {
+      id: "email-faq",
+      channel: "email",
+      anchor: "event",
+      offsetHours: 147, // ~1 day after email-takeaway-selling
+      title: "Your questions, answered",
+      phaseId: "conversion",
+      purpose:
+        "By this point the real objections are known and repeating. This email answers them directly instead of letting them sit unspoken and quietly kill the sale.",
+      angle: "Objection-crushing FAQ",
+      goals: [
+        "Answer the specific questions people keep asking",
+        "Close out the price objection with a direct comparison, not a dodge",
+        "Leave one open door for anything not covered",
+      ],
+      fields: shortLong,
+    },
+    {
+      id: "email-recap-offer",
+      channel: "email",
+      anchor: "event",
+      offsetHours: 171, // ~1 day after email-faq
+      title: "Quick recap: why you're here",
+      phaseId: "conversion",
+      purpose:
+        "A short reminder of why they opted in, followed by the clearest, shortest version of the offer you can write. No new information, just clarity.",
+      angle: "Elevator-pitch recap",
+      goals: [
+        "Remind them why they opted in to begin with",
+        "State the offer in 2-4 plain sentences, no fluff",
+        "Make the single next action obvious",
+      ],
+      fields: shortLong,
+    },
+    {
+      id: "sms-reinforce-offer",
       channel: "sms",
-      anchor: "end",
-      offsetHours: -1,
-      title: "Closes tonight",
-      purpose: "Last-hour nudge to anyone still on the fence.",
-      angle: "urgency",
+      anchor: "event",
+      offsetHours: 180, // same day as email-recap-offer, different channel
+      title: "Offer reminder text",
+      phaseId: "conversion",
+      purpose:
+        "Same message, different channel. Some people only act from a text, not an inbox they've stopped checking as closely.",
+      angle: "Multi-channel urgency nudge",
+      goals: ["Reinforce the same offer through a channel email can't reach"],
       fields: smsFields,
+    },
+    {
+      id: "email-gratitude",
+      channel: "email",
+      anchor: "event",
+      offsetHours: 195, // ~1 day after email-recap-offer
+      title: "Thank you",
+      phaseId: "conversion",
+      purpose:
+        "Whether or not someone bought, saying thank you keeps goodwill high and keeps the relationship open past this one campaign.",
+      angle: "Goodwill gratitude + soft pitch",
+      goals: [
+        "Thank everyone for sticking with the sequence, buyer or not",
+        "Give something free regardless of purchase",
+        "Leave one more easy door open to the offer",
+      ],
+      fields: shortLong,
+    },
+
+    // --- Marketing intel: last-minute recovery + honest feedback ---
+    {
+      id: "email-marketing-intel",
+      channel: "email",
+      anchor: "event",
+      offsetHours: 219, // ~1 day after email-gratitude
+      title: "Quick favor — why not?",
+      phaseId: "marketing-intel",
+      purpose:
+        "Anyone still here didn't say no, they just didn't say yes yet. Asking why, with zero pressure, surfaces the real objection — sometimes straight into a sale.",
+      angle: "Non-buyer intel question",
+      goals: [
+        "Ask the people who haven't bought exactly why, without pressure",
+        "Surface objections worth answering directly, by reply",
+        "Catch the rare reply that turns straight into a sale",
+      ],
+      fields: shortLong,
+    },
+    {
+      id: "email-final-reopen",
+      channel: "email",
+      anchor: "event",
+      offsetHours: 267, // ~2 days after email-marketing-intel
+      title: "Last call",
+      phaseId: "marketing-intel",
+      purpose:
+        "The sequence is ending, which is itself a reason to act for anyone who was genuinely close. One last honest reason the door is still open, then it closes.",
+      angle: "Last-chance re-open",
+      goals: [
+        "Acknowledge the sequence is ending",
+        "Give one real reason the offer is still available (not a fake deadline)",
+        "Make the final ask easy to act on immediately",
+      ],
+      fields: shortLong,
     },
   ],
 };

@@ -23,6 +23,9 @@ const stepSchema = z.object({
   title: z.string(),
   purpose: z.string(),
   angle: z.string(),
+  goals: z.array(z.string()).default([]),
+  phaseName: z.string().default(""),
+  phaseObjective: z.string().default(""),
   fields: z.array(
     z.object({
       key: z.string(),

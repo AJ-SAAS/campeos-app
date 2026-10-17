@@ -10,8 +10,6 @@ import { OfferContext } from "./prompts";
 // lib/ai/agentActions.ts.
 //
 // - create_campaign: always available. Builds a brand-new webinar promo.
-//   stepScope controls how much COPY gets written, separate from the
-//   schedule, which always saves in full — see executeCreateCampaign.
 // - edit_step: only available when the caller passes a CampaignContext —
 //   i.e. the agent is being used from inside an already-open campaign
 //   (the floating launcher on the Campaign Builder page, not the
@@ -37,9 +35,10 @@ const createCampaignArgsSchema = z.object({
   tone: z.enum(["Friendly", "Bold", "Calm"]),
   webinarDate: z.string().min(1), // "YYYY-MM-DD", the day the webinar goes live
   // "all" (the default) writes copy for every step in the template.
-  // "first" saves the full 15-step schedule but only writes copy for the
-  // earliest-dated step — for when the user explicitly asks for just one
-  // step rather than the whole campaign. See executeCreateCampaign.
+  // "first" saves the full schedule (every step in the template, see
+  // lib/templates/webinar.ts) but only writes copy for the earliest-dated
+  // step — for when the user explicitly asks for just one step rather
+  // than the whole campaign. See executeCreateCampaign.
   stepScope: z.enum(["all", "first"]).optional().default("all"),
 });
 export type CreateCampaignArgs = z.infer<typeof createCampaignArgsSchema>;
@@ -77,7 +76,7 @@ export interface CampaignContext {
 
 const BASE_PROMPT = `You are the Campeos agent. You help the user build and improve marketing campaigns. You do not write any copy yourself in this conversation — tool calls trigger the actual writing, which happens after you call a tool.
 
-Campeos only has one real campaign type today: "webinar" (a 7 day high-ticket webinar promo: ads, reminders, the live event, replay, and call booking). If the user asks to build anything else (a flash sale, a product launch, etc.), say plainly that only the webinar promo is wired up right now, and offer to build that instead, or suggest "Start from scratch" in the builder for anything else. Don't pretend to build something that doesn't exist.
+Campeos only has one real campaign type today: "webinar" (a full-lifecycle webinar launch: registration ads and emails, day-of reminders, then an 11-day backend sequence — consumption, consideration and connection, conversion, and marketing intel — that turns registrants into buyers). If the user asks to build anything else (a flash sale, a product launch, etc.), say plainly that only the webinar launch is wired up right now, and offer to build that instead, or suggest "Start from scratch" in the builder for anything else. Don't pretend to build something that doesn't exist.
 
 Keep replies short and conversational, like a capable coworker, not a sales page. No em dashes.`;
 
@@ -111,7 +110,7 @@ For a new campaign, the only thing you're missing is the webinar date — ask fo
     prompt += `\n\nThe user is currently looking at an existing campaign with these steps:
 ${stepList}
 
-If they ask you to change, rewrite, tighten, or vary a specific step's copy, call edit_step with that exact templateStepId and a short, specific instruction describing the one thing to change — e.g. "make the headline more urgent" or "shorten the primary text," not "rewrite everything" (Campeos changes one thing at a time, never a full rewrite, so the user can tell what changed). edit_step also works on a step that hasn't been written yet — use it the same way to write a specific step on request. If it's unclear which step they mean — more than one ad, say — ask which one, listing the short titles as options, before calling the tool. You can still call create_campaign if they explicitly ask for a brand-new campaign instead.`;
+If they ask you to change, rewrite, tighten, or vary a specific step's copy, call edit_step with that exact templateStepId and a short, specific instruction describing the one thing to change — e.g. "make the headline more urgent" or "shorten the primary text," not "rewrite everything" (Campeos changes one thing at a time, never a full rewrite, so the user can tell what changed). If it's unclear which step they mean — more than one ad, say — ask which one, listing the short titles as options, before calling the tool. You can still call create_campaign if they explicitly ask for a brand-new campaign instead.`;
   }
 
   return prompt;
@@ -169,18 +168,18 @@ export async function runAgentTurn(
       function: {
         name: "edit_step",
         description:
-          "Write or change one step's copy in the campaign currently open in the builder — works whether that step already has copy or not. One change at a time, never a full rewrite.",
+          "Change one existing step's copy in the campaign currently open in the builder. One change at a time, never a full rewrite.",
         parameters: {
           type: "object",
           properties: {
             templateStepId: {
               type: "string",
               enum: Array.from(validStepIds),
-              description: "The exact templateStepId of the step to write or change.",
+              description: "The exact templateStepId of the step to change.",
             },
             instruction: {
               type: "string",
-              description: "A short, specific instruction describing the one thing to write or change.",
+              description: "A short, specific instruction describing the one thing to change.",
             },
           },
           required: ["templateStepId", "instruction"],

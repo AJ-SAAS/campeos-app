@@ -13,6 +13,16 @@ export interface StepContext {
   title: string;
   purpose: string;
   angle: string;
+  /** 2-4 concrete things this step needs to accomplish — see
+   * lib/templates/types.ts. Optional so older callers that haven't been
+   * updated to pass it still compile; buildStepCopyPrompt treats a
+   * missing/empty list as "nothing extra to add". */
+  goals?: string[];
+  /** The campaign phase this step belongs to and what that phase as a
+   * whole is trying to do — see CampaignPhase in lib/templates/types.ts.
+   * Also optional for the same reason as `goals`. */
+  phaseName?: string;
+  phaseObjective?: string;
   fields: StepFieldSpec[];
 }
 
@@ -60,6 +70,14 @@ export function buildStepCopyPrompt(
     .map((f) => `- "${f.key}": ${f.label} (${f.kind === "short" ? "one line" : "a few short paragraphs"})`)
     .join("\n");
 
+  const goalsBlock = step.goals?.length
+    ? `This step needs to specifically accomplish:\n${step.goals.map((g) => `- ${g}`).join("\n")}`
+    : "";
+
+  const phaseBlock = step.phaseName
+    ? `This step is part of the "${step.phaseName}" phase of the campaign. That phase's objective: ${step.phaseObjective}`
+    : "";
+
   return `You are writing one step of a marketing campaign for this offer:
 
 Offer: ${offer.name}
@@ -68,11 +86,23 @@ Audience: ${offer.audience}
 What they get: ${offer.whatTheyGet}
 Tone: ${offer.tone}
 
+${phaseBlock}
+
 This step:
 Channel: ${step.channel}
 Title: ${step.title}
 Why this step exists: ${step.purpose}
-Sales angle to play: ${step.angle}
+
+Named copywriting technique this step must actually execute: "${step.angle}"
+Don't just set a mood that matches this name — write copy that DOES what
+the technique describes. If the technique is "Kill the sacred cow," the
+copy must name a real belief and flip it, not just sound contrarian. If
+it's "Takeaway selling," the copy must explicitly tell some readers they
+shouldn't buy. A reader who's seen real copywriting should recognize the
+technique being used, not just read something generically different from
+the last email.
+
+${goalsBlock}
 
 ${winningCopyBlock}
 

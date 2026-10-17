@@ -20,7 +20,7 @@ export interface Campaign {
   title: string;
   templateId: string;
   offer: OfferContext;
-  eventDate: string;
+  eventDate: string; // ISO string
   createdAt?: Timestamp;
 }
 
@@ -30,11 +30,19 @@ export interface CampaignStepDoc {
   title: string;
   purpose: string;
   angle: string;
+  goals: string[];
+  phaseName: string;
+  phaseObjective: string;
   fields: StepTemplate["fields"];
-  scheduledAt: string;
+  scheduledAt: string; // ISO string
   copy: Record<string, string> | null;
 }
 
+/**
+ * Creates a new campaign document for the signed-in user, plus one step
+ * document per scheduled step. Called from the Campaign Builder when
+ * "Generate campaign copy" runs for the first time on a given session.
+ */
 export async function createCampaign(
   uid: string,
   title: string,
@@ -61,6 +69,11 @@ export async function createCampaign(
   return campaignRef.id;
 }
 
+/**
+ * Updates just the generated copy for one step. Used after a variation
+ * request from the AskCampeosBar, so we don't rewrite the whole campaign
+ * for a one-field change.
+ */
 export async function saveStepCopy(
   campaignId: string,
   templateStepId: string,
@@ -73,6 +86,7 @@ export async function saveStepCopy(
   );
 }
 
+/** Lists campaigns owned by this user, most recently created first. */
 export async function listCampaigns(uid: string): Promise<Campaign[]> {
   const q = query(collection(db, "campaigns"), where("uid", "==", uid));
   const snap = await getDocs(q);
@@ -81,6 +95,7 @@ export async function listCampaigns(uid: string): Promise<Campaign[]> {
   return campaigns;
 }
 
+/** Loads one campaign and all its steps. */
 export async function getCampaignWithSteps(
   campaignId: string
 ): Promise<{ campaign: Campaign; steps: CampaignStepDoc[] } | null> {

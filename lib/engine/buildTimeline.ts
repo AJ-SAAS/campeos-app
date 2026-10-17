@@ -17,6 +17,12 @@ export interface ScheduledStep {
   title: string;
   purpose: string;
   angle: string;
+  goals: string[];
+  /** Denormalized from the template's CampaignPhase this step belongs to,
+   * so downstream code (the UI, the AI prompt) never needs the template's
+   * `phases` array just to know what phase a step is in. */
+  phaseName: string;
+  phaseObjective: string;
   fields: StepTemplate["fields"];
   /** The real calendar date/time this step should go out. */
   scheduledAt: Date;
@@ -40,12 +46,22 @@ export function buildTimeline(
   return template.steps
     .map((step) => {
       const base = step.anchor === "event" ? anchors.event : end;
+      // Resolve the step's phase once here, rather than making every
+      // downstream consumer (the UI, the AI prompt builder) carry the
+      // template's `phases` array around just to look up a name. A step
+      // whose phaseId doesn't match any phase (shouldn't happen for a
+      // well-formed template) degrades to empty strings rather than
+      // throwing, since this is UI/prompt context, not a correctness check.
+      const phase = template.phases.find((p) => p.id === step.phaseId);
       return {
         templateStepId: step.id,
         channel: step.channel,
         title: step.title,
         purpose: step.purpose,
         angle: step.angle,
+        goals: step.goals,
+        phaseName: phase?.name ?? "",
+        phaseObjective: phase?.objective ?? "",
         fields: step.fields,
         scheduledAt: addHours(base, step.offsetHours),
       };

@@ -77,7 +77,18 @@ export function StepEditor({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 p-3.5 bg-ivory rounded-xl">
+      <div className="flex flex-col gap-2.5 p-3.5 bg-ivory rounded-xl">
+        {step.phaseName && (
+          <div className="flex items-center gap-1.5 text-[11px] text-muted">
+            <span className="font-mono uppercase tracking-wider">{step.phaseName} phase</span>
+            {step.phaseObjective && (
+              <>
+                <span>·</span>
+                <span className="italic">{step.phaseObjective}</span>
+              </>
+            )}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <span className="font-mono text-[11px] uppercase tracking-wider text-muted">Why this step</span>
           <span className="px-2 py-0.5 rounded-full bg-slate text-ivory text-[11px] font-semibold">
@@ -85,7 +96,17 @@ export function StepEditor({
           </span>
         </div>
         <div className="text-sm leading-relaxed">{step.purpose}</div>
-        <div className="flex items-center gap-2 flex-wrap">
+        {step.goals.length > 0 && (
+          <ul className="flex flex-col gap-1">
+            {step.goals.map((g, i) => (
+              <li key={i} className="text-[13px] leading-relaxed text-muted flex gap-1.5">
+                <span className="shrink-0">•</span>
+                <span>{g}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-line/70">
           <span className="font-mono text-[11px] uppercase tracking-wider text-muted">Built from</span>
           <span className="px-2 py-0.5 rounded-full bg-paper border border-line text-xs font-semibold">
             {step.copy?.source ?? "Not generated yet"}
