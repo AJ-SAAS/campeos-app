@@ -61,8 +61,14 @@ different from a generic AI chat. Do not relax them for convenience.
   e.g. [CUSTOMER NAME], [RESULT]. This is the single most important rule —
   a campaign with a fabricated testimonial is worse than one with a blank.
 - **Match the user's reading level and voice.** Plain words, short
-  sentences, roughly a 5th-grade reading level unless the user's own pasted
-  copy shows otherwise. No em dashes in generated marketing copy.
+  sentences, defaulting to roughly a 5th-grade reading level unless the
+  user's own pasted copy shows otherwise, or they've picked a different
+  level in Setup (5th / 7th / 9th grade, or Professional — see
+  OfferContext.readingLevel in lib/ai/prompts.ts). No em dashes in
+  generated marketing copy, enforced both in the prompt and as a
+  post-generation safety net (see stripEmDashes in
+  lib/ai/generateStepCopy.ts) — a prompt instruction alone wasn't reliable
+  enough in practice.
 - **A "variation" changes one thing at a time.** When asked for variations
   on a step, generate options that each change a single element (angle,
   hook, length) and say what changed. Never reword five things at once —

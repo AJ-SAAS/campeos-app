@@ -82,6 +82,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Get a first registration from someone who's never heard of you",
         "Earn the click without over-explaining the offer",
       ],
+      persuasionElements: ["Audience: speak to what they already want", "Optimization: headline earns attention"],
       fields: adFields,
     },
     {
@@ -98,6 +99,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Tell the list the webinar exists",
         "Get the first wave of registrations from people who already trust you",
       ],
+      persuasionElements: ["Audience: existing trust and attention", "Offer: what exactly is included"],
       fields: shortLong,
     },
     {
@@ -114,6 +116,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Bring back warm traffic that didn't convert the first time",
         "Handle the specific hesitation a second look usually reveals",
       ],
+      persuasionElements: ["Objections: timing or trust", "Urgency: a real reason to act now"],
       fields: adFields,
     },
     {
@@ -130,6 +133,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Give registrants a concrete reason to clear their calendar",
         "Preview 2-3 specific things they'll learn, not just the general topic",
       ],
+      persuasionElements: ["Desire: specific outcome preview", "Optimization: clarity on what they'll get"],
       fields: shortLong,
     },
     {
@@ -145,6 +149,7 @@ export const webinarTemplate: CampaignTemplate = {
       goals: [
         "Get an explicit yes from registrants who haven't engaged since signing up",
       ],
+      persuasionElements: ["Urgency: confirm before spots go", "Optimization: friction reduction (one-word reply)"],
       fields: smsFields,
     },
 
@@ -163,6 +168,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Build urgency for tomorrow through a story, not a checklist",
         "Remind registrants why they signed up in the first place",
       ],
+      persuasionElements: ["Story: before-and-after", "Stakes: cost of missing it"],
       fields: shortLong,
     },
     {
@@ -176,6 +182,7 @@ export const webinarTemplate: CampaignTemplate = {
         "One more short nudge the day before — texts get read when inboxes don't.",
       angle: "Day-before reminder",
       goals: ["Keep the webinar top of mind the night before"],
+      persuasionElements: ["Urgency: a real deadline, close now"],
       fields: smsFields,
     },
     {
@@ -192,6 +199,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Put the join link front and center one last time",
         "Catch anyone who forgot it was today",
       ],
+      persuasionElements: ["Optimization: call to action front and center"],
       fields: shortLong,
     },
     {
@@ -205,6 +213,7 @@ export const webinarTemplate: CampaignTemplate = {
         "The moment the webinar starts, a chunk of registrants are mid-scroll somewhere else. This catches them the second it matters.",
       angle: "Live-now urgency",
       goals: ["Catch registrants who forgot the moment it starts"],
+      persuasionElements: ["Urgency: immediate, happening right now"],
       fields: smsFields,
     },
 
@@ -224,6 +233,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Get a reply to start a real conversation (and improve deliverability)",
         "Set up anticipation for the emails still to come",
       ],
+      persuasionElements: ["Offer: hand over value immediately", "Audience: what they signed up expecting"],
       fields: shortLong,
     },
     {
@@ -240,6 +250,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Tell people who engaged with the webinar that the offer is live",
         "Make the next step obvious with no extra steps to find it",
       ],
+      persuasionElements: ["Offer: core offer revealed plainly", "Audience: warm traffic already primed"],
       fields: adFields,
     },
     {
@@ -256,6 +267,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Increase replay viewership from people who skipped it the first time",
         "Add light social proof to justify the time investment",
       ],
+      persuasionElements: ["Pain: still stuck without the solution", "Proof: light social proof to justify the time"],
       fields: shortLong,
     },
 
@@ -275,6 +287,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Make the bond emotional, not just informational",
         "Lead naturally back to the replay for anyone who hasn't seen it",
       ],
+      persuasionElements: ["Story: protagonist's original situation and turning point", "Identity: who they'll become"],
       fields: shortLong,
     },
     {
@@ -292,6 +305,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Replace it with a clearer, truer way to think about the problem",
         "Position this offer as the one built around that truer model",
       ],
+      persuasionElements: ["Objections: a wrong existing belief", "Solution: the unique mechanism, why this is different"],
       fields: shortLong,
     },
     {
@@ -309,6 +323,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Make clear the same path is open to this reader specifically",
         "Point straight at the next step for anyone who's convinced",
       ],
+      persuasionElements: ["Proof: testimonials and case studies", "Desire: visualize the same result for themselves"],
       fields: shortLong,
     },
 
@@ -328,6 +343,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Make clear this isn't a fit for everyone, on purpose",
         "Let the right buyers self-select in, not be pushed in",
       ],
+      persuasionElements: ["Risk: who it's not for, named explicitly", "Solution: fit and eligibility"],
       fields: shortLong,
     },
     {
@@ -345,6 +361,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Close out the price objection with a direct comparison, not a dodge",
         "Leave one open door for anything not covered",
       ],
+      persuasionElements: ["Objections: price, trust, timing, fit", "Risk: guarantee or terms, stated plainly"],
       fields: shortLong,
     },
     {
@@ -362,6 +379,7 @@ export const webinarTemplate: CampaignTemplate = {
         "State the offer in 2-4 plain sentences, no fluff",
         "Make the single next action obvious",
       ],
+      persuasionElements: ["Offer: total value and price justification", "Desire: the emotional payoff, recapped"],
       fields: shortLong,
     },
     {
@@ -375,6 +393,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Same message, different channel. Some people only act from a text, not an inbox they've stopped checking as closely.",
       angle: "Multi-channel urgency nudge",
       goals: ["Reinforce the same offer through a channel email can't reach"],
+      persuasionElements: ["Urgency: same deadline, different channel"],
       fields: smsFields,
     },
     {
@@ -392,6 +411,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Give something free regardless of purchase",
         "Leave one more easy door open to the offer",
       ],
+      persuasionElements: ["Story: thank-you and goodwill", "Offer: one more easy, low-pressure door"],
       fields: shortLong,
     },
 
@@ -411,6 +431,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Surface objections worth answering directly, by reply",
         "Catch the rare reply that turns straight into a sale",
       ],
+      persuasionElements: ["Objections: surface the real one, unprompted", "Audience: hear it in their own words"],
       fields: shortLong,
     },
     {
@@ -428,6 +449,7 @@ export const webinarTemplate: CampaignTemplate = {
         "Give one real reason the offer is still available (not a fake deadline)",
         "Make the final ask easy to act on immediately",
       ],
+      persuasionElements: ["Urgency: a real reason the door reopens, not a fake deadline", "Offer: the easiest possible final ask"],
       fields: shortLong,
     },
   ],

@@ -301,6 +301,15 @@ function StepCard({
               ))}
             </ul>
           )}
+          {step.persuasionElements.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {step.persuasionElements.map((el, i) => (
+                <span key={i} className="px-1.5 py-0.5 rounded-full bg-paper border border-line text-[10px] font-medium">
+                  {el}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

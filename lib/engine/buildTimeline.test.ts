@@ -56,6 +56,7 @@ const endAnchorFixture: CampaignTemplate = {
       purpose: "test",
       angle: "test",
       goals: ["test"],
+      persuasionElements: ["test"],
       fields: [{ key: "body", label: "Body", kind: "long" }],
     },
     {
@@ -68,6 +69,7 @@ const endAnchorFixture: CampaignTemplate = {
       purpose: "test",
       angle: "test",
       goals: ["test"],
+      persuasionElements: ["test"],
       fields: [{ key: "body", label: "Text", kind: "long" }],
     },
   ],
@@ -140,6 +142,7 @@ test("works for a minimal template with a single step", () => {
         purpose: "test",
         angle: "test",
         goals: ["test"],
+      persuasionElements: ["test"],
         fields: [{ key: "body", label: "Body", kind: "long" }],
       },
     ],

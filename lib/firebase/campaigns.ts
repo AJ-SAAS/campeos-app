@@ -31,6 +31,7 @@ export interface CampaignStepDoc {
   purpose: string;
   angle: string;
   goals: string[];
+  persuasionElements: string[];
   phaseName: string;
   phaseObjective: string;
   fields: StepTemplate["fields"];

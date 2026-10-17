@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { OfferContext } from "@/lib/ai/prompts";
+import { OfferContext, READING_LEVELS } from "@/lib/ai/prompts";
 
 interface SetupPanelProps {
   offer: OfferContext;
@@ -39,8 +39,10 @@ export function SetupPanel({
       <div className="flex items-center justify-between gap-2 p-3.5 bg-ivory rounded-xl">
         <div className="flex flex-col gap-0.5">
           <div className="font-mono text-[11px] uppercase tracking-wider text-faint">Campaign type</div>
-          <div className="text-[15px] font-semibold">High-ticket webinar</div>
-          <div className="text-xs text-muted">7 days. Ads, reminders, live event, replay, call booking.</div>
+          <div className="text-[15px] font-semibold">Webinar launch</div>
+          <div className="text-xs text-muted">
+            Registration through an 11-day backend sequence. 22 steps across ads, email, and texts.
+          </div>
         </div>
       </div>
 
@@ -48,6 +50,31 @@ export function SetupPanel({
       <Field label="Price" value={offer.price} onChange={(v) => set("price", v)} />
       <Field label="Who it's for" value={offer.audience} onChange={(v) => set("audience", v)} />
       <Field label="What they get" value={offer.whatTheyGet} onChange={(v) => set("whatTheyGet", v)} />
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-semibold">Reading level</div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {READING_LEVELS.map((level) => (
+            <button
+              key={level}
+              aria-pressed={(offer.readingLevel ?? "5th grade") === level}
+              onClick={() => set("readingLevel", level)}
+              className={`min-h-10 px-3.5 rounded-full text-[13px] font-semibold border ${
+                (offer.readingLevel ?? "5th grade") === level
+                  ? "bg-slate text-white border-slate"
+                  : "bg-paper text-slate border-faint font-medium"
+              }`}
+            >
+              {level}
+            </button>
+          ))}
+        </div>
+        <div className="text-xs text-faint">
+          How simple or sophisticated the actual sentences should read. Applies to every step.
+        </div>
+      </div>
 
       <WinningCopyCard winningCopy={winningCopy} onAdd={onAddWinningCopy} />
       <SalesCallCard callThemes={callThemes} onAdd={onAddSalesCall} />

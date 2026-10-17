@@ -16,6 +16,7 @@ const offerSchema = z.object({
   audience: z.string(),
   whatTheyGet: z.string(),
   tone: z.string(),
+  readingLevel: z.string().default("5th grade"),
 });
 
 const stepSchema = z.object({
@@ -24,6 +25,7 @@ const stepSchema = z.object({
   purpose: z.string(),
   angle: z.string(),
   goals: z.array(z.string()).default([]),
+  persuasionElements: z.array(z.string()).default([]),
   phaseName: z.string().default(""),
   phaseObjective: z.string().default(""),
   fields: z.array(

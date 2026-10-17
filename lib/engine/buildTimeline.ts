@@ -18,6 +18,7 @@ export interface ScheduledStep {
   purpose: string;
   angle: string;
   goals: string[];
+  persuasionElements: string[];
   /** Denormalized from the template's CampaignPhase this step belongs to,
    * so downstream code (the UI, the AI prompt) never needs the template's
    * `phases` array just to know what phase a step is in. */
@@ -60,6 +61,7 @@ export function buildTimeline(
         purpose: step.purpose,
         angle: step.angle,
         goals: step.goals,
+        persuasionElements: step.persuasionElements,
         phaseName: phase?.name ?? "",
         phaseObjective: phase?.objective ?? "",
         fields: step.fields,

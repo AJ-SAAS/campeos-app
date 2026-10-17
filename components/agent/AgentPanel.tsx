@@ -223,6 +223,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
           purpose: step.purpose,
           angle: step.angle,
           goals: step.goals,
+          persuasionElements: step.persuasionElements,
           phaseName: step.phaseName,
           phaseObjective: step.phaseObjective,
           fields: step.fields,

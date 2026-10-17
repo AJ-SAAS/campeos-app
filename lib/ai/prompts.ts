@@ -1,11 +1,26 @@
 import { StepFieldSpec } from "../templates/types";
 
+/** The reading-level labels shown in Setup's selector. Plain strings, not
+ * a strict grade number, so the prompt can hand the model something it
+ * understands directly ("Write at roughly a 5th-grade reading level"). */
+export const READING_LEVELS = ["5th grade", "7th grade", "9th grade", "Professional"] as const;
+export type ReadingLevel = (typeof READING_LEVELS)[number];
+
 export interface OfferContext {
   name: string;
   price: string;
   audience: string;
   whatTheyGet: string;
   tone: string;
+  /**
+   * One of READING_LEVELS, but typed as a plain string (not the union)
+   * since this value round-trips through Firestore and a zod schema
+   * that can't guarantee the exact literal — buildCopyRules falls back
+   * to "5th grade" for anything it doesn't recognize. Optional so
+   * existing OfferContext values (saved campaigns, the agent's profile
+   * memory) built before this existed still compile and still work.
+   */
+  readingLevel?: string;
 }
 
 export interface StepContext {
@@ -18,6 +33,10 @@ export interface StepContext {
    * updated to pass it still compile; buildStepCopyPrompt treats a
    * missing/empty list as "nothing extra to add". */
   goals?: string[];
+  /** Which levers from the master persuasion checklist this step should
+   * pull on — e.g. "Objections: price" — see StepTemplate in
+   * lib/templates/types.ts. Optional for the same reason as `goals`. */
+  persuasionElements?: string[];
   /** The campaign phase this step belongs to and what that phase as a
    * whole is trying to do — see CampaignPhase in lib/templates/types.ts.
    * Also optional for the same reason as `goals`. */
@@ -36,18 +55,39 @@ export interface SourceMaterial {
 // The rules here mirror CLAUDE.md's "copy rules" section exactly. If you
 // change the rules there, change them here too — this is where they
 // actually reach the model.
-const COPY_RULES = `Rules you must follow:
+const READING_LEVEL_INSTRUCTION: Record<ReadingLevel, string> = {
+  "5th grade":
+    "Write at roughly a 5th-grade reading level. Short sentences. Plain words. No jargon.",
+  "7th grade":
+    "Write at roughly a 7th-grade reading level. Mostly short sentences, a few longer ones for rhythm. Everyday words over jargon, but don't over-simplify ideas that need a little nuance.",
+  "9th grade":
+    "Write at roughly a 9th-grade reading level. Natural sentence variety. Some industry terms are fine if the offer itself uses them, but still explain anything genuinely unfamiliar.",
+  Professional:
+    "Write for a professional, informed reader. Industry terms the audience would actually use are fine and expected. Still plain and direct, never bureaucratic or padded with hedging.",
+};
+
+function buildCopyRules(readingLevel: string): string {
+  const instruction =
+    READING_LEVEL_INSTRUCTION[readingLevel as ReadingLevel] ??
+    READING_LEVEL_INSTRUCTION["5th grade"];
+  return `Rules you must follow:
 - Never invent facts: no testimonials, customer names, numbers, or results
   the offer details don't include. If a fact is missing, write a
   placeholder in [ALL CAPS], like [CUSTOMER NAME] or [RESULT].
-- Write at roughly a 5th-grade reading level. Short sentences. Plain
-  words. No jargon unless the offer itself uses it.
-- Never use em dashes.
+- ${instruction}
+- Never use the em dash character (—) anywhere, in a headline or a body.
+  Use a period, a comma, or "and" instead. This is a hard rule, not a
+  style preference — treat a sentence that needs an em dash as a sentence
+  you haven't finished rewriting yet.
 - Sound like a person talking, not an ad. Avoid hype words like
-  "revolutionary", "game-changing", "unlock", "supercharge".
+  "revolutionary", "game-changing", "unlock", "supercharge", and avoid
+  generic filler closers like "don't miss out" or "spots are filling
+  fast" unless the offer itself actually has a hard cap you were told
+  about.
 - If winning copy or call themes are given below, use them as the raw
   material for this step's angle. Don't just repeat them word for word;
   write new copy that carries the same idea.`;
+}
 
 export function buildStepCopyPrompt(
   offer: OfferContext,
@@ -66,13 +106,31 @@ export function buildStepCopyPrompt(
         .join("\n")}`
     : "No sales call insights have been added yet.";
 
+  // A text message and an email body are both "long" fields (the step's
+  // fields are generic across channels, see StepFieldSpec), but they are
+  // nothing alike in length — without a channel-specific instruction here
+  // the model wrote full email-length paragraphs into SMS steps. An SMS
+  // gets its own, much tighter description regardless of field kind.
   const fieldsBlock = step.fields
-    .map((f) => `- "${f.key}": ${f.label} (${f.kind === "short" ? "one line" : "a few short paragraphs"})`)
+    .map((f) => {
+      if (step.channel === "sms") {
+        return `- "${f.key}": ${f.label} (a real text message: 1-2 short sentences, under 300 characters, no subject line feel to it)`;
+      }
+      return `- "${f.key}": ${f.label} (${f.kind === "short" ? "one line" : "a few short paragraphs"})`;
+    })
     .join("\n");
 
   const goalsBlock = step.goals?.length
     ? `This step needs to specifically accomplish:\n${step.goals.map((g) => `- ${g}`).join("\n")}`
     : "";
+
+  const persuasionBlock = step.persuasionElements?.length
+    ? `Lean specifically on these persuasion levers for this step (don't try to cram in others that aren't listed here):\n${step.persuasionElements
+        .map((e) => `- ${e}`)
+        .join("\n")}`
+    : "";
+
+  const readingLevel = offer.readingLevel ?? "5th grade";
 
   const phaseBlock = step.phaseName
     ? `This step is part of the "${step.phaseName}" phase of the campaign. That phase's objective: ${step.phaseObjective}`
@@ -95,20 +153,25 @@ Why this step exists: ${step.purpose}
 
 Named copywriting technique this step must actually execute: "${step.angle}"
 Don't just set a mood that matches this name — write copy that DOES what
-the technique describes. If the technique is "Kill the sacred cow," the
-copy must name a real belief and flip it, not just sound contrarian. If
-it's "Takeaway selling," the copy must explicitly tell some readers they
-shouldn't buy. A reader who's seen real copywriting should recognize the
-technique being used, not just read something generically different from
-the last email.
+the technique describes, starting with the headline or subject line, not
+just the body. If the technique is "Kill the sacred cow," the headline
+itself should name the belief being overturned, and the body must flip it.
+If it's "Takeaway selling," the headline should signal that this isn't
+for everyone, and the body must explicitly tell some readers they
+shouldn't buy, not just ask "is this right for you?" A reader who has seen
+real copywriting should recognize the specific technique from the
+headline alone, not just notice the body reads differently from the last
+email.
 
 ${goalsBlock}
+
+${persuasionBlock}
 
 ${winningCopyBlock}
 
 ${callThemesBlock}
 
-${COPY_RULES}
+${buildCopyRules(readingLevel)}
 
 Return ONLY a JSON object with these exact keys and nothing else:
 ${fieldsBlock}
@@ -142,7 +205,7 @@ if they asked to shorten it, only shorten it; if they asked for a
 different angle, only change the angle and keep the rest as close to
 the original as makes sense.
 
-${COPY_RULES}
+${buildCopyRules(offer.readingLevel ?? "5th grade")}
 
 Return ONLY a JSON object with the same keys as the current copy above
 (not "source" — leave that out), plus a "changed" key: a short lowercase

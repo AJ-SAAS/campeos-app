@@ -41,6 +41,7 @@ const DEFAULT_OFFER: OfferContext = {
   audience: "People who want a fresh start this fall",
   whatTheyGet: "A guided 3-step plan and weekly coaching calls",
   tone: "Friendly",
+  readingLevel: "5th grade",
 };
 
 export default function BuilderPage() {
@@ -202,6 +203,7 @@ function BuilderInner() {
               purpose: s.purpose,
               angle: s.angle,
               goals: s.goals,
+              persuasionElements: s.persuasionElements,
               phaseName: s.phaseName,
               phaseObjective: s.phaseObjective,
               fields: s.fields,
@@ -229,6 +231,7 @@ function BuilderInner() {
           purpose: s.purpose,
           angle: s.angle,
           goals: s.goals,
+          persuasionElements: s.persuasionElements,
           phaseName: s.phaseName,
           phaseObjective: s.phaseObjective,
           fields: s.fields,
@@ -298,6 +301,7 @@ function BuilderInner() {
             purpose: selected.purpose,
             angle: selected.angle,
             goals: selected.goals,
+            persuasionElements: selected.persuasionElements,
             phaseName: selected.phaseName,
             phaseObjective: selected.phaseObjective,
             fields: selected.fields,
@@ -444,6 +448,7 @@ function BuilderInner() {
                     purpose: s.purpose,
                     angle: s.angle,
                     goals: s.goals,
+                    persuasionElements: s.persuasionElements,
                     phaseName: s.phaseName,
                     phaseObjective: s.phaseObjective,
                     fields: s.fields,

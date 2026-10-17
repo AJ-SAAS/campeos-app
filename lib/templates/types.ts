@@ -58,6 +58,18 @@ export interface StepTemplate {
    */
   goals: string[];
   /**
+   * Which specific levers from the master persuasion checklist this step
+   * should pull on — e.g. "Proof: social proof stack", "Objections:
+   * price". Drawn from the 12-category framework used across the great
+   * direct-response copywriters (Schwartz, Hopkins, Ogilvy, Halbert,
+   * Caples, Sugarman): audience, pain, desire, stakes, solution, proof,
+   * objections, story, offer, risk, urgency, optimization. The point
+   * isn't to cram every element into every step — it's picking the 2-3
+   * that remove the biggest barrier for THIS step, so the step has a
+   * deliberate psychological job instead of a vague "sell it" mandate.
+   */
+  persuasionElements: string[];
+  /**
    * The editable fields this step's copy is made of. Kept generic so the
    * same shape works for an email (subject + body) or an ad (headline +
    * primary text) — lib/ai fills these in per channel.
