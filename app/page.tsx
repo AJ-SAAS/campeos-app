@@ -226,12 +226,12 @@ export default function MarketingPage() {
             <Link href="/auth" className="text-[13px] font-semibold text-slate px-1.5 py-2">
               Sign in
             </Link>
-            <a
-              href="#pricing"
+            <Link
+              href="/auth?signup"
               className="text-[13px] font-bold text-white px-[18px] py-2.5 rounded-[10px] bg-gradient-to-r from-clay to-pink whitespace-nowrap"
             >
               Get started
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -263,15 +263,15 @@ export default function MarketingPage() {
               Give Campeos your offer. Pick a campaign type. Get every ad, email and text written, sequenced and timed, laid out on one timeline.
             </p>
             <div className="flex items-center gap-3.5 flex-wrap pt-1.5">
-              <a
-                href="#pricing"
+              <Link
+                href="/auth?signup"
                 className="inline-flex items-center gap-2 text-[15px] font-bold text-white px-[22px] py-3.5 rounded-xl bg-gradient-to-r from-clay to-pink shadow-[0_10px_30px_-10px_rgba(124,58,237,.55)]"
               >
                 Get started
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M5 12h14M13 5l7 7-7 7" />
                 </svg>
-              </a>
+              </Link>
               <a href="#pricing" className="text-sm font-semibold text-slate px-2.5 py-3.5">See pricing &rarr;</a>
             </div>
             <p className="font-mono text-xs text-faint pt-0.5">Two plans. No free trial.</p>
@@ -560,15 +560,15 @@ export default function MarketingPage() {
           <h2 className="font-display text-4xl font-extrabold text-white leading-[1.15]">
             Write your next campaign in minutes, not days.
           </h2>
-          <a
-            href="#pricing"
+          <Link
+            href="/auth?signup"
             className="inline-flex items-center gap-2 text-[15px] font-bold text-slate px-[26px] py-4 rounded-xl bg-white"
           >
             Get started
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 12h14M13 5l7 7-7 7" />
             </svg>
-          </a>
+          </Link>
           <p className="font-mono text-xs text-[#9A9FA3]">Two plans. No free trial.</p>
         </div>
       </div>
