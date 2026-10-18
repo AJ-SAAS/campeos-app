@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UIStep } from "./Timeline";
 
 interface StepEditorProps {
@@ -9,37 +9,63 @@ interface StepEditorProps {
   totalSteps: number;
   onRequestVariation: (instruction: string) => void;
   variationPending: boolean;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const LANE_LABEL: Record<string, string> = {
-  ad: "Facebook ad",
-  email: "Email",
-  sms: "Text message",
-  social: "Social post",
+const LANE_STYLE: Record<string, { label: string; fg: string; bg: string }> = {
+  ad: { label: "Facebook ad", fg: "#1B6B4F", bg: "#DFF0E8" },
+  email: { label: "Email", fg: "#1F5FA6", bg: "#E4EDF8" },
+  sms: { label: "Text message", fg: "#6B4FA3", bg: "#ECE7F5" },
+  social: { label: "Social post", fg: "#1B6B4F", bg: "#DFF0E8" },
 };
 
-// Right panel of the Campaign Builder: the selected step's copy, why it
-// exists, what it was built from, and the persistent "Ask Campeos" bar.
-// Keeping the AI input always visible (not behind a button) was explicit
-// feedback from Ajay: the AI writing the copy IS the product, so it
-// should never be one click away from where you're reading the step.
+// A near-fullscreen pop-open panel for the selected step — replaces the
+// old fixed 360px sidebar. That sidebar meant the copy itself (the
+// actual product) lived in a cramped column next to a wall of metadata.
+// This keeps all the same information — send time, why the step exists,
+// the fields, the "Ask Campeos" bar — but gives the copy the whole
+// centered column, and tucks "why this step" behind a one-line dropdown
+// (closed by default) instead of an always-open callout box. Approved
+// as a Design-canvas mockup before building: see that artifact's
+// "Closed (default)" and "Expanded" artboards for the reference.
 export function StepEditor({
   step,
   stepNumber,
   totalSteps,
   onRequestVariation,
   variationPending,
+  isOpen,
+  onClose,
 }: StepEditorProps) {
   const [instruction, setInstruction] = useState("");
+  const [whyOpen, setWhyOpen] = useState(false);
 
-  if (!step) {
-    return (
-      <aside aria-label="Selected step" className="w-full lg:w-[360px] shrink-0 bg-paper p-6 flex items-center justify-center text-sm text-faint">
-        Pick a step on the timeline.
-      </aside>
-    );
-  }
+  // Reset per-step UI state (the dropdown, the draft instruction) each
+  // time a different step opens, rather than carrying over whatever was
+  // left expanded/typed on the previous one.
+  useEffect(() => {
+    setWhyOpen(false);
+    setInstruction("");
+  }, [step?.templateStepId]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !step) return null;
+
+  const lane = LANE_STYLE[step.channel] ?? LANE_STYLE.ad;
   const needs = needsInput(step);
 
   function send() {
@@ -49,141 +75,182 @@ export function StepEditor({
   }
 
   return (
-    <aside aria-label="Selected step" className="w-full lg:w-[360px] shrink-0 bg-paper p-4 sm:p-6 pb-24 lg:pb-6 flex flex-col gap-4 overflow-y-auto">
-      <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#E4EDF8] text-[#1F5FA6]">
-          {LANE_LABEL[step.channel] ?? step.channel}
-        </span>
-        <span className="font-mono text-xs text-muted">
-          Step {stepNumber} of {totalSteps}
-        </span>
-      </div>
+    <div
+      aria-modal="true"
+      role="dialog"
+      aria-label={step.title}
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-6 lg:p-8"
+    >
+      <button
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 bg-[#0F0C14]/55 backdrop-blur-sm cursor-default"
+      />
 
-      <h2 className="font-display text-[26px] leading-tight font-semibold tracking-tight">
-        {step.title}
-      </h2>
-
-      <div className="flex flex-col gap-1.5">
-        <div className="text-sm font-semibold">Suggested send time</div>
-        <div className="flex items-center gap-2.5 min-h-12 px-3 border border-line rounded-[10px]">
-          <ClockIcon />
-          <span className="font-mono text-[13px] flex-grow">
-            {step.scheduledAt.toLocaleString(undefined, {
-              weekday: "short",
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2.5 p-3.5 bg-ivory rounded-xl">
-        {step.phaseName && (
-          <div className="flex items-center gap-1.5 text-[11px] text-muted">
-            <span className="font-mono uppercase tracking-wider">{step.phaseName} phase</span>
-            {step.phaseObjective && (
-              <>
-                <span>·</span>
-                <span className="italic">{step.phaseObjective}</span>
-              </>
-            )}
+      <div className="relative w-full h-full sm:h-auto sm:max-h-full max-w-[1400px] bg-paper rounded-none sm:rounded-[28px] shadow-2xl flex flex-col overflow-hidden">
+        {/* panel header */}
+        <div className="shrink-0 flex items-center justify-between px-5 sm:px-10 py-4 sm:py-6 border-b border-line/60">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold"
+              style={{ background: lane.bg, color: lane.fg }}
+            >
+              {lane.label}
+            </span>
+            <span className="font-mono text-xs text-muted">
+              Step {stepNumber} of {totalSteps}
+            </span>
           </div>
-        )}
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] uppercase tracking-wider text-muted">Why this step</span>
-          <span className="px-2 py-0.5 rounded-full bg-slate text-ivory text-[11px] font-semibold">
-            {step.angle}
-          </span>
-        </div>
-        <div className="text-sm leading-relaxed">{step.purpose}</div>
-        {step.goals.length > 0 && (
-          <ul className="flex flex-col gap-1">
-            {step.goals.map((g, i) => (
-              <li key={i} className="text-[13px] leading-relaxed text-muted flex gap-1.5">
-                <span className="shrink-0">•</span>
-                <span>{g}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {step.persuasionElements.length > 0 && (
-          <div className="flex flex-col gap-1 pt-1 border-t border-line/70">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-muted">Persuasion focus</span>
-            <div className="flex flex-wrap gap-1.5">
-              {step.persuasionElements.map((el, i) => (
-                <span key={i} className="px-2 py-0.5 rounded-full bg-paper border border-line text-[11px] font-medium">
-                  {el}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-line/70">
-          <span className="font-mono text-[11px] uppercase tracking-wider text-muted">Built from</span>
-          <span className="px-2 py-0.5 rounded-full bg-paper border border-line text-xs font-semibold">
-            {step.copy?.source ?? "Not generated yet"}
-          </span>
-        </div>
-      </div>
-
-      {step.fields.map((field) => (
-        <div key={field.key} className="flex flex-col gap-1.5">
-          <div className="text-sm font-semibold">{field.label}</div>
-          <div
-            className={`border border-faint rounded-[10px] text-sm whitespace-pre-line ${
-              field.kind === "short" ? "px-3 py-2.5 font-semibold" : "min-h-[190px] px-3.5 py-3.5 leading-relaxed"
-            }`}
-          >
-            {step.copy?.[field.key] ?? "Not written yet"}
-          </div>
-        </div>
-      ))}
-
-      {needs && (
-        <div className="px-3 py-2.5 rounded-[10px] bg-warnBg text-warnFg text-[13px] leading-snug">
-          Fill in the parts in [CAPS] before you copy this step.
-        </div>
-      )}
-
-      <div className="flex-grow" />
-
-      <div className="flex flex-col gap-2 pt-3.5 border-t border-line">
-        <div className="flex items-center gap-1.5">
-          <span className="w-4 h-4 rounded-[5px] bg-clay shrink-0" />
-          <span className="text-xs font-semibold text-muted">Ask Campeos to write or change this step</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          <SuggestionChip onClick={() => onRequestVariation("Match my winning headline")}>
-            Match my winning headline
-          </SuggestionChip>
-          <SuggestionChip onClick={() => onRequestVariation("Make it shorter")}>
-            Make it shorter
-          </SuggestionChip>
-        </div>
-        <div className="flex items-center gap-2 min-h-11 px-1 pl-3.5 border border-faint rounded-xl bg-paper">
-          <input
-            type="text"
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Tell Campeos what to write or change..."
-            disabled={variationPending}
-            className="flex-grow min-w-0 border-none outline-none text-[13px] bg-transparent"
-          />
           <button
-            aria-label="Send"
-            onClick={send}
-            disabled={variationPending}
-            className="shrink-0 w-8 h-8 rounded-[9px] bg-clay text-white flex items-center justify-center disabled:opacity-50"
+            aria-label="Close"
+            onClick={onClose}
+            className="w-9 h-9 rounded-[10px] bg-ivory flex items-center justify-center text-muted"
           >
-            <SendIcon />
+            <CloseIcon />
           </button>
         </div>
-        <div className="text-[11px] leading-snug text-faint">
-          It already knows this offer, your winning copy, and why this step exists. No need to explain.
+
+        {/* centered content column */}
+        <div className="flex-grow min-h-0 overflow-y-auto flex justify-center px-5 sm:px-10 pt-9 sm:pt-12">
+          <div className="w-full max-w-[680px] flex flex-col items-center text-center gap-9 sm:gap-10 pb-12">
+            <div className="flex flex-col items-center gap-3.5">
+              <h1 className="font-display text-[28px] sm:text-[34px] font-bold leading-[1.15] tracking-tight">
+                {step.title}
+              </h1>
+              <span className="inline-flex items-center gap-1.5 text-[13px] text-muted">
+                <ClockIcon />
+                Suggested send time &mdash;{" "}
+                {step.scheduledAt.toLocaleString(undefined, {
+                  weekday: "short",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+
+            {(step.phaseName || step.purpose || step.goals.length > 0) && (
+              <div className="w-full max-w-[560px] flex flex-col">
+                <button
+                  onClick={() => setWhyOpen((v) => !v)}
+                  aria-expanded={whyOpen}
+                  className="self-center inline-flex items-center gap-2 rounded-full px-4 py-2"
+                >
+                  <ChevronIcon open={whyOpen} />
+                  <span className="text-[13px] font-semibold text-muted">Why this step</span>
+                  {!whyOpen && (
+                    <span className="text-xs text-faint">
+                      &mdash; {step.phaseName ? `${step.phaseName} phase` : ""}
+                      {step.phaseName && step.angle ? " · " : ""}
+                      {step.angle}
+                    </span>
+                  )}
+                </button>
+
+                {whyOpen && (
+                  <div className="mt-4 pt-5 border-t border-line/60 flex flex-col items-center gap-4 text-left">
+                    {step.phaseObjective && (
+                      <p className="text-center max-w-[480px] text-sm leading-relaxed text-muted">
+                        {step.phaseObjective}
+                      </p>
+                    )}
+                    {step.purpose && (
+                      <p className="text-[15px] leading-relaxed text-slate">{step.purpose}</p>
+                    )}
+                    {step.goals.length > 0 && (
+                      <ul className="w-full flex flex-col gap-2">
+                        {step.goals.map((g, i) => (
+                          <li key={i} className="flex gap-2.5 text-[13.5px] leading-relaxed text-muted">
+                            <span className="shrink-0 text-[#C9A9F5]">&bull;</span>
+                            <span>{g}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {step.persuasionElements.length > 0 && (
+                      <div className="flex flex-wrap items-center justify-center gap-2 pt-0.5">
+                        {step.persuasionElements.map((el, i) => (
+                          <span key={i} className="text-[11.5px] font-semibold text-clay">
+                            {el}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <span className="text-xs text-faint">
+              Built from &mdash; {step.copy?.source ?? "not generated yet"}
+            </span>
+
+            {needs && (
+              <span className="inline-flex px-3 py-1.5 rounded-full bg-warnBg text-warnFg text-[13px] leading-snug">
+                Fill in the parts in [CAPS] before you copy this step.
+              </span>
+            )}
+
+            <div className="w-full flex flex-col gap-7 text-left">
+              {step.fields.map((field) => {
+                const value = step.copy?.[field.key];
+                return (
+                  <div key={field.key} className="flex flex-col gap-1.5">
+                    <span className="font-mono text-[10.5px] uppercase tracking-wider text-faint">
+                      {field.label}
+                    </span>
+                    <div
+                      className={`whitespace-pre-line ${
+                        field.kind === "short"
+                          ? "text-[17px] font-semibold"
+                          : "text-[16px] leading-[1.7]"
+                      } ${value ? "text-slate" : "text-faint"}`}
+                    >
+                      {value ?? "Not written yet"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Ask Campeos bar — pinned to the bottom of the panel, not the page */}
+        <div className="shrink-0 flex justify-center px-5 sm:px-10 py-4 sm:py-5 border-t border-line/60 bg-paper">
+          <div className="w-full max-w-[680px] flex flex-col gap-2.5">
+            <div className="flex flex-wrap gap-1.5">
+              <SuggestionChip onClick={() => onRequestVariation("Match my winning headline")}>
+                Match my winning headline
+              </SuggestionChip>
+              <SuggestionChip onClick={() => onRequestVariation("Make it shorter")}>
+                Make it shorter
+              </SuggestionChip>
+            </div>
+            <div className="flex items-center gap-2 min-h-12 pl-4 pr-1.5 py-1.5 border border-line rounded-2xl bg-ivory/60">
+              <input
+                type="text"
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder="Tell Campeos what to write or change..."
+                disabled={variationPending}
+                className="flex-grow min-w-0 border-none outline-none text-[14px] bg-transparent"
+              />
+              <button
+                aria-label="Send"
+                onClick={send}
+                disabled={variationPending}
+                className="shrink-0 w-9 h-9 rounded-[11px] bg-gradient-to-br from-clay to-pink text-white flex items-center justify-center disabled:opacity-50"
+              >
+                <SendIcon />
+              </button>
+            </div>
+            <div className="text-[11px] leading-snug text-faint text-center">
+              It already knows this offer, your winning copy, and why this step exists. No need to explain.
+            </div>
+          </div>
         </div>
       </div>
-    </aside>
+    </div>
   );
 }
 
@@ -206,7 +273,7 @@ function needsInput(step: UIStep): boolean {
 
 function ClockIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B6560" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A9089" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
     </svg>
   );
@@ -215,6 +282,31 @@ function SendIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  );
+}
+function CloseIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  );
+}
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#8A9089"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`transition-transform duration-200 ${open ? "" : "-rotate-90"}`}
+    >
+      <path d="M6 9l6 6 6-6" />
     </svg>
   );
 }

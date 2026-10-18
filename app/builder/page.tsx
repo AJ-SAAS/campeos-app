@@ -62,7 +62,7 @@ export default function BuilderPage() {
   );
 }
 
-type MobilePanel = "setup" | "timeline" | "step";
+type MobilePanel = "setup" | "timeline";
 
 function BuilderInner() {
   const { user } = useAuth();
@@ -120,11 +120,17 @@ function BuilderInner() {
     if (!selectedId && scheduledSteps[0]) setSelectedId(scheduledSteps[0].templateStepId);
   }, [scheduledSteps, selectedId]);
 
-  // Below lg, the 3-panel desktop layout (Setup / Timeline / Step) doesn't
-  // fit side by side — shown one at a time instead, picked with the tab
-  // row in the mobile header. Starts on "timeline" since that's the main
-  // view; tapping a step on mobile jumps straight to "step" (see
-  // Timeline's onSelect below), matching how tapping a card should feel.
+  // The step editor is a near-fullscreen pop-open panel (StepEditor),
+  // not a third column — it opens only when a step is actually clicked,
+  // closed otherwise. selectedId still tracks which step it shows once
+  // open, same as before.
+  const [stepModalOpen, setStepModalOpen] = useState(false);
+
+  // Below lg, the Setup/Timeline desktop columns don't fit side by side
+  // — shown one at a time instead, picked with the tab row in the mobile
+  // header. Starts on "timeline" since that's the main view. The step
+  // panel itself isn't one of these tabs — it pops open over whichever
+  // tab is showing, on both mobile and desktop.
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("timeline");
 
   const [generating, setGenerating] = useState(false);
@@ -403,15 +409,16 @@ function BuilderInner() {
         </header>
 
         {/* Mobile-only: pick which single panel is showing. The desktop
-            3-column layout below renders all three at once (lg:flex),
-            so this row — and the panel visibility it controls — only
-            matters below that breakpoint. */}
+            2-column layout below renders both at once (lg:flex), so this
+            row — and the panel visibility it controls — only matters
+            below that breakpoint. The step editor isn't a tab here; it
+            pops open over whichever panel is showing (see StepEditor
+            below, rendered outside this row). */}
         <div className="lg:hidden shrink-0 flex items-center gap-1.5 px-4 py-2 border-b border-line overflow-x-auto">
           {(
             [
               ["setup", "Setup"],
               ["timeline", "Timeline"],
-              ["step", "Step"],
             ] as [MobilePanel, string][]
           ).map(([key, label]) => (
             <button
@@ -446,23 +453,24 @@ function BuilderInner() {
               selectedId={selectedId}
               onSelect={(id) => {
                 setSelectedId(id);
-                setMobilePanel("step");
+                setStepModalOpen(true);
               }}
               eventDate={eventDate}
               phases={webinarTemplate.phases}
               generating={generating}
             />
           </div>
-          <div className={`${mobilePanel === "step" ? "flex" : "hidden"} lg:flex min-h-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>
-            <StepEditor
-              step={selected}
-              stepNumber={selectedIndex + 1}
-              totalSteps={steps.length}
-              onRequestVariation={requestVariation}
-              variationPending={variationPending}
-            />
-          </div>
         </div>
+
+        <StepEditor
+          step={selected}
+          stepNumber={selectedIndex + 1}
+          totalSteps={steps.length}
+          onRequestVariation={requestVariation}
+          variationPending={variationPending}
+          isOpen={stepModalOpen}
+          onClose={() => setStepModalOpen(false)}
+        />
       </div>
 
       <AgentLauncher
