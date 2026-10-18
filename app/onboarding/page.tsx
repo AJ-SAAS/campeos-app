@@ -19,7 +19,17 @@ import { addWinningCopy, addSalesCall } from "@/lib/firebase/library";
 // useRequireAccess treats that doc's existence as "onboarding done" —
 // that's the only thing gating a page, not a subscription (see that
 // file's comment).
-const STEPS = ["name", "whatTheyGet", "audience", "price", "import"] as const;
+//
+// "url" is the new first step: optional and always skippable (confirmed
+// decision — a sales-page link isn't required to sign up). When given,
+// app/api/analyze-offer-page does a best-effort plain fetch + AI extract
+// and pre-fills name/whatTheyGet/audience/price below, each marked with
+// a small "found this on your page" note (foundFromCrawl) so it reads as
+// a confirmable guess, not a fait accompli. A JS-rendered page, a failed
+// fetch, or a failed extraction all look identical from here — ok:false
+// — and just fall through to the same blank manual questions as if the
+// user had skipped outright. No error is ever shown for this step.
+const STEPS = ["url", "name", "whatTheyGet", "audience", "price", "import"] as const;
 type Step = (typeof STEPS)[number];
 
 export default function OnboardingPage() {
@@ -27,6 +37,13 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [stepIndex, setStepIndex] = useState(0);
+
+  const [url, setUrl] = useState("");
+  const [crawling, setCrawling] = useState(false);
+  // Which fields got pre-filled from the crawl, so QuestionStep can show
+  // a "found this on your page" note next to those (and only those).
+  const [foundFromCrawl, setFoundFromCrawl] = useState<Set<string>>(new Set());
+  const [crawledTestimonials, setCrawledTestimonials] = useState<string[]>([]);
 
   const [name, setName] = useState("");
   const [whatTheyGet, setWhatTheyGet] = useState("");
@@ -58,6 +75,7 @@ export default function OnboardingPage() {
   const isLast = stepIndex === STEPS.length - 1;
 
   function canContinue(): boolean {
+    if (step === "url") return true; // optional, always skippable
     if (step === "name") return name.trim().length > 0;
     if (step === "whatTheyGet") return whatTheyGet.trim().length > 0;
     if (step === "audience") return audience.trim().length > 0;
@@ -98,6 +116,13 @@ export default function OnboardingPage() {
         }
       }
 
+      // Testimonials pulled off their own sales page (if any) go straight
+      // into the same winning-copy library the "import" step above feeds,
+      // so they're already there the first time a campaign gets built.
+      for (const testimonial of crawledTestimonials) {
+        await addWinningCopy(user.uid, testimonial);
+      }
+
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that. Try again.");
@@ -105,7 +130,67 @@ export default function OnboardingPage() {
     }
   }
 
+  // Fires on "Continue" for the URL step: if a link was actually typed,
+  // crawl + extract first; either way, lands on the next (manual) step.
+  // ok:false from the route — unreachable page, JS-rendered shell, failed
+  // extraction — is indistinguishable here from "nothing typed", which is
+  // exactly the point: best-effort, silent fall-through to manual.
+  async function handleUrlStep() {
+    const trimmed = url.trim();
+    if (!trimmed) {
+      setStepIndex((i) => i + 1);
+      return;
+    }
+    setCrawling(true);
+    try {
+      const res = await fetch("/api/analyze-offer-page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        const found = new Set<string>();
+        if (data.name) {
+          setName(data.name);
+          found.add("name");
+        }
+        if (data.whatTheyGet) {
+          setWhatTheyGet(data.whatTheyGet);
+          found.add("whatTheyGet");
+        }
+        if (data.audience) {
+          setAudience(data.audience);
+          found.add("audience");
+        }
+        if (data.price) {
+          setPrice(data.price);
+          found.add("price");
+        }
+        setFoundFromCrawl(found);
+        if (Array.isArray(data.testimonials) && data.testimonials.length > 0) {
+          setCrawledTestimonials(data.testimonials);
+        }
+      }
+    } catch {
+      // Couldn't even reach our own API — still best-effort, still silent.
+    } finally {
+      setCrawling(false);
+      setStepIndex((i) => i + 1);
+    }
+  }
+
+  function skipUrlStep() {
+    setStepIndex((i) => i + 1);
+  }
+
   function handleContinue() {
+    if (saving || crawling) return;
+    if (step === "url") {
+      handleUrlStep();
+      return;
+    }
+    if (!canContinue()) return;
     if (isLast) {
       finish();
     } else {
@@ -145,116 +230,179 @@ export default function OnboardingPage() {
               {STEPS.map((s, i) => (
                 <div
                   key={s}
-                  className={`h-1 flex-grow rounded-full ${i <= stepIndex ? "bg-slate" : "bg-line"}`}
+                  className={`h-1 flex-grow rounded-full transition-colors duration-300 ${
+                    i <= stepIndex ? "bg-slate" : "bg-line"
+                  }`}
                 />
               ))}
             </div>
           </div>
 
-          {step === "name" && (
-            <QuestionStep
-              title="What's your offer called?"
-              hint="You can change it later."
-              value={name}
-              onChange={setName}
-              placeholder="Fall Reset Program"
-              multiline={false}
-            />
-          )}
-
-          {step === "whatTheyGet" && (
-            <QuestionStep
-              title="What do they get?"
-              hint="What's actually included — the thing you're selling."
-              value={whatTheyGet}
-              onChange={setWhatTheyGet}
-              placeholder="A guided 3-step plan and weekly coaching calls"
-              multiline
-            />
-          )}
-
-          {step === "audience" && (
-            <QuestionStep
-              title="Who's it for?"
-              hint="Who you're writing to — be specific."
-              value={audience}
-              onChange={setAudience}
-              placeholder="People who want a fresh start this fall"
-              multiline
-            />
-          )}
-
-          {step === "price" && (
-            <QuestionStep
-              title="What's the price?"
-              hint="Campeos writes the offer the way you'll actually sell it."
-              value={price}
-              onChange={setPrice}
-              placeholder="$3,000"
-              multiline={false}
-            />
-          )}
-
-          {step === "import" && (
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <h1 className="font-display text-[26px] font-extrabold tracking-tight">
-                  Have anything that already works?
-                </h1>
-                <p className="text-sm text-muted">
-                  A headline, ad, or email that converted, or a sales call transcript. Optional —
-                  every campaign draws on this automatically once it's in your library.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setImportKind("copy")}
-                  className={`flex-1 text-sm font-semibold py-2.5 rounded-xl border ${
-                    importKind === "copy" ? "border-clay bg-agentWash" : "border-line bg-paper"
-                  }`}
-                >
-                  Winning copy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImportKind("call")}
-                  className={`flex-1 text-sm font-semibold py-2.5 rounded-xl border ${
-                    importKind === "call" ? "border-clay bg-agentWash" : "border-line bg-paper"
-                  }`}
-                >
-                  Sales call
-                </button>
-              </div>
-              <textarea
-                value={importText}
-                onChange={(e) => setImportText(e.target.value)}
-                rows={6}
-                placeholder={
-                  importKind === "copy"
-                    ? "Paste a headline, subject line, or ad line that already worked..."
-                    : "Paste the call transcript here..."
-                }
-                className="px-3.5 py-3 rounded-xl border border-line bg-paper text-sm resize-none focus-visible:outline-clay"
-              />
-            </div>
-          )}
-
-          {error && (
-            <div className="px-4 py-3 rounded-xl bg-warnBg text-warnFg text-sm leading-snug">{error}</div>
-          )}
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleContinue}
-              disabled={!canContinue() || saving}
-              className="min-h-12 px-6 rounded-xl bg-gradient-to-r from-clay to-pink text-white text-sm font-bold disabled:opacity-50"
-            >
-              {saving ? "Setting up..." : isLast ? "Go to dashboard" : "Continue"}
-            </button>
-            {isLast && !importText.trim() && (
-              <span className="text-sm text-muted">Nothing to add — that&apos;s fine, skip ahead.</span>
+          {/* Remounting under `key={stepIndex}` is what triggers the
+              step-in animation on every change, forward or back — a
+              fresh element, not a style update on the same one. */}
+          <div key={stepIndex} className="flex flex-col gap-4 animate-step-in">
+            {step === "url" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <h1 className="font-display text-[26px] font-extrabold tracking-tight">
+                    Do you have a sales page live?
+                  </h1>
+                  <p className="text-sm text-muted">
+                    Drop the link and Campeos will pull in your offer details automatically.
+                    Optional — skip if you don&apos;t have one yet.
+                  </p>
+                </div>
+                <input
+                  autoFocus
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleContinue();
+                    }
+                  }}
+                  disabled={crawling}
+                  placeholder="https://yoursite.com/offer"
+                  className="h-12 px-3.5 rounded-xl border border-line bg-paper text-base transition-shadow duration-150 focus-visible:outline-clay disabled:opacity-60"
+                />
+              </>
             )}
+
+            {step === "name" && (
+              <QuestionStep
+                title="What's your offer called?"
+                hint="You can change it later."
+                value={name}
+                onChange={setName}
+                placeholder="Fall Reset Program"
+                multiline={false}
+                onEnter={handleContinue}
+                foundNote={foundFromCrawl.has("name")}
+              />
+            )}
+
+            {step === "whatTheyGet" && (
+              <QuestionStep
+                title="What do they get?"
+                hint="What's actually included — the thing you're selling."
+                value={whatTheyGet}
+                onChange={setWhatTheyGet}
+                placeholder="A guided 3-step plan and weekly coaching calls"
+                multiline
+                onEnter={handleContinue}
+                foundNote={foundFromCrawl.has("whatTheyGet")}
+              />
+            )}
+
+            {step === "audience" && (
+              <QuestionStep
+                title="Who's it for?"
+                hint="Who you're writing to — be specific."
+                value={audience}
+                onChange={setAudience}
+                placeholder="People who want a fresh start this fall"
+                multiline
+                onEnter={handleContinue}
+                foundNote={foundFromCrawl.has("audience")}
+              />
+            )}
+
+            {step === "price" && (
+              <QuestionStep
+                title="What's the price?"
+                hint="Campeos writes the offer the way you'll actually sell it."
+                value={price}
+                onChange={setPrice}
+                placeholder="$3,000"
+                multiline={false}
+                onEnter={handleContinue}
+                foundNote={foundFromCrawl.has("price")}
+              />
+            )}
+
+            {step === "import" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <h1 className="font-display text-[26px] font-extrabold tracking-tight">
+                    Have anything that already works?
+                  </h1>
+                  <p className="text-sm text-muted">
+                    A headline, ad, or email that converted, or a sales call transcript. Optional —
+                    every campaign draws on this automatically once it's in your library.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setImportKind("copy")}
+                    className={`flex-1 text-sm font-semibold py-2.5 rounded-xl border transition-colors duration-150 ${
+                      importKind === "copy" ? "border-clay bg-agentWash" : "border-line bg-paper"
+                    }`}
+                  >
+                    Winning copy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportKind("call")}
+                    className={`flex-1 text-sm font-semibold py-2.5 rounded-xl border transition-colors duration-150 ${
+                      importKind === "call" ? "border-clay bg-agentWash" : "border-line bg-paper"
+                    }`}
+                  >
+                    Sales call
+                  </button>
+                </div>
+                <textarea
+                  autoFocus
+                  value={importText}
+                  onChange={(e) => setImportText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
+                      handleContinue();
+                    }
+                  }}
+                  rows={6}
+                  placeholder={
+                    importKind === "copy"
+                      ? "Paste a headline, subject line, or ad line that already worked..."
+                      : "Paste the call transcript here..."
+                  }
+                  className="px-3.5 py-3 rounded-xl border border-line bg-paper text-sm resize-none transition-shadow duration-150 focus-visible:outline-clay"
+                />
+              </>
+            )}
+
+            {error && (
+              <div className="px-4 py-3 rounded-xl bg-warnBg text-warnFg text-sm leading-snug">{error}</div>
+            )}
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleContinue}
+                disabled={!canContinue() || saving || crawling}
+                className="inline-flex items-center gap-2 min-h-12 px-6 rounded-xl bg-gradient-to-r from-clay to-pink text-white text-sm font-bold transition-opacity duration-150 disabled:opacity-50"
+              >
+                {(saving || crawling) && <Spinner />}
+                {saving
+                  ? "Setting up..."
+                  : crawling
+                  ? "Reading your page..."
+                  : isLast
+                  ? "Go to dashboard"
+                  : "Continue"}
+              </button>
+              {step === "url" && !crawling && (
+                <button type="button" onClick={skipUrlStep} className="text-sm text-muted font-medium">
+                  Skip
+                </button>
+              )}
+              {isLast && !importText.trim() && (
+                <span className="text-sm text-muted">Nothing to add — that&apos;s fine, skip ahead.</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -269,6 +417,8 @@ function QuestionStep({
   onChange,
   placeholder,
   multiline,
+  onEnter,
+  foundNote,
 }: {
   title: string;
   hint: string;
@@ -276,21 +426,35 @@ function QuestionStep({
   onChange: (v: string) => void;
   placeholder: string;
   multiline: boolean;
+  onEnter: () => void;
+  foundNote?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-4">
+    <>
       <div className="flex flex-col gap-1.5">
         <h1 className="font-display text-[26px] font-extrabold tracking-tight">{title}</h1>
         <p className="text-sm text-muted">{hint}</p>
+        {foundNote && (
+          <span className="inline-flex self-start items-center gap-1.5 mt-0.5 text-xs font-semibold text-clay">
+            <SparkleIcon />
+            Found this on your page — check it over
+          </span>
+        )}
       </div>
       {multiline ? (
         <textarea
           autoFocus
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              onEnter();
+            }
+          }}
           placeholder={placeholder}
           rows={3}
-          className="px-3.5 py-3 rounded-xl border border-line bg-paper text-base resize-none focus-visible:outline-clay"
+          className="px-3.5 py-3 rounded-xl border border-line bg-paper text-base resize-none transition-shadow duration-150 focus-visible:outline-clay"
         />
       ) : (
         <input
@@ -298,11 +462,34 @@ function QuestionStep({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onEnter();
+            }
+          }}
           placeholder={placeholder}
-          className="h-12 px-3.5 rounded-xl border border-line bg-paper text-base focus-visible:outline-clay"
+          className="h-12 px-3.5 rounded-xl border border-line bg-paper text-base transition-shadow duration-150 focus-visible:outline-clay"
         />
       )}
-    </div>
+    </>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0 animate-spin" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" opacity="0.3" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SparkleIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" />
+    </svg>
   );
 }
 
