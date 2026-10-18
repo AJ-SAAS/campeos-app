@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       headers: {
         // Some page builders serve a stripped-down page to obvious bots.
         "User-Agent":
-          "Mozilla/5.0 (compatible; CampeosBot/1.0; +https://campeos.ai)",
+          "Mozilla/5.0 (compatible; CampeosBot/1.0; +https://campeos.com)",
       },
     });
     clearTimeout(timeout);

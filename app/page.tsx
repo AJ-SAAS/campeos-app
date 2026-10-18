@@ -580,7 +580,17 @@ export default function MarketingPage() {
             {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
             <img src="/logo-lockup.png" alt="Campeos" className="h-5 w-auto object-contain" />
           </div>
-          <p className="font-mono text-[11.5px] text-faint">&copy; 2026 Campeos. Built for marketers who never start from zero.</p>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <p className="font-mono text-[11.5px] text-faint">&copy; 2026 Campeos. Built for marketers who never start from zero.</p>
+            <div className="flex items-center gap-4">
+              <Link href="/privacy" className="font-mono text-[11.5px] text-faint hover:text-muted">
+                Privacy
+              </Link>
+              <Link href="/terms" className="font-mono text-[11.5px] text-faint hover:text-muted">
+                Terms
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>
