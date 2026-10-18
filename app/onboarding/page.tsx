@@ -120,11 +120,11 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-paper text-slate font-body flex flex-col">
       <div className="px-6 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Logo size={24} />
-          <span className="font-display font-bold text-base tracking-wide">CAMPEOS</span>
+        <div className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
+          <img src="/logo-lockup.png" alt="Campeos" className="h-6 w-auto object-contain" />
         </div>
-        <button onClick={() => useAuth().signOut()} className="text-xs text-muted font-medium">
+        <button onClick={() => signOut()} className="text-xs text-muted font-medium">
           Sign out
         </button>
       </div>
@@ -304,11 +304,6 @@ function QuestionStep({
       )}
     </div>
   );
-}
-
-function Logo({ size }: { size: number }) {
-  // eslint-disable-next-line @next/next/no-img-element -- local /public asset
-  return <img src="/logo-mark.png" alt="" width={size} height={size} className="object-contain" />;
 }
 
 function BackArrow() {

@@ -98,9 +98,9 @@ function AuthInner() {
   return (
     <div className="min-h-screen bg-paper text-slate font-body flex flex-col">
       <div className="px-6 py-5">
-        <Link href="/" className="inline-flex items-center gap-2.5">
-          <Logo size={24} />
-          <span className="font-display font-bold text-base tracking-wide">CAMPEOS</span>
+        <Link href="/" className="inline-flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
+          <img src="/logo-lockup.png" alt="Campeos" className="h-6 w-auto object-contain" />
         </Link>
       </div>
 
@@ -221,11 +221,6 @@ function friendlyAuthError(message: string): string {
   if (message.includes("auth/popup-closed-by-user")) return "Sign-in was closed before it finished.";
   if (message.includes("auth/operation-not-allowed")) return "Email/password sign-in isn't turned on yet — use Google for now.";
   return message.replace(/^Firebase:\s*/, "");
-}
-
-function Logo({ size }: { size: number }) {
-  // eslint-disable-next-line @next/next/no-img-element -- local /public asset
-  return <img src="/logo-mark.png" alt="" width={size} height={size} className="object-contain" />;
 }
 
 function GoogleIcon() {

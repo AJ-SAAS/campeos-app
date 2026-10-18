@@ -32,12 +32,9 @@ export function Sidebar({
   return (
     <>
       <aside className="hidden md:flex w-60 shrink-0 bg-paper border-r border-line text-slate flex-col p-4 gap-7">
-        <div className="flex items-center gap-2.5 px-1">
+        <div className="px-1">
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-          <img src="/logo-mark.png" alt="" className="w-9 h-9 rounded-[10px] object-contain" />
-          <div className="font-display text-xl font-semibold tracking-tight">
-            Campeos
-          </div>
+          <img src="/logo-lockup.png" alt="Campeos" className="h-7 w-auto object-contain" />
         </div>
 
         <nav aria-label="Main" className="flex flex-col gap-1">
@@ -107,10 +104,9 @@ export function Sidebar({
       {/* Mobile top bar: logo + account, since the bottom bar below only
           has room for the four nav destinations. */}
       <header className="md:hidden flex items-center justify-between h-14 px-4 border-b border-line bg-paper">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-          <img src="/logo-mark.png" alt="" className="w-7 h-7 rounded-[8px] object-contain" />
-          <span className="font-display text-base font-semibold tracking-tight">Campeos</span>
+          <img src="/logo-lockup.png" alt="Campeos" className="h-6 w-auto object-contain" />
         </div>
         {!loading && (
           user ? (
