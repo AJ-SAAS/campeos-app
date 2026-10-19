@@ -41,7 +41,7 @@ export function Sidebar({
           <NavItem href="/dashboard" label="Dashboard" active={active === "dashboard"}>
             <GridIcon />
           </NavItem>
-          <NavItem href="/builder" label="Campaigns" active={active === "campaigns"}>
+          <NavItem href="/campaigns" label="Campaigns" active={active === "campaigns"}>
             <CampaignsIcon />
           </NavItem>
           <NavItem href="/winning-copy" label="Winning copy" active={active === "winning-copy"}>
@@ -131,7 +131,7 @@ export function Sidebar({
         <MobileNavItem href="/dashboard" label="Dashboard" active={active === "dashboard"}>
           <GridIcon />
         </MobileNavItem>
-        <MobileNavItem href="/builder" label="Campaigns" active={active === "campaigns"}>
+        <MobileNavItem href="/campaigns" label="Campaigns" active={active === "campaigns"}>
           <CampaignsIcon />
         </MobileNavItem>
         <MobileNavItem href="/winning-copy" label="Winning copy" active={active === "winning-copy"}>
