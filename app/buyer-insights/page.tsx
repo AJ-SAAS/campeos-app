@@ -74,7 +74,7 @@ export default function BuyerInsightsPage() {
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-paper text-slate font-body">
       {!subLoading && !active && <SubscribeBanner />}
-      <div className="flex-grow flex flex-col md:flex-row">
+      <div className="flex-grow flex flex-col md:flex-row min-h-0">
       <Sidebar active="buyer-insights" />
 
       <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 pb-24 md:pb-10 max-w-2xl">
