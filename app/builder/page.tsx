@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IconRail } from "@/components/builder/IconRail";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
+import { OfferPicker } from "@/components/builder/OfferPicker";
 import { SetupPanel } from "@/components/builder/SetupPanel";
 import { Timeline, UIStep } from "@/components/builder/Timeline";
 import { StepEditor } from "@/components/builder/StepEditor";
@@ -39,11 +40,16 @@ import { checkAndIncrementUsage } from "@/lib/firebase/usage";
 // copy instead of starting fresh.
 const DEFAULT_EVENT_DATE = new Date("2026-10-15T19:00:00");
 
-const DEFAULT_OFFER: OfferContext = {
-  name: "Fall Reset Program",
-  price: "$3,000",
-  audience: "People who want a fresh start this fall",
-  whatTheyGet: "A guided 3-step plan and weekly coaching calls",
+// No more default offer. A brand-new campaign now starts with an empty
+// one and waits for the OfferPicker screen (below) to fill it in — the
+// old hardcoded "Fall Reset Program" placeholder was never meant to be
+// real campaign content, but nothing forced it to be replaced, which is
+// also what was producing near-identical draft rows.
+const EMPTY_OFFER: OfferContext = {
+  name: "",
+  price: "",
+  audience: "",
+  whatTheyGet: "",
   tone: "Friendly",
   readingLevel: "5th grade",
 };
@@ -76,10 +82,13 @@ function BuilderInner() {
   const templateParam = searchParams.get("template");
 
   const [campaignId, setCampaignId] = useState<string | null>(null);
-  const [offer, setOffer] = useState<OfferContext>(DEFAULT_OFFER);
+  const [offer, setOffer] = useState<OfferContext>(EMPTY_OFFER);
   const [eventDate, setEventDate] = useState<Date>(DEFAULT_EVENT_DATE);
   const [loadedSteps, setLoadedSteps] = useState<CampaignStepDoc[] | null>(null);
   const [loadingCampaign, setLoadingCampaign] = useState(!!existingId);
+  // A brand-new campaign (no ?id=) shows the OfferPicker until an offer
+  // is actually chosen or created; a loaded campaign already has one.
+  const [offerPicked, setOfferPicked] = useState(!!existingId);
   // Once a saved campaign loads, its own templateId wins over whatever
   // was in the URL — a saved campaign always rebuilds from the template
   // it was actually created with.
@@ -389,6 +398,25 @@ function BuilderInner() {
       <div className="h-screen flex items-center justify-center bg-paper text-muted">
         Loading campaign...
       </div>
+    );
+  }
+
+  if (!offerPicked) {
+    if (!user) {
+      return (
+        <div className="h-screen flex items-center justify-center bg-paper text-muted text-sm">
+          Sign in first — campaigns are saved to your account.
+        </div>
+      );
+    }
+    return (
+      <OfferPicker
+        uid={user.uid}
+        onPick={(picked) => {
+          setOffer(picked);
+          setOfferPicked(true);
+        }}
+      />
     );
   }
 
