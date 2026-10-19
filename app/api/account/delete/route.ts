@@ -43,9 +43,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid or expired session — sign in again." }, { status: 401 });
   }
 
-  const db = getAdminDb();
-
   try {
+    const db = getAdminDb();
+
     for (const collectionName of COLLECTIONS_BY_UID_FIELD) {
       const snap = await db.collection(collectionName).where("uid", "==", uid).get();
       for (const docSnap of snap.docs) {

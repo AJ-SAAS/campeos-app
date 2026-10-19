@@ -82,7 +82,24 @@ export async function POST(req: NextRequest) {
 
   // Paid only, no free tier — this is the one route that actually spends
   // OpenAI money, so it's the real paywall. See lib/access.ts.
-  const allowed = await canGenerate(parsed.data.uid);
+  //
+  // Wrapped in its own try/catch: canGenerate() reaches Firestore through
+  // the Admin SDK, and an unhandled throw here (a missing/stale
+  // FIREBASE_SERVICE_ACCOUNT_KEY, most likely) used to fall through to
+  // Next's default HTML error page instead of JSON — which breaks the
+  // client with "Unexpected token '<' ... is not valid JSON" instead of
+  // a message that says what's actually wrong.
+  let allowed: boolean;
+  try {
+    allowed = await canGenerate(parsed.data.uid);
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: `Couldn't check your plan: ${err instanceof Error ? err.message : "unknown error"}. This usually means FIREBASE_SERVICE_ACCOUNT_KEY is missing or wrong in the deploy environment.`,
+      },
+      { status: 500 }
+    );
+  }
   if (!allowed) {
     return NextResponse.json(
       { error: "Subscribe to generate campaign copy — see /billing." },
