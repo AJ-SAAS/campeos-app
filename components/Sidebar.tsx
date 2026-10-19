@@ -31,7 +31,7 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="hidden md:flex w-60 shrink-0 bg-paper border-r border-line text-slate flex-col p-4 gap-7">
+      <aside className="hidden md:flex w-60 shrink-0 bg-paper border-r border-line text-slate flex-col p-4 gap-7 overflow-y-auto">
         <div className="px-1">
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
           <img src="/logo-lockup.png" alt="Campeos" className="h-8 w-auto object-contain" />

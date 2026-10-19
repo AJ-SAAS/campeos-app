@@ -16,15 +16,10 @@ import { Campaign, listCampaigns } from "@/lib/firebase/campaigns";
 // built" proof layer. The campaign list is real (Firestore for the
 // signed-in user). The "going out next" schedule panel from the mockup
 // is still mock data — that needs the per-step scheduling view built
-// out, a later step. Only the webinar promo template is wired to an
-// actual builder page right now; the other template cards are visual
-// only until more templates exist (see lib/templates/).
-const campaignTypes = [
-  { title: "Webinar promo", length: "1 week", description: "Get signups, remind them, and follow up after.", href: "/builder" },
-  { title: "48 hour flash sale", length: "2 days", description: "Warm up, open the sale, then a last chance push.", href: "#" },
-  { title: "Product launch", length: "2 weeks", description: "Build interest, open the cart, close it with a deadline.", href: "#" },
-  { title: "Holiday sale", length: "4 days", description: "A seasonal deal with a clear start and end.", href: "#" },
-];
+// out, a later step. The full set of campaign templates — webinar, flash
+// sale, and the rest — now lives at /campaigns (see
+// lib/templates/catalog.ts); this page just links out to it rather than
+// duplicating the pill row that used to be here.
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -49,12 +44,12 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-paper text-slate font-body">
+    <div className="h-screen overflow-hidden flex flex-col bg-paper text-slate font-body">
       {!subLoading && !active && <SubscribeBanner />}
       <div className="flex-grow flex flex-col md:flex-row min-h-0">
       <Sidebar active="dashboard" />
 
-      <main className="flex-grow min-w-0 px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 lg:gap-8 pb-24 md:pb-10">
+      <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 lg:gap-8 pb-24 md:pb-10">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <div className="font-mono text-xs uppercase tracking-wider text-faint">
@@ -86,16 +81,12 @@ export default function Dashboard() {
                 Or start from a template yourself
               </div>
               <div className="flex flex-wrap gap-2">
-                {campaignTypes.map((t) => (
-                  <Link
-                    key={t.title}
-                    href={t.href}
-                    title={t.description}
-                    className="inline-flex items-center h-9 px-3.5 rounded-full border border-line bg-paper text-sm font-semibold text-slate"
-                  >
-                    {t.title}
-                  </Link>
-                ))}
+                <Link
+                  href="/campaigns"
+                  className="inline-flex items-center h-9 px-3.5 rounded-full border border-line bg-paper text-sm font-semibold text-slate"
+                >
+                  Browse all campaign templates
+                </Link>
                 <Link
                   href="/builder"
                   className="inline-flex items-center h-9 px-3.5 rounded-full border-[1.5px] border-dashed border-faint text-sm font-semibold text-slate"

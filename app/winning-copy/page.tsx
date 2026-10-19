@@ -67,12 +67,12 @@ export default function WinningCopyPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-paper text-slate font-body">
+    <div className="h-screen overflow-hidden flex flex-col bg-paper text-slate font-body">
       {!subLoading && !active && <SubscribeBanner />}
       <div className="flex-grow flex flex-col md:flex-row">
       <Sidebar active="winning-copy" />
 
-      <main className="flex-grow min-w-0 px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 pb-24 md:pb-10 max-w-2xl">
+      <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 pb-24 md:pb-10 max-w-2xl">
         <div className="flex flex-col gap-1.5">
           <h1 className="font-display text-[28px] sm:text-[34px] font-semibold tracking-tight">
             Winning copy

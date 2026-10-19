@@ -51,7 +51,7 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-paper text-slate font-body relative">
+    <div className="h-screen overflow-hidden flex flex-col bg-paper text-slate font-body relative">
       {/* Ambient glow fixed to the bottom of the viewport, not the page
           background itself — stays put while the card grid scrolls past
           it, same as the mockup. */}
@@ -68,7 +68,7 @@ export default function CampaignsPage() {
       <div className="flex-grow flex flex-col md:flex-row min-h-0 relative z-10">
         <Sidebar active="campaigns" />
 
-        <main className="flex-grow min-w-0 px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-8 pb-24 md:pb-10">
+        <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-8 pb-24 md:pb-10">
           <div className="flex flex-col gap-1.5">
             <div className="font-mono text-xs uppercase tracking-wider text-faint">
               {catalog.length} campaign types
