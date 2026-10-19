@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
 
 // Permanently deletes a signed-in user's account: every Firestore
 // document that belongs to them, then the Firebase Auth user itself.
@@ -7,9 +7,16 @@ import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 // sure" confirmation — this route does the deletion, no confirmation
 // of its own).
 //
-// The uid comes from verifying the caller's own Firebase ID token, not
-// from the request body — otherwise any signed-in user could pass
-// someone else's uid and delete their account.
+// The uid comes from Firebase verifying the caller's own ID token via
+// the Identity Toolkit REST API (accounts:lookup), not from the request
+// body — otherwise any signed-in user could pass someone else's uid and
+// delete their account. This uses the REST API instead of the Admin
+// SDK's firebase-admin/auth on purpose: that module can't currently be
+// loaded at all in this deploy (see the comment in
+// lib/firebase/admin.ts) — a jwks-rsa/jose version conflict, not
+// something fixable from this app's code. The REST calls give the same
+// guarantee (Google verifies/deletes server-side) without that broken
+// dependency.
 //
 // This does NOT cancel a Stripe subscription — Settings tells the user
 // to cancel billing first. Wiring that up here would mean either taking
@@ -28,6 +35,8 @@ const COLLECTIONS_BY_UID_FIELD = [
 
 const DOCS_KEYED_BY_UID = ["usage", "businessProfiles", "subscriptions"] as const;
 
+const IDENTITY_TOOLKIT_BASE = "https://identitytoolkit.googleapis.com/v1/accounts";
+
 export async function POST(req: Request) {
   const authHeader = req.headers.get("authorization");
   const idToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
@@ -35,10 +44,29 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing auth token." }, { status: 401 });
   }
 
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "NEXT_PUBLIC_FIREBASE_API_KEY is not set on the server." },
+      { status: 500 }
+    );
+  }
+
+  // accounts:lookup both verifies the token (Google rejects an invalid
+  // or expired one) and hands back the uid it belongs to — the REST
+  // equivalent of admin.auth().verifyIdToken().
   let uid: string;
   try {
-    const decoded = await getAdminAuth().verifyIdToken(idToken);
-    uid = decoded.uid;
+    const lookupRes = await fetch(`${IDENTITY_TOOLKIT_BASE}:lookup?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+    const lookupData = await lookupRes.json();
+    if (!lookupRes.ok || !lookupData.users?.[0]?.localId) {
+      throw new Error(lookupData.error?.message ?? "Token lookup failed.");
+    }
+    uid = lookupData.users[0].localId;
   } catch {
     return NextResponse.json({ error: "Invalid or expired session — sign in again." }, { status: 401 });
   }
@@ -66,7 +94,18 @@ export async function POST(req: Request) {
       await db.collection(collectionName).doc(uid).delete();
     }
 
-    await getAdminAuth().deleteUser(uid);
+    // accounts:delete with the caller's own idToken deletes exactly that
+    // account — no elevated/admin privilege needed, since Google is
+    // deleting the account the token itself belongs to.
+    const deleteRes = await fetch(`${IDENTITY_TOOLKIT_BASE}:delete?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+    if (!deleteRes.ok) {
+      const deleteData = await deleteRes.json().catch(() => ({}));
+      throw new Error(deleteData.error?.message ?? "Couldn't delete the sign-in account.");
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

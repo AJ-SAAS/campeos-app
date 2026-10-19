@@ -1,6 +1,5 @@
 import { cert, getApps, getApp, initializeApp, App } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
-import { getAuth, Auth } from "firebase-admin/auth";
 
 // The Admin SDK, for server code that must write Firestore with no
 // signed-in user in the request — the Stripe webhook is the only caller
@@ -50,9 +49,14 @@ export function getAdminDb(): Firestore {
   return adminDb;
 }
 
-let adminAuth: Auth | null = null;
-
-export function getAdminAuth(): Auth {
-  if (!adminAuth) adminAuth = getAuth(getAdminApp());
-  return adminAuth;
-}
+// No getAdminAuth() here on purpose. firebase-admin/auth pulls in
+// jwks-rsa, which pulls in an ESM-only build of "jose" that a CommonJS
+// require() can't load at all (ERR_REQUIRE_ESM) — not a load-order
+// problem a dynamic import can dodge, but a genuine incompatibility
+// between jwks-rsa@4.1.0's declared dependency and jose v6's dropped
+// CJS support. Importing firebase-admin/auth anywhere, even lazily,
+// crashes the moment it's actually used. app/api/account/delete/route.ts
+// verifies the caller's ID token and deletes the Auth user through
+// Firebase's REST API instead (Identity Toolkit's accounts:lookup and
+// accounts:delete) — same security property (Google verifies the token
+// server-side either way), without this broken dependency chain.
