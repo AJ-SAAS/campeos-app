@@ -221,14 +221,23 @@ export function StepEditor({
                         value={value}
                         onChange={(e) => onFieldChange(field.key, e.target.value)}
                         placeholder="Not written yet"
-                        className="w-full -mx-2 rounded-md border-none bg-transparent px-2 py-1 text-[17px] font-semibold text-slate outline-none placeholder:font-normal placeholder:text-faint focus:bg-ivory/70"
+                        // Inline style, not a Tailwind class: the site-wide
+                        // `:focus-visible` rule in globals.css sets its own
+                        // outline at the same CSS specificity as a
+                        // `focus:outline-none` utility and comes later in
+                        // the stylesheet, so it would otherwise win. These
+                        // fields read as plain text either way (the caret
+                        // is cue enough), so they opt out of that outline
+                        // on purpose rather than failing to apply it.
+                        style={{ outline: "none" }}
+                        className="w-full -mx-2 rounded-md border-none bg-transparent px-2 py-1 text-[17px] font-semibold text-slate placeholder:font-normal placeholder:text-faint"
                       />
                     ) : (
                       <AutoGrowTextarea
                         value={value}
                         onChange={(v) => onFieldChange(field.key, v)}
                         placeholder="Not written yet"
-                        className="w-full -mx-2 resize-none rounded-md border-none bg-transparent px-2 py-1 text-[16px] leading-[1.7] text-slate outline-none placeholder:text-faint focus:bg-ivory/70"
+                        className="w-full -mx-2 resize-none rounded-md border-none bg-transparent px-2 py-1 text-[16px] leading-[1.7] text-slate placeholder:text-faint"
                       />
                     )}
                   </div>
@@ -311,6 +320,7 @@ function AutoGrowTextarea({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      style={{ outline: "none" }}
       className={className}
     />
   );
