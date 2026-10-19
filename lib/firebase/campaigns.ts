@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -9,6 +10,7 @@ import {
   setDoc,
   Timestamp,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "./client";
 import { OfferContext } from "../ai/prompts";
@@ -96,6 +98,41 @@ export async function listCampaigns(uid: string): Promise<Campaign[]> {
   return campaigns;
 }
 
+/**
+ * Maps each templateId to the user's most recently created campaign
+ * built from it. Used by the /campaigns gallery so clicking a template
+ * card continues an existing campaign instead of always starting a new
+ * one — one Firestore read for every card instead of one per card.
+ */
+export function latestCampaignByTemplate(campaigns: Campaign[]): Record<string, Campaign> {
+  const byTemplate: Record<string, Campaign> = {};
+  // campaigns is already sorted most-recent-first, so the first one seen
+  // per templateId is the one to keep.
+  for (const c of campaigns) {
+    if (!byTemplate[c.templateId]) byTemplate[c.templateId] = c;
+  }
+  return byTemplate;
+}
+
+/**
+ * Permanently deletes a campaign and every one of its step documents.
+ * Firestore doesn't cascade-delete subcollections when you delete a
+ * parent doc, so the steps have to be removed explicitly — batched into
+ * one atomic write instead of one delete call per step. There's no
+ * confirmation here; the caller (the campaigns list UI) is responsible
+ * for confirming with the user before calling this, since it can't be
+ * undone.
+ */
+export async function deleteCampaign(campaignId: string): Promise<void> {
+  const stepsSnap = await getDocs(collection(db, "campaigns", campaignId, "steps"));
+  const batch = writeBatch(db);
+  for (const stepDoc of stepsSnap.docs) {
+    batch.delete(stepDoc.ref);
+  }
+  batch.delete(doc(db, "campaigns", campaignId));
+  await batch.commit();
+}
+
 /** Loads one campaign and all its steps. */
 export async function getCampaignWithSteps(
   campaignId: string
@@ -110,18 +147,4 @@ export async function getCampaignWithSteps(
     campaign: { id: campaignSnap.id, ...campaignSnap.data() } as Campaign,
     steps,
   };
-}
-
-/**
- * Maps each templateId to the user's most recently created campaign
- * built from it. Used by the /campaigns gallery so clicking a template
- * card continues an existing campaign instead of always starting a new
- * one.
- */
-export function latestCampaignByTemplate(campaigns: Campaign[]): Record<string, Campaign> {
-  const byTemplate: Record<string, Campaign> = {};
-  for (const c of campaigns) {
-    if (!byTemplate[c.templateId]) byTemplate[c.templateId] = c;
-  }
-  return byTemplate;
 }

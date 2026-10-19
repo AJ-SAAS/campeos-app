@@ -26,6 +26,13 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
     }
 
+    // Per-user saved offers — what a client sells, reusable across
+    // campaigns. See lib/firebase/offers.ts.
+    match /offers/{offerId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+    }
+
     // The agent's chat history, scoped to the user. See
     // lib/firebase/agentThreads.ts.
     match /agentMessages/{messageId} {

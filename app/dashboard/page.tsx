@@ -8,7 +8,7 @@ import { AgentPanel } from "@/components/agent/AgentPanel";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
 import { useSubscription } from "@/lib/firebase/useSubscription";
-import { Campaign, listCampaigns } from "@/lib/firebase/campaigns";
+import { Campaign, deleteCampaign, listCampaigns } from "@/lib/firebase/campaigns";
 
 // "Dashboard: in the works" — from Main.dc.html, redesigned around the
 // agent as the primary surface (the chat-first "Helena-style" flow) with
@@ -26,6 +26,10 @@ export default function Dashboard() {
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const { ready } = useRequireAccess();
   const { loading: subLoading, active } = useSubscription();
+  // Tracks which campaign's delete is in flight, so that row's button
+  // can show a spinner/disabled state without blocking the rest of the
+  // list — a user could plausibly delete two old drafts back to back.
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -34,6 +38,26 @@ export default function Dashboard() {
     }
     listCampaigns(user.uid).then(setCampaigns);
   }, [user]);
+
+  async function handleDelete(campaign: Campaign) {
+    // Permanent and can't be undone — confirm before it fires. A native
+    // confirm() is plain but unambiguous for a destructive action like
+    // this, and needs no modal infrastructure to get right.
+    const ok = window.confirm(
+      `Delete "${campaign.title}"? This can't be undone — every step and its generated copy will be permanently removed.`
+    );
+    if (!ok) return;
+
+    setDeletingId(campaign.id);
+    try {
+      await deleteCampaign(campaign.id);
+      setCampaigns((prev) => prev?.filter((c) => c.id !== campaign.id) ?? prev);
+    } catch {
+      window.alert("Couldn't delete that campaign — try again in a moment.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   // Not signed in / onboarding not finished -> useRequireAccess is
   // already redirecting to /auth or /onboarding. Don't flash the
@@ -116,9 +140,9 @@ export default function Dashboard() {
                   <Link
                     key={c.id}
                     href={`/builder?id=${c.id}`}
-                    className={`flex items-center gap-3 px-4 py-3 ${
+                    className={`group flex items-center gap-3 px-4 py-3 ${
                       i < campaigns.length - 1 ? "border-b border-line" : ""
-                    }`}
+                    } ${deletingId === c.id ? "opacity-50 pointer-events-none" : ""}`}
                   >
                     <div className="flex-grow min-w-0">
                       <div className="text-[13.5px] font-semibold truncate">{c.title}</div>
@@ -127,6 +151,22 @@ export default function Dashboard() {
                     <div className="font-mono text-xs text-muted shrink-0">
                       {new Date(c.eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                     </div>
+                    <button
+                      type="button"
+                      aria-label={`Delete ${c.title}`}
+                      disabled={deletingId === c.id}
+                      onClick={(e) => {
+                        // Stop the click from bubbling to the parent
+                        // Link and navigating into the builder instead
+                        // of deleting.
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDelete(c);
+                      }}
+                      className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-faint opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 hover:bg-ivory hover:text-dangerFg transition-opacity"
+                    >
+                      <TrashIcon />
+                    </button>
                   </Link>
                 ))
               )}
@@ -136,6 +176,14 @@ export default function Dashboard() {
       </main>
       </div>
     </div>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" />
+    </svg>
   );
 }
 

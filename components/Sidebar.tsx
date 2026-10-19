@@ -14,7 +14,7 @@ import { useSubscription } from "@/lib/firebase/useSubscription";
 export function Sidebar({
   active,
 }: {
-  active: "dashboard" | "campaigns" | "winning-copy" | "buyer-insights";
+  active: "dashboard" | "campaigns" | "offers" | "winning-copy" | "buyer-insights";
 }) {
   const { user, loading, signIn, signOut } = useAuth();
   const { sub, loading: subLoading, active: subActive } = useSubscription();
@@ -43,6 +43,9 @@ export function Sidebar({
           </NavItem>
           <NavItem href="/campaigns" label="Campaigns" active={active === "campaigns"}>
             <CampaignsIcon />
+          </NavItem>
+          <NavItem href="/offers" label="Offers" active={active === "offers"}>
+            <OffersIcon />
           </NavItem>
           <NavItem href="/winning-copy" label="Winning copy" active={active === "winning-copy"}>
             <TrophyIcon />
@@ -134,6 +137,9 @@ export function Sidebar({
         <MobileNavItem href="/campaigns" label="Campaigns" active={active === "campaigns"}>
           <CampaignsIcon />
         </MobileNavItem>
+        <MobileNavItem href="/offers" label="Offers" active={active === "offers"}>
+          <OffersIcon />
+        </MobileNavItem>
         <MobileNavItem href="/winning-copy" label="Winning copy" active={active === "winning-copy"}>
           <TrophyIcon />
         </MobileNavItem>
@@ -210,6 +216,13 @@ function CampaignsIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" />
       <path d="M7 6h4c3 0 4 2 4 4M7 18h4c3 0 4-2 4-4" />
+    </svg>
+  );
+}
+function OffersIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2 3 7v6c0 5 4 8.5 9 9 5-.5 9-4 9-9V7z" /><path d="M9 12l2 2 4-4" />
     </svg>
   );
 }
