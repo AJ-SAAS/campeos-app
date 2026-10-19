@@ -111,3 +111,17 @@ export async function getCampaignWithSteps(
     steps,
   };
 }
+
+/**
+ * Maps each templateId to the user's most recently created campaign
+ * built from it. Used by the /campaigns gallery so clicking a template
+ * card continues an existing campaign instead of always starting a new
+ * one.
+ */
+export function latestCampaignByTemplate(campaigns: Campaign[]): Record<string, Campaign> {
+  const byTemplate: Record<string, Campaign> = {};
+  for (const c of campaigns) {
+    if (!byTemplate[c.templateId]) byTemplate[c.templateId] = c;
+  }
+  return byTemplate;
+}
