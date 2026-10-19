@@ -23,11 +23,27 @@ import { getBusinessProfile } from "./businessProfile";
  * component (same rules as any other hook — don't call it after an
  * early return). Render a loading shell instead of the real page while
  * `ready` is false, so the page never flashes before a redirect.
+ *
+ * Every page under the sidebar nav (dashboard, campaigns, winning-copy,
+ * buyer-insights, ...) is its own top-level route with no shared layout
+ * wrapping them, so each one calls this hook fresh on every navigation —
+ * React fully unmounts the page you're leaving and mounts the next one.
+ * Without caching, that meant re-running the Firestore
+ * getBusinessProfile() read on every single click between nav tabs,
+ * `ready` sitting false (blank white screen) until it resolved, even
+ * though the same uid had just been confirmed ready one click earlier.
+ * This in-memory, session-lifetime cache remembers a uid once it's
+ * verified, so every navigation after the first resolves synchronously —
+ * no blank screen, no repeat network round trip. It intentionally
+ * doesn't survive a hard reload (module state resets), which is correct:
+ * a fresh page load should still confirm onboarding for real.
  */
+const verifiedReadyUids = new Set<string>();
+
 export function useRequireAccess(): { ready: boolean } {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(() => !!user && verifiedReadyUids.has(user.uid));
 
   useEffect(() => {
     if (authLoading) return;
@@ -37,12 +53,18 @@ export function useRequireAccess(): { ready: boolean } {
       return;
     }
 
+    if (verifiedReadyUids.has(user.uid)) {
+      setReady(true);
+      return;
+    }
+
     let cancelled = false;
     getBusinessProfile(user.uid).then((profile) => {
       if (cancelled) return;
       if (!profile) {
         router.replace("/onboarding");
       } else {
+        verifiedReadyUids.add(user.uid);
         setReady(true);
       }
     });
