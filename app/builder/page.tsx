@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IconRail } from "@/components/builder/IconRail";
@@ -133,6 +133,55 @@ function BuilderInner() {
     : freshSteps;
 
   const [copyByStep, setCopyByStep] = useState<Record<string, Record<string, string>>>({});
+
+  // Direct, in-panel editing of a step's own fields (separate from the
+  // "Ask Campeos" variation flow below) — Google Docs-style: no Save
+  // button, just autosave shortly after typing stops, and a flush the
+  // instant the panel closes so the last keystroke or two is never
+  // stranded in a timer that never got to fire. copyByStepRef mirrors
+  // copyByStep so the debounced save, which fires well after the
+  // keystroke that scheduled it, always writes the latest value rather
+  // than whatever was current when the timer was set.
+  const copyByStepRef = useRef(copyByStep);
+  useEffect(() => {
+    copyByStepRef.current = copyByStep;
+  }, [copyByStep]);
+  const fieldSaveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [fieldSaveStatus, setFieldSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+
+  async function flushFieldSave(templateStepId: string) {
+    const timer = fieldSaveTimersRef.current[templateStepId];
+    if (timer) {
+      clearTimeout(timer);
+      delete fieldSaveTimersRef.current[templateStepId];
+    }
+    // Nothing to write yet for a brand-new, unsaved campaign — same
+    // "local state only until the first Generate" rule the variation
+    // flow below already follows.
+    if (!campaignId) return;
+    const copy = copyByStepRef.current[templateStepId];
+    if (!copy) return;
+    setFieldSaveStatus("saving");
+    try {
+      await saveStepCopy(campaignId, templateStepId, copy);
+      setFieldSaveStatus("saved");
+      setTimeout(() => setFieldSaveStatus((s) => (s === "saved" ? "idle" : s)), 1500);
+    } catch {
+      setFieldSaveStatus("idle");
+    }
+  }
+
+  function handleFieldEdit(templateStepId: string, fieldKey: string, value: string) {
+    setCopyByStep((prev) => ({
+      ...prev,
+      [templateStepId]: { ...prev[templateStepId], [fieldKey]: value },
+    }));
+    if (!campaignId) return;
+    clearTimeout(fieldSaveTimersRef.current[templateStepId]);
+    fieldSaveTimersRef.current[templateStepId] = setTimeout(() => {
+      flushFieldSave(templateStepId);
+    }, 800);
+  }
 
   useEffect(() => {
     if (!loadedSteps) return;
@@ -521,7 +570,20 @@ function BuilderInner() {
           onRequestVariation={requestVariation}
           variationPending={variationPending}
           isOpen={stepModalOpen}
-          onClose={() => setStepModalOpen(false)}
+          onClose={() => {
+            // Flush rather than wait for the debounce timer — closing
+            // the panel is the "I'm done" signal, same as closing a
+            // Google Doc, so the last second of typing shouldn't be
+            // sitting in a timer that the panel being gone never lets
+            // fire.
+            if (selected) flushFieldSave(selected.templateStepId);
+            setStepModalOpen(false);
+          }}
+          onFieldChange={(fieldKey, value) => {
+            if (!selected) return;
+            handleFieldEdit(selected.templateStepId, fieldKey, value);
+          }}
+          saveStatus={fieldSaveStatus}
         />
       </div>
 

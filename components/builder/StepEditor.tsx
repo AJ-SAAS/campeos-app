@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UIStep } from "./Timeline";
 
 interface StepEditorProps {
@@ -11,6 +11,16 @@ interface StepEditorProps {
   variationPending: boolean;
   isOpen: boolean;
   onClose: () => void;
+  // Fired on every keystroke in a field. The parent owns the actual
+  // value (step.copy flows back down as a prop) and is responsible for
+  // persisting it — debounced while typing, flushed the moment this
+  // panel closes — so this component stays a plain controlled view with
+  // no save logic or local copy of its own to drift out of sync.
+  onFieldChange: (fieldKey: string, value: string) => void;
+  // Optional autosave indicator, shown next to "Step X of Y" — mirrors
+  // the quiet "Saving.../Saved" Docs shows, so it's clear edits here
+  // aren't sitting unsaved in a modal waiting for a Save button.
+  saveStatus?: "idle" | "saving" | "saved";
 }
 
 const LANE_STYLE: Record<string, { label: string; fg: string; bg: string }> = {
@@ -37,6 +47,8 @@ export function StepEditor({
   variationPending,
   isOpen,
   onClose,
+  onFieldChange,
+  saveStatus = "idle",
 }: StepEditorProps) {
   const [instruction, setInstruction] = useState("");
   const [whyOpen, setWhyOpen] = useState(false);
@@ -100,6 +112,11 @@ export function StepEditor({
             <span className="font-mono text-xs text-muted">
               Step {stepNumber} of {totalSteps}
             </span>
+            {saveStatus !== "idle" && (
+              <span className="text-xs text-faint">
+                {saveStatus === "saving" ? "Saving…" : "Saved"}
+              </span>
+            )}
           </div>
           <button
             aria-label="Close"
@@ -192,21 +209,28 @@ export function StepEditor({
 
             <div className="w-full flex flex-col gap-7 text-left">
               {step.fields.map((field) => {
-                const value = step.copy?.[field.key];
+                const value = step.copy?.[field.key] ?? "";
                 return (
                   <div key={field.key} className="flex flex-col gap-1.5">
                     <span className="font-mono text-[10.5px] uppercase tracking-wider text-faint">
                       {field.label}
                     </span>
-                    <div
-                      className={`whitespace-pre-line ${
-                        field.kind === "short"
-                          ? "text-[17px] font-semibold"
-                          : "text-[16px] leading-[1.7]"
-                      } ${value ? "text-slate" : "text-faint"}`}
-                    >
-                      {value ?? "Not written yet"}
-                    </div>
+                    {field.kind === "short" ? (
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => onFieldChange(field.key, e.target.value)}
+                        placeholder="Not written yet"
+                        className="w-full -mx-2 rounded-md border-none bg-transparent px-2 py-1 text-[17px] font-semibold text-slate outline-none placeholder:font-normal placeholder:text-faint focus:bg-ivory/70"
+                      />
+                    ) : (
+                      <AutoGrowTextarea
+                        value={value}
+                        onChange={(v) => onFieldChange(field.key, v)}
+                        placeholder="Not written yet"
+                        className="w-full -mx-2 resize-none rounded-md border-none bg-transparent px-2 py-1 text-[16px] leading-[1.7] text-slate outline-none placeholder:text-faint focus:bg-ivory/70"
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -251,6 +275,44 @@ export function StepEditor({
         </div>
       </div>
     </div>
+  );
+}
+
+// A plain <textarea> clips to a fixed box and forces its own scrollbar;
+// the old read-only <div> just grew with the text. This keeps that
+// same "grows with what you write" feel by measuring scrollHeight and
+// setting the element's own height to match, on every value change —
+// including the first render, so a long saved paragraph isn't clipped
+// before the user ever touches it.
+function AutoGrowTextarea({
+  value,
+  onChange,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={className}
+    />
   );
 }
 
