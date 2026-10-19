@@ -47,9 +47,18 @@ export function SetupPanel({
 
   return (
     <aside aria-label="Campaign setup" className="w-full lg:w-80 shrink-0 bg-paper p-4 sm:p-5 pb-24 lg:pb-5 flex flex-col gap-5 overflow-y-auto">
-      <h2 className="font-display text-lg font-semibold">Campaign setup</h2>
+      <h2 className="shrink-0 font-display text-lg font-semibold">Campaign setup</h2>
 
-      <div className="relative rounded-2xl border border-line overflow-hidden">
+      {/* shrink-0 on every card below: without it, this flex column gets
+          squeezed shorter than its content inside the builder's real
+          nested layout (a flex-shrink parent a few levels up), and any
+          child here that ALSO has overflow-hidden (for the rounded
+          corners on the accent bar) has no protected minimum size — so
+          it gets crushed to a couple of px while plain siblings refuse
+          to shrink and keep their size. Reproduced and confirmed via a
+          throwaway render of this exact nesting; shrink-0 is the fix,
+          not a smaller fix to the overflow-hidden itself. */}
+      <div className="shrink-0 relative rounded-2xl border border-line overflow-hidden">
         <div className="h-[3px] bg-gradient-to-r from-clay to-pink" />
         <div className="p-3.5 flex flex-col gap-1">
           <div className="text-xs font-semibold text-faint">Campaign type</div>
@@ -60,37 +69,45 @@ export function SetupPanel({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-line divide-y divide-line overflow-hidden">
+      <div className="shrink-0 rounded-2xl border border-line divide-y divide-line overflow-hidden">
         <SheetField label="Offer name" value={offer.name} onChange={(v) => set("name", v)} />
         <SheetField label="Price" value={offer.price} onChange={(v) => set("price", v)} />
         <SheetField label="Who it's for" value={offer.audience} onChange={(v) => set("audience", v)} />
         <SheetField label="What they get" value={offer.whatTheyGet} onChange={(v) => set("whatTheyGet", v)} />
       </div>
 
-      <SegmentedField
-        label="Reading level"
-        helper="How simple or sophisticated the actual sentences should read. Applies to every step."
-        options={READING_LEVELS as unknown as string[]}
-        value={offer.readingLevel ?? "5th grade"}
-        onChange={(v) => set("readingLevel", v)}
-      />
+      <div className="shrink-0">
+        <SegmentedField
+          label="Reading level"
+          helper="How simple or sophisticated the actual sentences should read. Applies to every step."
+          options={READING_LEVELS as unknown as string[]}
+          value={offer.readingLevel ?? "5th grade"}
+          onChange={(v) => set("readingLevel", v)}
+        />
+      </div>
 
-      <WinningCopyCard winningCopy={winningCopy} onAdd={onAddWinningCopy} />
-      <SalesCallCard callThemes={callThemes} onAdd={onAddSalesCall} />
+      <div className="shrink-0">
+        <WinningCopyCard winningCopy={winningCopy} onAdd={onAddWinningCopy} />
+      </div>
+      <div className="shrink-0">
+        <SalesCallCard callThemes={callThemes} onAdd={onAddSalesCall} />
+      </div>
 
-      <SegmentedField
-        label="Tone"
-        options={["Friendly", "Bold", "Calm"]}
-        value={offer.tone}
-        onChange={(v) => set("tone", v)}
-      />
+      <div className="shrink-0">
+        <SegmentedField
+          label="Tone"
+          options={["Friendly", "Bold", "Calm"]}
+          value={offer.tone}
+          onChange={(v) => set("tone", v)}
+        />
+      </div>
 
       <div className="flex-grow" />
 
       <button
         onClick={onGenerate}
         disabled={generating}
-        className="flex items-center justify-center gap-2 min-h-12 rounded-xl bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold shadow-[0_8px_20px_-6px_rgba(124,58,237,0.5)] disabled:opacity-50"
+        className="shrink-0 flex items-center justify-center gap-2 min-h-12 rounded-xl bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold shadow-[0_8px_20px_-6px_rgba(124,58,237,0.5)] disabled:opacity-50"
       >
         {generating && <Spinner />}
         {generating ? "Writing your campaign..." : "Generate campaign copy"}

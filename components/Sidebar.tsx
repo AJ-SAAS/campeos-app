@@ -57,39 +57,45 @@ export function Sidebar({
 
         <div className="flex-grow" />
 
-        <div className="flex items-center gap-2.5 px-2 py-2.5 border-t border-line">
+        <div className="flex flex-col gap-2 px-2 py-2.5 border-t border-line">
           {loading ? (
             <div className="text-sm text-muted">Loading...</div>
           ) : user ? (
             <>
-              <div className="w-9 h-9 rounded-full bg-ivory flex items-center justify-center overflow-hidden shrink-0">
-                {user.photoURL ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <PersonIcon />
-                )}
+              {/* Name + plan on their own row, so they get the sidebar's
+                  full width to truncate against instead of fighting
+                  "Settings"/"Sign out" for space — that crowding used to
+                  push the plan link onto a second line that visually ran
+                  into the border below it. */}
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-ivory flex items-center justify-center overflow-hidden shrink-0">
+                  {user.photoURL ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <PersonIcon />
+                  )}
+                </div>
+                <div className="flex-grow min-w-0">
+                  <div className="text-sm font-medium truncate">{user.displayName ?? user.email}</div>
+                  {!subLoading && (
+                    <Link
+                      href="/billing"
+                      className={`text-xs truncate block ${subActive ? "text-muted" : "text-clay font-semibold"}`}
+                    >
+                      {subActive ? `${planLabel(sub?.plan)} plan` : "No plan — subscribe"}
+                    </Link>
+                  )}
+                </div>
               </div>
-              <div className="flex-grow min-w-0">
-                <div className="text-sm font-medium truncate">{user.displayName ?? user.email}</div>
-                {!subLoading && (
-                  <Link
-                    href="/billing"
-                    className={`text-xs truncate ${subActive ? "text-muted" : "text-clay font-semibold"}`}
-                  >
-                    {subActive ? `${planLabel(sub?.plan)} plan` : "No plan — subscribe"}
-                  </Link>
-                )}
+              <div className="flex items-center gap-3 pl-[46px]">
+                <Link href="/settings" className="text-xs text-muted font-medium">
+                  Settings
+                </Link>
+                <button onClick={() => signOut()} className="text-xs text-muted font-medium">
+                  Sign out
+                </button>
               </div>
-              <Link href="/settings" className="text-xs text-muted font-medium shrink-0">
-                Settings
-              </Link>
-              <button
-                onClick={() => signOut()}
-                className="text-xs text-muted font-medium shrink-0"
-              >
-                Sign out
-              </button>
             </>
           ) : (
             <div className="w-full flex flex-col gap-1.5">

@@ -95,7 +95,17 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        <div className="flex-grow min-h-0 grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-6 items-start">
+        {/* No min-h-0 here on purpose: <main> above already scrolls
+            (overflow-y-auto), so this grid should size to its full
+            natural content height, not get squeezed into whatever's
+            left over. With min-h-0, when the Agent panel + full
+            campaigns list together ran taller than the viewport on
+            mobile, the Agent panel — the only item here with its own
+            overflow-hidden — absorbed the entire shortfall and
+            collapsed to a sliver instead of the page just scrolling.
+            Reproduced and confirmed via a throwaway render of this
+            exact grid before landing on this fix. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-6 items-start">
           <AgentPanel />
 
           <div className="flex flex-col gap-5">
