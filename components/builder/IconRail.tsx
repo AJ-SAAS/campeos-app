@@ -3,8 +3,12 @@ import Link from "next/link";
 // The narrow icon-only nav on the left of the Campaign Builder. Light
 // theme to match the rest of the redesign (was a dark slab). Hidden
 // below lg — on a phone, someone deep in building one campaign doesn't
-// need the full nav rail; the builder page's own mobile header carries
-// a back-to-dashboard link instead, which is what they actually need.
+// need the full nav rail; the builder page's own header carries an
+// explicit "back to campaigns" link instead, which is what they
+// actually need. The "Campaigns" icon here points at /campaigns (the
+// template gallery, which doubles as the campaigns dashboard) — never
+// mark it `active`, since being inside the builder isn't being on that
+// page.
 export function IconRail() {
   return (
     <nav aria-label="Main" className="hidden lg:flex w-[72px] shrink-0 bg-paper border-r border-line flex-col items-center py-3.5 gap-1.5">
@@ -16,7 +20,7 @@ export function IconRail() {
         <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
         <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
       </RailIcon>
-      <RailIcon href="/builder" label="Campaigns" active>
+      <RailIcon href="/campaigns" label="Campaigns">
         <circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" />
         <path d="M7 6h4c3 0 4 2 4 4M7 18h4c3 0 4-2 4-4" />
       </RailIcon>

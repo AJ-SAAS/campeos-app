@@ -11,7 +11,7 @@ import { StepEditor } from "@/components/builder/StepEditor";
 import { AgentLauncher } from "@/components/agent/AgentLauncher";
 import { AgentPanelCampaignStep } from "@/components/agent/AgentPanel";
 import { buildTimeline, ScheduledStep } from "@/lib/engine/buildTimeline";
-import { webinarTemplate } from "@/lib/templates/webinar";
+import { getTemplate } from "@/lib/templates";
 import { OfferContext, formatForPrompt } from "@/lib/ai/prompts";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
@@ -71,12 +71,19 @@ function BuilderInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const existingId = searchParams.get("id");
+  // New campaign: which template to start from, e.g. /builder?template=cart-close.
+  // Defaults to the webinar template (the original /builder behavior).
+  const templateParam = searchParams.get("template");
 
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [offer, setOffer] = useState<OfferContext>(DEFAULT_OFFER);
   const [eventDate, setEventDate] = useState<Date>(DEFAULT_EVENT_DATE);
   const [loadedSteps, setLoadedSteps] = useState<CampaignStepDoc[] | null>(null);
   const [loadingCampaign, setLoadingCampaign] = useState(!!existingId);
+  // Once a saved campaign loads, its own templateId wins over whatever
+  // was in the URL — a saved campaign always rebuilds from the template
+  // it was actually created with.
+  const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
 
   // Load an existing campaign's saved steps and copy when ?id= is present.
   useEffect(() => {
@@ -89,15 +96,27 @@ function BuilderInner() {
         setOffer(result.campaign.offer);
         setEventDate(new Date(result.campaign.eventDate));
         setLoadedSteps(result.steps);
+        setLoadedTemplateId(result.campaign.templateId);
       })
       .finally(() => setLoadingCampaign(false));
   }, [existingId]);
 
+  // Unknown/missing template id (bad link, old bookmark) falls back to
+  // webinar rather than throwing and blanking the page.
+  const activeTemplate = useMemo(() => {
+    const id = loadedTemplateId ?? templateParam ?? "webinar";
+    try {
+      return getTemplate(id);
+    } catch {
+      return getTemplate("webinar");
+    }
+  }, [loadedTemplateId, templateParam]);
+
   // A brand-new campaign's schedule comes from the engine; a loaded one
   // uses the dates already saved on each step.
   const freshSteps = useMemo(
-    () => buildTimeline(webinarTemplate, { event: eventDate }),
-    [eventDate]
+    () => buildTimeline(activeTemplate, { event: eventDate }),
+    [activeTemplate, eventDate]
   );
 
   const scheduledSteps: ScheduledStep[] = loadedSteps
@@ -267,7 +286,7 @@ function BuilderInner() {
         const newId = await createCampaign(
           user.uid,
           offer.name || "Untitled campaign",
-          webinarTemplate.id,
+          activeTemplate.id,
           offer,
           eventDate,
           stepDocs
@@ -382,12 +401,17 @@ function BuilderInner() {
       <div className="flex-grow min-w-0 flex flex-col">
         <header className="shrink-0 bg-paper border-b border-line flex flex-col gap-3 px-4 py-3 sm:px-6 sm:h-16 sm:flex-row sm:items-center sm:gap-4 sm:py-0">
           <div className="flex items-center gap-3 min-w-0">
+            {/* Always visible, not just on mobile — the campaigns gallery
+                (/campaigns) is where every campaign card lives, so there
+                needs to be a way back to it from inside the editor at
+                any screen size, not just via the IconRail's icon. */}
             <Link
-              href="/dashboard"
-              aria-label="Back to dashboard"
-              className="lg:hidden shrink-0 w-8 h-8 rounded-lg border border-line flex items-center justify-center text-muted"
+              href="/campaigns"
+              aria-label="Back to campaigns"
+              className="shrink-0 flex items-center gap-1.5 h-8 pl-2 pr-2.5 sm:pr-3 rounded-lg border border-line text-muted text-[13px] font-semibold hover:bg-ivory hover:text-slate"
             >
               <BackIcon />
+              <span className="hidden sm:inline">Campaigns</span>
             </Link>
             <div className="font-display text-base sm:text-lg font-semibold tracking-tight truncate">
               {offer.name || "Untitled campaign"}
@@ -456,7 +480,7 @@ function BuilderInner() {
                 setStepModalOpen(true);
               }}
               eventDate={eventDate}
-              phases={webinarTemplate.phases}
+              phases={activeTemplate.phases}
               generating={generating}
             />
           </div>
