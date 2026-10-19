@@ -1,5 +1,6 @@
 import { cert, getApps, getApp, initializeApp, App } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
+import { getAuth, Auth } from "firebase-admin/auth";
 
 // The Admin SDK, for server code that must write Firestore with no
 // signed-in user in the request — the Stripe webhook is the only caller
@@ -47,4 +48,11 @@ let adminDb: Firestore | null = null;
 export function getAdminDb(): Firestore {
   if (!adminDb) adminDb = getFirestore(getAdminApp());
   return adminDb;
+}
+
+let adminAuth: Auth | null = null;
+
+export function getAdminAuth(): Auth {
+  if (!adminAuth) adminAuth = getAuth(getAdminApp());
+  return adminAuth;
 }
