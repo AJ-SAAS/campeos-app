@@ -207,7 +207,7 @@ export default function OnboardingPage() {
       <div className="px-6 py-5 flex items-center justify-between">
         <div className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-          <img src="/logo-lockup.png" alt="Campeos" className="h-6 w-auto object-contain" />
+          <img src="/logo-lockup.png" alt="Campeos" className="h-7 w-auto object-contain" />
         </div>
         <button onClick={() => signOut()} className="text-xs text-muted font-medium">
           Sign out

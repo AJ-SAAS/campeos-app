@@ -34,7 +34,7 @@ export function Sidebar({
       <aside className="hidden md:flex w-60 shrink-0 bg-paper border-r border-line text-slate flex-col p-4 gap-7">
         <div className="px-1">
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-          <img src="/logo-lockup.png" alt="Campeos" className="h-7 w-auto object-contain" />
+          <img src="/logo-lockup.png" alt="Campeos" className="h-8 w-auto object-contain" />
         </div>
 
         <nav aria-label="Main" className="flex flex-col gap-1">
@@ -106,7 +106,7 @@ export function Sidebar({
       <header className="md:hidden flex items-center justify-between h-14 px-4 border-b border-line bg-paper">
         <div className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-          <img src="/logo-lockup.png" alt="Campeos" className="h-6 w-auto object-contain" />
+          <img src="/logo-lockup.png" alt="Campeos" className="h-8 w-auto object-contain" />
         </div>
         {!loading && (
           user ? (

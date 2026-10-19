@@ -214,7 +214,7 @@ export default function MarketingPage() {
         <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center gap-7">
           <div className="flex items-center flex-grow min-w-0">
             {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-            <img src="/logo-lockup.png" alt="Campeos" className="h-7 w-auto object-contain" />
+            <img src="/logo-lockup.png" alt="Campeos" className="h-8 w-auto object-contain" />
           </div>
           <div className="hidden md:flex items-center gap-6 font-mono shrink-0">
             <a href="#how" className="text-[13px] text-muted font-medium">How it works</a>
@@ -578,7 +578,7 @@ export default function MarketingPage() {
         <div className="max-w-[1200px] mx-auto flex flex-wrap gap-5 items-center justify-between">
           <div className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-            <img src="/logo-lockup.png" alt="Campeos" className="h-5 w-auto object-contain" />
+            <img src="/logo-lockup.png" alt="Campeos" className="h-6 w-auto object-contain" />
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <p className="font-mono text-[11.5px] text-faint">&copy; 2026 Campeos. Built for marketers who never start from zero.</p>

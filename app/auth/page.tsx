@@ -100,7 +100,7 @@ function AuthInner() {
       <div className="px-6 py-5">
         <Link href="/" className="inline-flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-          <img src="/logo-lockup.png" alt="Campeos" className="h-6 w-auto object-contain" />
+          <img src="/logo-lockup.png" alt="Campeos" className="h-7 w-auto object-contain" />
         </Link>
       </div>
 
