@@ -18,6 +18,19 @@ interface SetupPanelProps {
 // works" (winning copy) and "Why people buy" (call themes), from
 // Builder.dc.html. Both lists are backed by Firestore and scoped to the
 // signed-in user — see lib/firebase/library.ts.
+//
+// Redesigned (Oct 2026) away from the "four identical bordered boxes"
+// look: the offer fields are one connected sheet instead of four
+// separate cards, reading level is a real 4-way segmented control
+// instead of a slider standing in for discrete options, the campaign-
+// type banner lost its tracked-uppercase eyebrow, and every
+// selected/active state uses the brand violet instead of plain black —
+// the same gradient accent-bar device the /campaigns gallery cards use,
+// so this panel reads as the same product rather than a generic form.
+// The "Generate" button stays the one place with the full two-color
+// gradient — every other accent here is the flatter single violet, so
+// that button keeps reading as the boldest, most important thing on
+// the panel.
 export function SetupPanel({
   offer,
   onOfferChange,
@@ -33,25 +46,31 @@ export function SetupPanel({
   }
 
   return (
-    <aside aria-label="Campaign setup" className="w-full lg:w-80 shrink-0 bg-paper p-4 sm:p-5 pb-24 lg:pb-5 flex flex-col gap-4.5 overflow-y-auto">
+    <aside aria-label="Campaign setup" className="w-full lg:w-80 shrink-0 bg-paper p-4 sm:p-5 pb-24 lg:pb-5 flex flex-col gap-5 overflow-y-auto">
       <h2 className="font-display text-lg font-semibold">Campaign setup</h2>
 
-      <div className="flex items-center justify-between gap-2 p-3.5 bg-ivory rounded-xl">
-        <div className="flex flex-col gap-0.5">
-          <div className="font-mono text-[11px] uppercase tracking-wider text-faint">Campaign type</div>
-          <div className="text-[15px] font-semibold">Webinar launch</div>
-          <div className="text-xs text-muted">
+      <div className="relative rounded-2xl border border-line overflow-hidden">
+        <div className="h-[3px] bg-gradient-to-r from-clay to-pink" />
+        <div className="p-3.5 flex flex-col gap-1">
+          <div className="text-xs font-semibold text-faint">Campaign type</div>
+          <div className="font-display text-[15px] font-semibold">Webinar launch</div>
+          <div className="text-xs text-muted leading-relaxed">
             Registration through an 11-day backend sequence. 22 steps across ads, email, and texts.
           </div>
         </div>
       </div>
 
-      <Field label="Offer name" value={offer.name} onChange={(v) => set("name", v)} />
-      <Field label="Price" value={offer.price} onChange={(v) => set("price", v)} />
-      <Field label="Who it's for" value={offer.audience} onChange={(v) => set("audience", v)} />
-      <Field label="What they get" value={offer.whatTheyGet} onChange={(v) => set("whatTheyGet", v)} />
+      <div className="rounded-2xl border border-line divide-y divide-line overflow-hidden">
+        <SheetField label="Offer name" value={offer.name} onChange={(v) => set("name", v)} />
+        <SheetField label="Price" value={offer.price} onChange={(v) => set("price", v)} />
+        <SheetField label="Who it's for" value={offer.audience} onChange={(v) => set("audience", v)} />
+        <SheetField label="What they get" value={offer.whatTheyGet} onChange={(v) => set("whatTheyGet", v)} />
+      </div>
 
-      <ReadingLevelSlider
+      <SegmentedField
+        label="Reading level"
+        helper="How simple or sophisticated the actual sentences should read. Applies to every step."
+        options={READING_LEVELS as unknown as string[]}
         value={offer.readingLevel ?? "5th grade"}
         onChange={(v) => set("readingLevel", v)}
       />
@@ -59,25 +78,12 @@ export function SetupPanel({
       <WinningCopyCard winningCopy={winningCopy} onAdd={onAddWinningCopy} />
       <SalesCallCard callThemes={callThemes} onAdd={onAddSalesCall} />
 
-      <div className="flex flex-col gap-2">
-        <div className="text-sm font-semibold">Tone</div>
-        <div className="flex flex-wrap gap-2">
-          {(["Friendly", "Bold", "Calm"] as const).map((t) => (
-            <button
-              key={t}
-              aria-pressed={offer.tone === t}
-              onClick={() => set("tone", t)}
-              className={`min-h-10 px-3.5 rounded-full text-[13px] font-semibold border ${
-                offer.tone === t
-                  ? "bg-slate text-white border-slate"
-                  : "bg-paper text-slate border-faint font-medium"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SegmentedField
+        label="Tone"
+        options={["Friendly", "Bold", "Calm"]}
+        value={offer.tone}
+        onChange={(v) => set("tone", v)}
+      />
 
       <div className="flex-grow" />
 
@@ -121,21 +127,21 @@ function WinningCopyCard({
   }
 
   return (
-    <div className="flex flex-col gap-2.5 p-3.5 border border-line rounded-xl">
+    <div className="flex flex-col gap-2.5 p-3.5 rounded-2xl border border-line">
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold">What already works</div>
-        <span className="font-mono text-xs text-muted">{winningCopy.length} winners</span>
+        <span className="font-mono text-xs text-faint">{winningCopy.length} winners</span>
       </div>
-      <div className="flex flex-col gap-2">
-        {winningCopy.map((line, i) => (
-          <div key={i} className="text-[13px] font-semibold leading-snug">
-            {line}
-          </div>
-        ))}
-        {winningCopy.length === 0 && (
-          <div className="text-xs text-faint">No winning copy added yet.</div>
-        )}
-      </div>
+
+      {winningCopy.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {winningCopy.map((line, i) => (
+            <div key={i} className="text-[13px] font-semibold leading-snug">
+              {line}
+            </div>
+          ))}
+        </div>
+      )}
 
       {open ? (
         <div className="flex flex-col gap-2">
@@ -144,14 +150,15 @@ function WinningCopyCard({
             onChange={(e) => setValue(e.target.value)}
             placeholder="Paste a headline or subject line that already converted..."
             rows={3}
-            className="border border-faint rounded-[10px] px-3 py-2 text-sm bg-paper resize-none"
+            autoFocus
+            className="border border-line rounded-[10px] px-3 py-2 text-sm bg-paper resize-none focus:border-clay focus:ring-2 focus:ring-clay/15 outline-none"
           />
           {error && <div className="text-xs text-dangerFg">{error}</div>}
           <div className="flex gap-2">
             <button
               onClick={save}
               disabled={saving || !value.trim()}
-              className="flex-grow min-h-10 rounded-[10px] bg-slate text-white text-sm font-semibold disabled:opacity-50"
+              className="flex-grow min-h-9 rounded-[10px] bg-clay text-white text-sm font-semibold disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -161,7 +168,7 @@ function WinningCopyCard({
                 setValue("");
                 setError(null);
               }}
-              className="min-h-10 px-3 rounded-[10px] border border-faint bg-paper text-sm font-semibold"
+              className="min-h-9 px-3 rounded-[10px] text-muted text-sm font-semibold"
             >
               Cancel
             </button>
@@ -170,9 +177,9 @@ function WinningCopyCard({
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center justify-center gap-1.5 min-h-11 rounded-[10px] border border-faint bg-paper text-sm font-semibold"
+          className="self-start inline-flex items-center gap-1.5 text-[13px] font-semibold text-clay"
         >
-          + Add winning copy
+          <PlusIcon /> {winningCopy.length === 0 ? "Add winning copy" : "Add another"}
         </button>
       )}
     </div>
@@ -207,21 +214,21 @@ function SalesCallCard({
   }
 
   return (
-    <div className="flex flex-col gap-2.5 p-3.5 border border-line rounded-xl">
+    <div className="flex flex-col gap-2.5 p-3.5 rounded-2xl border border-line">
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold">Why people buy</div>
-        <span className="font-mono text-xs text-muted">{callThemes.length} themes</span>
+        <span className="font-mono text-xs text-faint">{callThemes.length} themes</span>
       </div>
-      <div className="flex flex-col gap-2">
-        {callThemes.map((theme, i) => (
-          <div key={i} className="text-[13px] font-semibold">
-            {theme}
-          </div>
-        ))}
-        {callThemes.length === 0 && (
-          <div className="text-xs text-faint">No sales calls added yet.</div>
-        )}
-      </div>
+
+      {callThemes.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {callThemes.map((theme, i) => (
+            <div key={i} className="text-[13px] font-semibold">
+              {theme}
+            </div>
+          ))}
+        </div>
+      )}
 
       {open ? (
         <div className="flex flex-col gap-2">
@@ -230,14 +237,15 @@ function SalesCallCard({
             onChange={(e) => setValue(e.target.value)}
             placeholder="Paste the sales call transcript. We'll pull out the buyer's real reasons automatically."
             rows={5}
-            className="border border-faint rounded-[10px] px-3 py-2 text-sm bg-paper resize-none"
+            autoFocus
+            className="border border-line rounded-[10px] px-3 py-2 text-sm bg-paper resize-none focus:border-clay focus:ring-2 focus:ring-clay/15 outline-none"
           />
           {error && <div className="text-xs text-dangerFg">{error}</div>}
           <div className="flex gap-2">
             <button
               onClick={save}
               disabled={saving || !value.trim()}
-              className="flex-grow min-h-10 rounded-[10px] bg-slate text-white text-sm font-semibold disabled:opacity-50"
+              className="flex-grow min-h-9 rounded-[10px] bg-clay text-white text-sm font-semibold disabled:opacity-50"
             >
               {saving ? "Analyzing..." : "Save"}
             </button>
@@ -247,7 +255,7 @@ function SalesCallCard({
                 setValue("");
                 setError(null);
               }}
-              className="min-h-10 px-3 rounded-[10px] border border-faint bg-paper text-sm font-semibold"
+              className="min-h-9 px-3 rounded-[10px] text-muted text-sm font-semibold"
             >
               Cancel
             </button>
@@ -256,53 +264,63 @@ function SalesCallCard({
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center justify-center gap-1.5 min-h-11 rounded-[10px] border border-faint bg-paper text-sm font-semibold"
+          className="self-start inline-flex items-center gap-1.5 text-[13px] font-semibold text-clay"
         >
-          + Add a sales call
+          <PlusIcon /> {callThemes.length === 0 ? "Add a sales call" : "Add another"}
         </button>
       )}
     </div>
   );
 }
 
-function ReadingLevelSlider({
+/**
+ * A row of mutually-exclusive options shown as a true segmented control
+ * — used for both Reading level and Tone, so the two read as a matched
+ * pair rather than two different widget styles for the same kind of
+ * choice. Replaces a <input type="range"> that used to stand in for
+ * reading level: a slider implies a continuous value, but there are
+ * only ever 4 named levels, so the control was lying about its own
+ * shape. Wraps to a second row on narrow screens instead of shrinking
+ * illegibly.
+ */
+function SegmentedField({
+  label,
+  helper,
+  options,
   value,
   onChange,
 }: {
+  label: string;
+  helper?: string;
+  options: string[];
   value: string;
-  onChange: (v: (typeof READING_LEVELS)[number]) => void;
+  onChange: (v: string) => void;
 }) {
-  const index = Math.max(0, READING_LEVELS.indexOf(value as (typeof READING_LEVELS)[number]));
-
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm font-semibold">Reading level</div>
-      <input
-        type="range"
-        min={0}
-        max={READING_LEVELS.length - 1}
-        step={1}
-        value={index}
-        onChange={(e) => onChange(READING_LEVELS[Number(e.target.value)])}
-        aria-valuetext={READING_LEVELS[index]}
-        className="w-full h-2 rounded-full appearance-none bg-ivory accent-clay cursor-pointer"
-      />
-      <div className="flex justify-between">
-        {READING_LEVELS.map((level, i) => (
-          <button
-            key={level}
-            onClick={() => onChange(level)}
-            className={`text-[11px] font-semibold px-0.5 ${
-              i === index ? "text-slate" : "text-faint font-medium"
-            }`}
-          >
-            {level}
-          </button>
-        ))}
+      <div className="text-sm font-semibold">{label}</div>
+      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={label}>
+        {options.map((option) => {
+          const selected = option === value;
+          return (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onChange(option)}
+              className={`min-h-9 px-3.5 rounded-full text-[13px] font-semibold border transition-colors ${
+                selected
+                  ? "bg-clay text-white border-clay"
+                  : "bg-paper text-muted border-line hover:border-faint"
+              }`}
+            >
+              {option}
+            </button>
+          );
+        })}
       </div>
-      <div className="text-xs text-faint">
-        How simple or sophisticated the actual sentences should read. Applies to every step.
-      </div>
+      {helper && <div className="text-xs text-faint leading-relaxed">{helper}</div>}
     </div>
   );
 }
@@ -323,7 +341,22 @@ function Spinner() {
   );
 }
 
-function Field({
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+/**
+ * One row inside the offer "sheet" — label-over-value, no own border or
+ * background, with the parent's divide-y supplying the only separators.
+ * Replaces four separate bordered boxes (one per field) with one
+ * connected card, the way a native settings list groups related fields
+ * instead of repeating a card chrome for each one.
+ */
+function SheetField({
   label,
   value,
   onChange,
@@ -333,14 +366,14 @@ function Field({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold">{label}</label>
+    <label className="flex flex-col gap-1 px-3.5 py-3 cursor-text focus-within:bg-ivory/60 transition-colors">
+      <span className="text-xs font-semibold text-faint">{label}</span>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-11 border border-faint rounded-[10px] px-3 text-sm bg-paper"
+        className="bg-transparent text-[15px] font-medium text-slate outline-none placeholder:text-faint placeholder:font-normal"
       />
-    </div>
+    </label>
   );
 }

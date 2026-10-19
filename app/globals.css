@@ -12,6 +12,9 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid #1E4A2E;
+  /* Brand violet (clay in tailwind.config.ts) — this was still the old
+     green from before the Cloudflare-style violet/pink rebrand; every
+     other accent in the app moved, this got missed. */
+  outline: 2px solid #7C3AED;
   outline-offset: 2px;
 }
