@@ -187,6 +187,12 @@ export function buildStepCopyPrompt(
   // gets its own, much tighter description regardless of field kind.
   const fieldsBlock = step.fields
     .map((f) => {
+      if (step.channel === "social" && f.key === "caption") {
+        return `- "${f.key}": ${f.label} (an organic social post, not an ad: a scroll-stopping first line, short lines with line breaks, one clear call to action like "link in bio", at most 3 relevant hashtags at the end)`;
+      }
+      if (step.channel === "social" && f.key === "visual") {
+        return `- "${f.key}": ${f.label} (one line describing what to show, e.g. "you at your desk holding a coffee". A suggestion only, never a claim about a real photo)`;
+      }
       if (step.channel === "sms") {
         return `- "${f.key}": ${f.label} (a real text message: 1-2 short sentences, under 300 characters, no subject line feel to it)`;
       }

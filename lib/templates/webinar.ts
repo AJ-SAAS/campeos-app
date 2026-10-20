@@ -12,6 +12,14 @@ const adFields = [
 
 const smsFields = [{ key: "body", label: "Text", kind: "long" as const }];
 
+// An organic post (not a paid ad) for whichever social platforms the user
+// posts on (Instagram, Facebook, TikTok, LinkedIn...). The visual is a
+// suggestion for what to show, never a claim about a real photo.
+const socialFields = [
+  { key: "caption", label: "Caption", kind: "long" as const },
+  { key: "visual", label: "Image or video idea", kind: "short" as const },
+];
+
 // A full-lifecycle webinar campaign: fill the room, get people to show up,
 // then run an 11-day backend sequence that sells the offer. The backend
 // sequence (every step in the consumption / consideration-connection /
@@ -86,6 +94,24 @@ export const webinarTemplate: CampaignTemplate = {
       ],
       persuasionElements: ["Audience: speak to what they already want", "Optimization: headline earns attention"],
       fields: adFields,
+    },
+    {
+      id: "social-teaser",
+      channel: "social",
+      anchor: "event",
+      offsetHours: -103, // ~4 days before, around midday for a 7 PM event
+      title: "Teaser post",
+      phaseId: "registration",
+      purpose:
+        "People who follow you but never open emails still see your posts. This one makes them curious enough about the class to tap the link, without giving the fix away.",
+      angle: "Curiosity teaser: show the problem, hide the fix",
+      goals: [
+        "Name one specific, relatable moment of the problem in the first line",
+        "Hint that there is a simple fix and that the free class shows it",
+        "Point to the link (link in bio, or the link in the post) to register",
+      ],
+      persuasionElements: ["Audience: speak to what they already want", "Optimization: first line earns attention"],
+      fields: socialFields,
     },
     {
       id: "email-invite",
@@ -206,6 +232,24 @@ export const webinarTemplate: CampaignTemplate = {
       fields: shortLong,
     },
     {
+      id: "social-live-today",
+      channel: "social",
+      anchor: "event",
+      offsetHours: -7, // midday on the day of the event
+      title: "Going live tonight",
+      phaseId: "live-event",
+      purpose:
+        "A same-day post reminds followers who registered and catches the ones who meant to but forgot. It needs the real time, and one reason to be there live.",
+      angle: "Day-of announcement with a time anchor",
+      goals: [
+        "Say plainly that it's tonight, with the real time",
+        "Give one reason to show up live instead of waiting for a replay",
+        "Point to the link to join or register",
+      ],
+      persuasionElements: ["Urgency: a real reason to act now"],
+      fields: socialFields,
+    },
+    {
       id: "sms-live-now",
       channel: "sms",
       anchor: "event",
@@ -238,6 +282,24 @@ export const webinarTemplate: CampaignTemplate = {
       ],
       persuasionElements: ["Offer: hand over value immediately", "Audience: what they signed up expecting"],
       fields: shortLong,
+    },
+    {
+      id: "social-replay",
+      channel: "social",
+      anchor: "event",
+      offsetHours: 17, // midday the day after
+      title: "Replay is up",
+      phaseId: "consumption",
+      purpose:
+        "Most people who registered missed it. A post that says the replay is up, and for how long, brings back the ones who live on social more than in their inbox.",
+      angle: "Second-chance framing with a deadline",
+      goals: [
+        "Say the replay is up and how long it stays up",
+        "Tease the single most useful moment in the replay",
+        "Point to where to watch",
+      ],
+      persuasionElements: ["Urgency: a real reason to act now", "Desire: the outcome they want"],
+      fields: socialFields,
     },
     {
       id: "ad-offer-open",
@@ -295,6 +357,24 @@ export const webinarTemplate: CampaignTemplate = {
       fields: shortLong,
     },
     {
+      id: "social-proof",
+      channel: "social",
+      anchor: "event",
+      offsetHours: 65, // midday, day 3 after the event
+      title: "Customer story",
+      phaseId: "consideration-connection",
+      purpose:
+        "Followers trust what happened to someone like them more than what you say about yourself. Tell one real result in a short before-and-after, using the user's own winning copy or placeholders, never an invented customer.",
+      angle: "Before-and-after social proof story",
+      goals: [
+        "Show one person's before and after in plain words",
+        "Use only real details the user gave, otherwise placeholders like [CUSTOMER NAME] and [RESULT]",
+        "End with a soft invite to the offer",
+      ],
+      persuasionElements: ["Proof: social proof stack", "Story: a relatable before-and-after"],
+      fields: socialFields,
+    },
+    {
       id: "email-paradigm-shift",
       channel: "email",
       anchor: "event",
@@ -349,6 +429,24 @@ export const webinarTemplate: CampaignTemplate = {
       ],
       persuasionElements: ["Risk: who it's not for, named explicitly", "Solution: fit and eligibility"],
       fields: shortLong,
+    },
+    {
+      id: "social-last-chance",
+      channel: "social",
+      anchor: "event",
+      offsetHours: 161, // midday on the last full day of the offer
+      title: "Doors close soon",
+      phaseId: "conversion",
+      purpose:
+        "The last push on social, for followers who watched and are still deciding. It should be short and honest about when the offer ends.",
+      angle: "Deadline urgency, said plainly",
+      goals: [
+        "Say exactly when the offer closes",
+        "Remind them of the single biggest thing they get",
+        "Point to the link to join",
+      ],
+      persuasionElements: ["Urgency: a real reason to act now", "Offer: what exactly is included"],
+      fields: socialFields,
     },
     {
       id: "email-faq",

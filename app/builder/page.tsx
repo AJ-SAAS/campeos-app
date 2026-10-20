@@ -8,7 +8,11 @@ import { PlanModal } from "@/components/PlanModal";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { OfferPicker } from "@/components/builder/OfferPicker";
 import { SetupPanel } from "@/components/builder/SetupPanel";
-import { Timeline, UIStep } from "@/components/builder/Timeline";
+import { UIStep } from "@/components/builder/Timeline";
+import { SequenceView, statusOf } from "@/components/builder/SequenceView";
+import { StepPreview } from "@/components/builder/StepPreview";
+import { channelInfo, LogoStack, PlatformLogo } from "@/components/builder/channels";
+import { needsInput } from "@/lib/dashboard";
 import { StepEditor } from "@/components/builder/StepEditor";
 import { AgentLauncher } from "@/components/agent/AgentLauncher";
 import { AgentPanelCampaignStep } from "@/components/agent/AgentPanel";
@@ -22,6 +26,7 @@ import { getSubscription, isActive } from "@/lib/firebase/subscription";
 import {
   createCampaign,
   getCampaignWithSteps,
+  saveCampaignSkips,
   saveStepCopy,
   CampaignStepDoc,
 } from "@/lib/firebase/campaigns";
@@ -128,19 +133,24 @@ function BuilderInner() {
   const [showFirstRun, setShowFirstRun] = useState(isFirst);
   const [planOpen, setPlanOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
+  // Messages and whole channels switched off in the sequence. Saved on
+  // the campaign doc (lib/firebase/campaigns.ts), local until it exists.
+  const [skippedSteps, setSkippedSteps] = useState<Set<string>>(new Set());
+  const [skippedChannels, setSkippedChannels] = useState<Set<string>>(new Set());
+  // The platforms they picked in onboarding, for the real logos.
+  const [userPlatforms, setUserPlatforms] = useState<string[]>([]);
   // Set once the first auto-generate has been kicked off, so a re-render
   // can't start a second one.
   const autoStarted = useRef(false);
 
   useEffect(() => {
-    if (existingId) {
-      setProfileLoading(false);
-      return;
-    }
     if (!user) return;
     getBusinessProfile(user.uid)
       .then((profile) => {
         if (!profile) return;
+        setUserPlatforms(profile.channels ?? []);
+        if (existingId) return;
         setAllowedChannels(templateChannelsFor(profile.channels));
         // Came back to /builder?first=1 after the first campaign already
         // exists: open that one instead of starting a duplicate.
@@ -176,6 +186,8 @@ function BuilderInner() {
         setEventDate(new Date(result.campaign.eventDate));
         setLoadedSteps(result.steps);
         setLoadedTemplateId(result.campaign.templateId);
+        setSkippedSteps(new Set(result.campaign.skippedSteps ?? []));
+        setSkippedChannels(new Set(result.campaign.skippedChannels ?? []));
       })
       .finally(() => setLoadingCampaign(false));
   }, [existingId]);
@@ -331,6 +343,30 @@ function BuilderInner() {
   const selected = steps.find((s) => s.templateStepId === selectedId);
   const selectedIndex = steps.findIndex((s) => s.templateStepId === selectedId);
 
+  function isOn(s: { templateStepId: string; channel: string }) {
+    return !skippedSteps.has(s.templateStepId) && !skippedChannels.has(s.channel);
+  }
+
+  function persistSkips(steps: Set<string>, channels: Set<string>) {
+    if (campaignId) saveCampaignSkips(campaignId, Array.from(steps), Array.from(channels)).catch(() => {});
+  }
+
+  function toggleStep(id: string) {
+    const next = new Set(skippedSteps);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSkippedSteps(next);
+    persistSkips(next, skippedChannels);
+  }
+
+  function toggleChannel(ch: string) {
+    const next = new Set(skippedChannels);
+    if (next.has(ch)) next.delete(ch);
+    else next.add(ch);
+    setSkippedChannels(next);
+    persistSkips(skippedSteps, next);
+  }
+
   async function generateCampaign() {
     if (!user) {
       setError("Sign in first. Campaigns are saved to your account.");
@@ -342,13 +378,19 @@ function BuilderInner() {
       // No plan: write just the first FREE_STEPS steps (by send time) so
       // they see their own launch. The server enforces this and says no
       // once the free steps are used (see lib/access.ts).
+      // Only messages that are switched on and not written yet, so
+      // writing again never overwrites copy you've already edited.
       const sub = await getSubscription(user.uid);
       const paid = isActive(sub);
-      const stepsToWrite = paid
-        ? scheduledSteps
-        : [...scheduledSteps]
-            .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
-            .slice(0, FREE_STEPS);
+      const todo = [...scheduledSteps]
+        .filter((s) => isOn(s) && !copyByStep[s.templateStepId])
+        .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+      const stepsToWrite = paid ? todo : todo.slice(0, Math.max(0, FREE_STEPS - Object.keys(copyByStep).length));
+      if (stepsToWrite.length === 0) {
+        if (!paid && todo.length > 0) setPlanOpen(true);
+        setGenerating(false);
+        return;
+      }
 
       // Same daily cap the agent's build path already enforces (see
       // lib/firebase/usage.ts) — this was the one way to burn through
@@ -430,6 +472,9 @@ function BuilderInner() {
         );
         setCampaignId(newId);
         if (isFirst) saveFirstCampaignId(user.uid, newId).catch(() => {});
+        if (skippedSteps.size || skippedChannels.size) {
+          saveCampaignSkips(newId, Array.from(skippedSteps), Array.from(skippedChannels)).catch(() => {});
+        }
         // Bake the new campaign into the URL so browser back/forward and
         // refresh don't lose it — without this, forward-navigating here
         // reloads a blank /builder with nothing to load (the page only
@@ -532,29 +577,27 @@ function BuilderInner() {
   const lockedIds = useMemo(() => {
     if (subLoading || active) return undefined;
     const written = new Set(Object.keys(copyByStep));
-    const ids = scheduledSteps.map((s) => s.templateStepId).filter((id) => !written.has(id));
-    // Before anything's written, the first FREE_STEPS by time are the
-    // free ones, so don't lock those.
-    if (written.size === 0) {
-      const free = new Set(
-        [...scheduledSteps]
-          .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
-          .slice(0, FREE_STEPS)
-          .map((s) => s.templateStepId)
-      );
-      return new Set(ids.filter((id) => !free.has(id)));
-    }
-    return new Set(ids);
-  }, [subLoading, active, copyByStep, scheduledSteps]);
+    const unwritten = [...scheduledSteps]
+      .filter((s) => !written.has(s.templateStepId) && isOn(s))
+      .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+    // Whatever's left of the free steps isn't locked yet.
+    const freeLeft = Math.max(0, FREE_STEPS - written.size);
+    return new Set(unwritten.slice(freeLeft).map((s) => s.templateStepId));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subLoading, active, copyByStep, scheduledSteps, skippedSteps, skippedChannels]);
 
-  const writtenCount = scheduledSteps.filter((s) => copyByStep[s.templateStepId]).length;
+  const onSteps = scheduledSteps.filter((s) => isOn(s));
+  const writtenCount = onSteps.filter((s) => copyByStep[s.templateStepId]).length;
+  const readyCount = onSteps.filter((s) => copyByStep[s.templateStepId] && !needsInput(copyByStep[s.templateStepId])).length;
+  const unwrittenCount = onSteps.filter((s) => !copyByStep[s.templateStepId]).length;
+  const writableCount = unwrittenCount - (lockedIds ? Array.from(lockedIds).filter((id) => onSteps.some((s) => s.templateStepId === id)).length : 0);
   const channelsInUse = (Object.keys(CHANNEL_LABELS) as Channel[]).filter((c) =>
     scheduledSteps.some((s) => s.channel === c)
   );
 
   async function copyCampaign() {
     const text = scheduledSteps
-      .filter((s) => copyByStep[s.templateStepId])
+      .filter((s) => copyByStep[s.templateStepId] && isOn(s))
       .map((s) => {
         const when = s.scheduledAt.toLocaleString(undefined, {
           weekday: "short",
@@ -617,226 +660,324 @@ function BuilderInner() {
     );
   }
 
+  const channelKeys = Array.from(new Set(scheduledSteps.map((s) => s.channel)));
+  const selectedStatus = selected
+    ? statusOf(selected, isOn(selected), !!lockedIds?.has(selected.templateStepId), generating)
+    : "Not written";
+  const fromName = user?.displayName ?? "You";
+
+  function select(id: string) {
+    setSelectedId(id);
+    // Phones don't have room for the preview column: open the editor.
+    if (typeof window !== "undefined" && window.innerWidth < 1024) setStepModalOpen(true);
+  }
+
   return (
     <div className="h-screen flex flex-col bg-paper text-slate font-body">
       {!subLoading && !active && <SubscribeBanner />}
-      <div className="flex-grow min-h-0 flex bg-gradient-to-br from-violet-50 via-white to-pink-50">
-      <Sidebar active={null} inBuilder />
+      <div className="flex-grow min-h-0 flex">
+        <Sidebar active={null} inBuilder />
 
-      <div className="flex-grow min-w-0 flex flex-col">
-        <header className="shrink-0 bg-paper border-b border-line flex flex-col gap-3 px-4 py-3 sm:px-6 sm:h-16 sm:flex-row sm:items-center sm:gap-4 sm:py-0">
-          <div className="flex items-center gap-3 min-w-0">
-            {/* Always visible, not just on mobile — the campaigns gallery
-                (/campaigns) is where every campaign card lives, so there
-                needs to be a way back to it from inside the editor at
-                any screen size, not just via the IconRail's icon. */}
+        <div className="flex-grow min-w-0 flex flex-col min-h-0">
+          {/* Header: what this campaign is, in one line, plus progress */}
+          <header className="shrink-0 flex flex-wrap items-center gap-x-4 gap-y-3 px-4 sm:px-7 py-4 border-b border-[#F0F0F0]">
             <Link
-              href="/campaigns"
-              aria-label="Back to campaigns"
-              className="shrink-0 flex items-center gap-1.5 h-8 pl-2 pr-2.5 sm:pr-3 rounded-lg border border-line text-muted text-[13px] font-semibold hover:bg-ivory hover:text-slate"
+              href="/dashboard"
+              aria-label="Back to home"
+              className="shrink-0 w-10 h-10 rounded-xl border border-[#ECEAF0] flex items-center justify-center hover:bg-[#FAFAFA]"
             >
               <BackIcon />
-              <span className="hidden sm:inline">Campaigns</span>
             </Link>
-            <div className="font-display text-base sm:text-lg font-semibold tracking-tight truncate">
-              {offer.name || "Untitled campaign"}
-            </div>
-            <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full bg-ivory text-muted text-xs font-semibold">
-              {campaignId ? "Saved" : "Draft"}
-            </span>
-          </div>
-          {!campaignId && (
-            <label className="shrink-0 flex items-center gap-2 text-[13px] text-muted">
-              <span className="font-semibold">Goes live</span>
-              <input
-                type="date"
-                value={toDateInput(eventDate)}
-                min={toDateInput(new Date())}
-                onChange={(e) => {
-                  const [y, m, d] = e.target.value.split("-").map(Number);
-                  if (!y || !m || !d) return;
-                  const next = new Date(eventDate);
-                  next.setFullYear(y, m - 1, d);
-                  setEventDate(next);
-                }}
-                className="h-8 px-2 rounded-lg border border-line bg-paper text-slate text-[13px]"
-              />
-            </label>
-          )}
-          {error && <span className="text-xs text-dangerFg sm:ml-0">{error}</span>}
-          <div className="hidden sm:flex flex-grow" />
-          <div className="hidden sm:flex items-center gap-2 shrink-0">
-            <button
-              onClick={copyCampaign}
-              disabled={writtenCount === 0}
-              className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold disabled:opacity-50"
-            >
-              {copied ? "Copied" : "Copy campaign"}
-            </button>
-          </div>
-        </header>
-
-        {showFirstRun && (
-          <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 sm:px-6 py-2.5 bg-agentWash border-b border-line text-sm">
-            {generating ? (
-              <span className="font-semibold text-slate">
-                Writing your first campaign. Watch the steps fill in on the right.
-              </span>
-            ) : writtenCount > 0 ? (
-              <span className="font-semibold text-slate">
-                {lockedIds && lockedIds.size > 0
-                  ? `Your first ${writtenCount} steps are written.`
-                  : "Your first campaign is written."}
-              </span>
-            ) : (
-              <span className="font-semibold text-slate">Your first campaign is set up from your answers.</span>
-            )}
-            <span className="text-muted">
-              {channelsInUse.map((c) => CHANNEL_LABELS[c]).join(", ")}
-              {lockedIds && lockedIds.size > 0 && !generating && writtenCount > 0
-                ? `. ${lockedIds.size} more are ready to write when you pick a plan.`
-                : "."}
-            </span>
-            <span className="ml-auto flex items-center gap-2">
-              {lockedIds && lockedIds.size > 0 && writtenCount > 0 && !generating && (
-                <button
-                  onClick={() => setPlanOpen(true)}
-                  className="h-8 px-3 rounded-lg bg-slate text-white text-xs font-bold"
+            <div className="flex-[1_1_320px] min-w-0">
+              <div className="flex items-center gap-2.5">
+                <h1 className="font-serif text-[26px] sm:text-[30px] font-medium tracking-tight leading-tight truncate">
+                  {offer.name || "Untitled campaign"}
+                </h1>
+                <span
+                  className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    !campaignId ? "bg-[#F2F1F5] text-muted" : writtenCount > 0 ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#F2F1F5] text-muted"
+                  }`}
                 >
-                  Unlock my launch
+                  {!campaignId ? "Draft" : writtenCount > 0 ? "Saved" : "Draft"}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted mt-1">
+                <span>{activeTemplate.name}</span>
+                <span>·</span>
+                {campaignId ? (
+                  <span>
+                    Goes live{" "}
+                    <b className="text-slate font-semibold">
+                      {eventDate.toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+                    </b>
+                  </span>
+                ) : (
+                  <label className="inline-flex items-center gap-1.5">
+                    Goes live
+                    <input
+                      type="date"
+                      value={toDateInput(eventDate)}
+                      min={toDateInput(new Date())}
+                      onChange={(e) => {
+                        const [y, m, d] = e.target.value.split("-").map(Number);
+                        if (!y || !m || !d) return;
+                        const next = new Date(eventDate);
+                        next.setFullYear(y, m - 1, d);
+                        setEventDate(next);
+                      }}
+                      className="h-7 px-1.5 rounded-lg border border-[#E3E1E8] bg-paper text-slate text-[13px]"
+                    />
+                  </label>
+                )}
+                {offer.price && (
+                  <>
+                    <span>·</span>
+                    <span>{offer.price}</span>
+                  </>
+                )}
+                <span>·</span>
+                <span>
+                  {offer.readingLevel ?? "5th grade"}, {offer.tone || "Friendly"}
+                </span>
+                <span>·</span>
+                <button onClick={() => setSetupOpen(true)} className="font-semibold text-[#5B21B6] hover:underline">
+                  Edit setup
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {onSteps.length > 0 && (
+                <div className="text-right">
+                  <div className="text-[13px] font-semibold">
+                    {readyCount} of {onSteps.length} ready
+                  </div>
+                  <div className="w-[140px] h-[5px] rounded-full bg-[#F0EEF4] mt-1.5 overflow-hidden">
+                    <div className="h-full rounded-full bg-slate transition-[width] duration-500" style={{ width: `${onSteps.length ? Math.round((readyCount / onSteps.length) * 100) : 0}%` }} />
+                  </div>
+                </div>
+              )}
+              {unwrittenCount > 0 && writableCount > 0 && (
+                <button
+                  onClick={generateCampaign}
+                  disabled={generating}
+                  className="h-11 px-4 rounded-xl text-white text-[15px] font-bold disabled:opacity-60 inline-flex items-center gap-2"
+                  style={{ background: "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)" }}
+                >
+                  {generating ? "Writing..." : `Write ${writableCount} ${writableCount === 1 ? "message" : "messages"}`}
                 </button>
               )}
-              {!generating && writtenCount > 0 && (
-                <Link href="/dashboard" className="h-8 px-3 inline-flex items-center rounded-lg border border-line bg-paper text-xs font-semibold">
-                  Go to dashboard
-                </Link>
+              {unwrittenCount > 0 && writableCount === 0 && lockedIds && lockedIds.size > 0 && (
+                <button
+                  onClick={() => setPlanOpen(true)}
+                  className="h-11 px-4 rounded-xl text-white text-[15px] font-bold"
+                  style={{ background: "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)" }}
+                >
+                  Unlock {unwrittenCount} more
+                </button>
               )}
               <button
-                onClick={() => setShowFirstRun(false)}
-                aria-label="Hide this"
-                className="text-muted text-xs font-semibold hover:text-slate px-1"
+                onClick={copyCampaign}
+                disabled={writtenCount === 0}
+                className="h-11 px-4 rounded-xl bg-slate text-white text-[15px] font-semibold disabled:opacity-40 inline-flex items-center gap-2"
               >
-                Hide
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="9" y="9" width="11" height="11" rx="2" />
+                  <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                </svg>
+                {copied ? "Copied" : "Copy all"}
               </button>
-            </span>
+            </div>
+          </header>
+
+          {error && (
+            <div className="shrink-0 px-4 sm:px-7 py-2.5 bg-[#FFF7ED] border-b border-[#FED7AA] text-sm text-[#7C2D12] flex items-center gap-3">
+              <span className="flex-grow">{error}</span>
+              <button onClick={() => setError(null)} className="text-xs font-semibold">
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {showFirstRun && (generating || writtenCount > 0) && (
+            <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 sm:px-7 py-2.5 bg-agentWash border-b border-[#F0F0F0] text-sm">
+              <span className="font-semibold">
+                {generating
+                  ? "Writing your first campaign. Watch the messages fill in."
+                  : lockedIds && lockedIds.size > 0
+                    ? `Your first ${writtenCount} messages are written.`
+                    : "Your first campaign is written."}
+              </span>
+              <span className="ml-auto flex items-center gap-2">
+                {!generating && lockedIds && lockedIds.size > 0 && (
+                  <button onClick={() => setPlanOpen(true)} className="h-8 px-3 rounded-lg bg-slate text-white text-xs font-bold">
+                    Unlock my launch
+                  </button>
+                )}
+                {!generating && (
+                  <Link href="/dashboard" className="h-8 px-3 inline-flex items-center rounded-lg border border-[#E3E1E8] bg-paper text-xs font-semibold">
+                    Go to dashboard
+                  </Link>
+                )}
+                <button onClick={() => setShowFirstRun(false)} className="text-muted text-xs font-semibold px-1">
+                  Hide
+                </button>
+              </span>
+            </div>
+          )}
+
+          {/* Channels: real logos, tap one to leave all its messages out */}
+          <div className="shrink-0 flex flex-wrap items-center gap-2 px-4 sm:px-7 py-3 border-b border-[#F0F0F0] bg-[#FCFCFD]">
+            <span className="text-[13px] text-muted mr-1">Going out on</span>
+            {channelKeys.map((ch) => {
+              const info = channelInfo(ch, userPlatforms);
+              const off = skippedChannels.has(ch);
+              const count = scheduledSteps.filter((s) => s.channel === ch).length;
+              return (
+                <button
+                  key={ch}
+                  onClick={() => toggleChannel(ch)}
+                  aria-pressed={!off}
+                  title={off ? `Put ${info.short} back` : `Leave ${info.short} out`}
+                  className={`inline-flex items-center gap-2 h-[38px] pl-2 pr-3 rounded-full text-sm font-semibold bg-paper ${
+                    off ? "border border-dashed border-[#D4D1DB] text-faint" : "border-[1.5px] border-slate text-slate"
+                  }`}
+                >
+                  {info.platforms.length > 1 ? (
+                    <LogoStack platforms={info.platforms.slice(0, 3)} size={14} />
+                  ) : (
+                    <PlatformLogo platform={info.platforms[0]} size={20} muted={off} />
+                  )}
+                  {info.short}
+                  <span className="font-mono text-xs text-muted font-medium">{count}</span>
+                </button>
+              );
+            })}
+            <span className="flex-grow" />
+            <span className="hidden sm:inline text-[13px] text-muted">Tap a channel to leave it out</span>
+          </div>
+
+          <div className="flex-grow min-h-0 flex overflow-y-auto lg:overflow-hidden">
+            <section aria-label="Sequence" className="flex-[1.15_1_520px] min-w-0 px-4 sm:px-7 py-6 pb-28 lg:overflow-y-auto">
+              <SequenceView
+                steps={steps}
+                phases={activeTemplate.phases}
+                eventDate={eventDate}
+                selectedId={selectedId}
+                onSelect={(id) => (lockedIds?.has(id) && !copyByStep[id] ? setPlanOpen(true) : select(id))}
+                isOn={isOn}
+                onToggleStep={toggleStep}
+                lockedIds={lockedIds}
+                generating={generating}
+                userPlatforms={userPlatforms}
+              />
+            </section>
+            <section
+              aria-label="Preview"
+              className="hidden lg:block flex-[1_1_400px] min-w-0 bg-[#F8F8F8] border-l border-[#F0F0F0] px-7 py-6 overflow-y-auto"
+            >
+              <StepPreview
+                step={selected}
+                status={selectedStatus}
+                fromName={fromName}
+                userPlatforms={userPlatforms}
+                pending={variationPending}
+                onAsk={requestVariation}
+                onEditByHand={() => setStepModalOpen(true)}
+                onUnlock={() => setPlanOpen(true)}
+                onWrite={generateCampaign}
+                canWrite={writableCount > 0 && !generating}
+              />
+            </section>
+          </div>
+
+          <StepEditor
+            step={selected}
+            stepNumber={selectedIndex + 1}
+            totalSteps={steps.length}
+            onRequestVariation={requestVariation}
+            variationPending={variationPending}
+            isOpen={stepModalOpen}
+            onClose={() => {
+              if (selected) flushFieldSave(selected.templateStepId);
+              setStepModalOpen(false);
+            }}
+            onFieldChange={(fieldKey, value) => {
+              if (!selected) return;
+              handleFieldEdit(selected.templateStepId, fieldKey, value);
+            }}
+            saveStatus={fieldSaveStatus}
+          />
+        </div>
+
+        {/* Edit setup: the old left panel, now a drawer you open when needed */}
+        {setupOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-[rgba(23,19,31,0.35)] animate-step-in" onClick={() => setSetupOpen(false)}>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Campaign setup"
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-[400px] h-full bg-paper shadow-[0_0_60px_-10px_rgba(23,19,31,.35)] flex flex-col"
+            >
+              <button
+                onClick={() => setSetupOpen(false)}
+                aria-label="Close setup"
+                className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full border border-[#ECEAF0] bg-paper flex items-center justify-center"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+              <div className="flex-grow min-h-0 flex">
+                <SetupPanel
+                  offer={offer}
+                  onOfferChange={setOffer}
+                  winningCopy={winningCopy}
+                  callThemes={callThemes}
+                  onAddWinningCopy={handleAddWinningCopy}
+                  onAddSalesCall={handleAddSalesCall}
+                  onGenerate={() => {
+                    setSetupOpen(false);
+                    generateCampaign();
+                  }}
+                  generating={generating}
+                />
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Mobile-only: pick which single panel is showing. The desktop
-            2-column layout below renders both at once (lg:flex), so this
-            row — and the panel visibility it controls — only matters
-            below that breakpoint. The step editor isn't a tab here; it
-            pops open over whichever panel is showing (see StepEditor
-            below, rendered outside this row). */}
-        <div className="lg:hidden shrink-0 flex items-center gap-1.5 px-4 py-2 border-b border-line overflow-x-auto">
-          {(
-            [
-              ["setup", "Setup"],
-              ["timeline", "Timeline"],
-            ] as [MobilePanel, string][]
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setMobilePanel(key)}
-              aria-pressed={mobilePanel === key}
-              className={`shrink-0 h-8 px-3.5 rounded-full text-[13px] font-semibold ${
-                mobilePanel === key ? "bg-slate text-white" : "bg-ivory text-muted"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <PlanModal open={planOpen} onClose={() => setPlanOpen(false)} />
 
-        <div className="flex-grow min-h-0 flex flex-col lg:flex-row gap-3 p-3 lg:gap-4 lg:p-4 overflow-y-auto lg:overflow-hidden">
-          <div className={`${mobilePanel === "setup" ? "flex" : "hidden"} lg:flex min-h-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>
-            <SetupPanel
-              offer={offer}
-              onOfferChange={setOffer}
-              winningCopy={winningCopy}
-              callThemes={callThemes}
-              onAddWinningCopy={handleAddWinningCopy}
-              onAddSalesCall={handleAddSalesCall}
-              onGenerate={generateCampaign}
-              generating={generating}
-            />
-          </div>
-          <div className={`${mobilePanel === "timeline" ? "flex" : "hidden"} lg:flex min-h-0 flex-1 min-w-0 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(124,58,237,0.06),0_12px_32px_-16px_rgba(124,58,237,0.18)]`}>
-            <Timeline
-              steps={steps}
-              selectedId={selectedId}
-              onSelect={(id) => {
-                setSelectedId(id);
-                setStepModalOpen(true);
-              }}
-              eventDate={eventDate}
-              phases={activeTemplate.phases}
-              generating={generating}
-              lockedIds={lockedIds}
-              onLockedClick={() => setPlanOpen(true)}
-            />
-          </div>
-        </div>
-
-        <StepEditor
-          step={selected}
-          stepNumber={selectedIndex + 1}
-          totalSteps={steps.length}
-          onRequestVariation={requestVariation}
-          variationPending={variationPending}
-          isOpen={stepModalOpen}
-          onClose={() => {
-            // Flush rather than wait for the debounce timer — closing
-            // the panel is the "I'm done" signal, same as closing a
-            // Google Doc, so the last second of typing shouldn't be
-            // sitting in a timer that the panel being gone never lets
-            // fire.
-            if (selected) flushFieldSave(selected.templateStepId);
-            setStepModalOpen(false);
-          }}
-          onFieldChange={(fieldKey, value) => {
-            if (!selected) return;
-            handleFieldEdit(selected.templateStepId, fieldKey, value);
-          }}
-          saveStatus={fieldSaveStatus}
+        <AgentLauncher
+          campaign={
+            campaignId
+              ? {
+                  campaignId,
+                  offer: { ...offer, fromName: user?.displayName ?? undefined },
+                  steps: steps.map(
+                    (st): AgentPanelCampaignStep => ({
+                      templateStepId: st.templateStepId,
+                      channel: st.channel,
+                      title: st.title,
+                      purpose: st.purpose,
+                      angle: st.angle,
+                      goals: st.goals,
+                      persuasionElements: st.persuasionElements,
+                      phaseName: st.phaseName,
+                      phaseObjective: st.phaseObjective,
+                      scheduledAt: formatForPrompt(st.scheduledAt),
+                      eventAt: formatForPrompt(eventDate),
+                      fields: st.fields,
+                      copy: st.copy ?? null,
+                    })
+                  ),
+                  onStepUpdated: (templateStepId, copy) =>
+                    setCopyByStep((prev) => ({ ...prev, [templateStepId]: copy })),
+                }
+              : undefined
+          }
         />
-      </div>
-
-      <PlanModal open={planOpen} onClose={() => setPlanOpen(false)} />
-
-      <AgentLauncher
-        // Only wired up for edit_step once this draft is actually saved —
-        // a brand-new unsaved campaign has no campaignId to write edits
-        // to yet. The agent can still build an unrelated new campaign
-        // from here either way (create_campaign doesn't need this).
-        campaign={
-          campaignId
-            ? {
-                campaignId,
-                offer: { ...offer, fromName: user?.displayName ?? undefined },
-                steps: steps.map(
-                  (s): AgentPanelCampaignStep => ({
-                    templateStepId: s.templateStepId,
-                    channel: s.channel,
-                    title: s.title,
-                    purpose: s.purpose,
-                    angle: s.angle,
-                    goals: s.goals,
-                    persuasionElements: s.persuasionElements,
-                    phaseName: s.phaseName,
-                    phaseObjective: s.phaseObjective,
-                    scheduledAt: formatForPrompt(s.scheduledAt),
-                    eventAt: formatForPrompt(eventDate),
-                    fields: s.fields,
-                    copy: s.copy ?? null,
-                  })
-                ),
-                onStepUpdated: (templateStepId, copy) =>
-                  setCopyByStep((prev) => ({ ...prev, [templateStepId]: copy })),
-              }
-            : undefined
-        }
-      />
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import {
+  updateDoc,
   addDoc,
   collection,
   deleteDoc,
@@ -24,6 +25,10 @@ export interface Campaign {
   offer: OfferContext;
   eventDate: string; // ISO string
   createdAt?: Timestamp;
+  /** Messages switched off in the builder (templateStepIds). */
+  skippedSteps?: string[];
+  /** Whole channels switched off in the builder ("email", "sms", "ad", "social"). */
+  skippedChannels?: string[];
 }
 
 export interface CampaignStepDoc {
@@ -87,6 +92,15 @@ export async function saveStepCopy(
     { copy },
     { merge: true }
   );
+}
+
+/** Saves which messages and channels are switched off for a campaign. */
+export async function saveCampaignSkips(
+  campaignId: string,
+  skippedSteps: string[],
+  skippedChannels: string[]
+): Promise<void> {
+  await updateDoc(doc(db, "campaigns", campaignId), { skippedSteps, skippedChannels });
 }
 
 /** Lists campaigns owned by this user, most recently created first. */

@@ -64,7 +64,7 @@ export function SetupPanel({
           <div className="text-xs font-semibold text-faint">Campaign type</div>
           <div className="font-display text-[15px] font-semibold">Webinar launch</div>
           <div className="text-xs text-muted leading-relaxed">
-            Registration through an 11-day backend sequence. 22 steps across ads, email, and texts.
+            Registration through an 11-day backend sequence: emails, texts, ads and social posts.
           </div>
         </div>
       </div>
