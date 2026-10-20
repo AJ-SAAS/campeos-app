@@ -280,18 +280,21 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
   return (
     <section
       aria-label="Agent"
-      className="flex flex-col min-h-0 bg-paper border border-line rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(19,23,26,0.04),0_20px_44px_-24px_rgba(19,23,26,0.25)]"
+      id="agent"
+      className="flex flex-col min-h-0 bg-paper border border-[#ECEAF0] rounded-[22px] overflow-hidden"
     >
-      <div className="shrink-0 bg-gradient-to-r from-clay to-pink flex items-center gap-2.5 px-5 py-4">
-        <AgentIcon />
-        <span className="font-display text-base font-semibold text-white">Agent</span>
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[rgba(255,255,255,0.16)] text-lime text-[11px] font-semibold">
+      <div className="shrink-0 flex items-center gap-2.5 px-5 py-4 border-b border-[#F0F0F0]">
+        <span className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center" style={{ background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)" }}>
+          <AgentIcon />
+        </span>
+        <span className="flex-grow text-base font-semibold">Agent</span>
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#15803D]">
           <span className="w-1.5 h-1.5 rounded-full bg-lime" />
           Online
         </span>
       </div>
 
-      <div ref={scrollRef} className="flex-grow min-h-[240px] sm:min-h-[260px] max-h-[460px] overflow-y-auto flex flex-col gap-3.5 px-4 sm:px-5 py-5 bg-ivory">
+      <div ref={scrollRef} className="flex-grow min-h-[180px] max-h-[380px] overflow-y-auto flex flex-col gap-3 px-4 sm:px-5 py-5 bg-[#FAFAFA]">
         {messages.length === 0 && <div className="text-sm text-faint">{emptyStateText}</div>}
         {messages.map((m, i) =>
           m.role === "user" ? (
@@ -302,10 +305,10 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
             </div>
           ) : (
             <div key={i} className="flex gap-2.5 items-start max-w-[90%] sm:max-w-[440px]">
-              <span className="w-[26px] h-[26px] rounded-full bg-clay flex items-center justify-center shrink-0 mt-0.5">
+              <span className="w-[26px] h-[26px] rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)" }}>
                 <AgentIcon small />
               </span>
-              <div className="bg-paper border border-line rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-line">
+              <div className="bg-paper border border-[#ECEAF0] rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-line">
                 {m.content}
               </div>
             </div>
@@ -313,7 +316,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
         )}
         {sending && !buildTrace && (
           <div className="flex gap-2.5 items-start">
-            <span className="w-[26px] h-[26px] rounded-full bg-clay flex items-center justify-center shrink-0 mt-0.5">
+            <span className="w-[26px] h-[26px] rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)" }}>
               <AgentIcon small />
             </span>
             <div className="bg-paper border border-line rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono">
@@ -323,7 +326,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
         )}
         {buildTrace && (
           <div className="flex gap-2.5 items-start">
-            <span className="w-[26px] h-[26px] rounded-full bg-clay flex items-center justify-center shrink-0 mt-0.5">
+            <span className="w-[26px] h-[26px] rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)" }}>
               <AgentIcon small />
             </span>
             <div className="bg-paper border border-line rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono flex flex-col gap-1">
@@ -344,7 +347,28 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
 
       {error && <div className="px-5 pt-2 text-xs text-dangerFg">{error}</div>}
 
-      <div className="shrink-0 flex items-center gap-2 px-4 sm:px-5 py-4 border-t border-line">
+      {!sending && !buildTrace && (
+        <div className="shrink-0 px-4 sm:px-5 pt-3.5">
+          <div className="font-mono text-[11px] uppercase tracking-wider text-muted">Try asking</div>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {(campaign
+              ? ["Make the subject lines shorter", "Add more urgency to the last email", "Give me 3 new ad hooks"]
+              : ["Build a webinar launch for next Thursday", "Write just the first email", "What do you know about my offer?"]
+            ).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setInput(t)}
+                className="min-h-[34px] px-3 rounded-full border border-[#ECEAF0] bg-paper text-[13px] hover:border-[#CDB8F5]"
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="shrink-0 flex items-center gap-2 px-4 sm:px-5 pt-3 pb-4">
         <input
           type="text"
           value={input}
@@ -359,13 +383,13 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
             campaign ? "Ask the agent to change something..." : "Tell the agent what to build or change..."
           }
           disabled={sending || !!buildTrace}
-          className="flex-grow min-w-0 h-[46px] border-[1.5px] border-clay rounded-xl px-3.5 text-[13.5px] font-body text-slate bg-paper disabled:opacity-60"
+          className="flex-grow min-w-0 h-[46px] border border-[#D4D1DB] rounded-xl px-3.5 text-[14px] font-body text-slate bg-paper focus:outline-none focus:border-[#9B1FD6] focus:shadow-[0_0_0_4px_rgba(155,31,214,.12)] disabled:opacity-60"
         />
         <button
           onClick={send}
           disabled={sending || !!buildTrace || !input.trim()}
           aria-label="Send"
-          className="shrink-0 w-10 h-10 rounded-[11px] bg-gradient-to-br from-clay to-pink text-white flex items-center justify-center disabled:opacity-50"
+          className="shrink-0 w-[46px] h-[46px] rounded-xl bg-slate text-white flex items-center justify-center disabled:opacity-40"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 19V5M5 12l7-7 7 7" />

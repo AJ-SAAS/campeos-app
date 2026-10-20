@@ -10,17 +10,33 @@ import './landing.css';
 export default class LandingPage extends React.Component {
   componentDidMount() {
     this.setState({ tab: 0, word: 0, step: 0, faq: -1, seen: {}, pct: 0, scrolled: false });
-    this.startTabs();
-    this.tickTimer = setInterval(() => this.setState((st) => ({ tick: (((st && st.tick) || 0) + 1) })), 700);
+    // Each state update redraws the whole page, so the looping demos only
+    // run while their section is on screen and the tab is visible:
+    // "tick" drives the feature cards, "word" the hero's rotating word.
+    this.live = { tick: false, word: true };
+    this.reduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const canRun = (k) => this.live[k] && !document.hidden && !this.reduced;
+    this.tickTimer = setInterval(() => { if (canRun('tick')) this.setState((st) => ({ tick: (((st && st.tick) || 0) + 1) })); }, 700);
     this.tries = 0;
     this.setupReveal();
+    this.setupLive();
     this.onScroll = () => {
       const on = (window.scrollY || document.documentElement.scrollTop || 0) > 8;
       if (on !== !!(this.state && this.state.scrolled)) this.setState({ scrolled: on });
     };
     window.addEventListener('scroll', this.onScroll, { passive: true });
-    this.wordTimer = setInterval(() => this.setState((s) => ({ word: (((s && s.word) || 0) + 1) % 6 })), 2400);
-    this.stepTimer = setInterval(() => this.setState((s) => ({ step: (((s && s.step) || 0) + 1) % 4 })), 1900);
+    this.wordTimer = setInterval(() => { if (canRun('word')) this.setState((s) => ({ word: (((s && s.word) || 0) + 1) % 6 })); }, 2400);
+    // Reduced motion: show every feature demo in its finished state, once.
+    if (this.reduced) this.setState({ tick: 17 });
+  }
+  setupLive() {
+    if (typeof IntersectionObserver === 'undefined') { this.live = { tick: true, word: true }; return; }
+    const els = document.querySelectorAll('[data-live]');
+    if (!els.length) { if ((this.liveTries = (this.liveTries || 0) + 1) < 25) this.liveTimer = setTimeout(() => this.setupLive(), 150); return; }
+    this.liveIo = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { this.live[e.target.getAttribute('data-live')] = e.isIntersecting; });
+    }, { threshold: 0 });
+    els.forEach((el) => this.liveIo.observe(el));
   }
   componentWillUnmount() {
     clearInterval(this.tabTimer);
@@ -29,7 +45,9 @@ export default class LandingPage extends React.Component {
     clearInterval(this.countTimer);
     clearInterval(this.tickTimer);
     clearTimeout(this.setupTimer);
+    clearTimeout(this.liveTimer);
     if (this.io) this.io.disconnect();
+    if (this.liveIo) this.liveIo.disconnect();
     window.removeEventListener('scroll', this.onScroll);
   }
   setupReveal() {
@@ -47,7 +65,7 @@ export default class LandingPage extends React.Component {
           this.mark(e.target.getAttribute('data-reveal'));
         }
       });
-    }, { threshold: 0.15, rootMargin: '0px 0px -6% 0px' });
+    }, { threshold: 0, rootMargin: '0px 0px -8% 0px' });
     els.forEach((el) => this.io.observe(el));
   }
   mark(k) {
@@ -170,8 +188,8 @@ export default class LandingPage extends React.Component {
 <div style={{ fontFamily: 'Inter, sans-serif', color: '#17131F', background: '#FFFFFF', minHeight: '100vh' }}>
 
 {/* NAV */}
-<header className={`${v.hdr}`} style={{ position: 'sticky', top: '0', zIndex: '30', background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #EEEAF5' }}>
-<div style={{ maxWidth: '1160px', margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+<header className={`cps-nav ${v.hdr}`} style={{ position: 'sticky', top: '0', zIndex: '30', background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #EEEAF5' }}>
+<div className="cps-navin" style={{ maxWidth: '1160px', margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
 <a href="#top" aria-label="Campeos home" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: '#17131F' }}>
 <img src="/campeos-logo-full.png" alt="Campeos" style={{ height: '30px', width: 'auto', display: 'block' }} />
 </a>
@@ -180,19 +198,19 @@ export default class LandingPage extends React.Component {
 <a className="cps-hide-sm" href="#pricing" style={{ color: '#3D3747', textDecoration: 'none', fontSize: '15px' }}>Pricing</a>
 <a className="cps-hide-sm" href="#faq" style={{ color: '#3D3747', textDecoration: 'none', fontSize: '15px' }}>Help</a>
 <a href="/auth" style={{ color: '#3D3747', textDecoration: 'none', fontSize: '15px' }}>Sign in</a>
-<a href="/auth?signup" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '44px', padding: '0 18px', borderRadius: '999px', background: 'linear-gradient(90deg,#6D28D9,#BE185D)', color: '#FFFFFF', textDecoration: 'none', fontWeight: '700', fontSize: '15px' }}>Get started</a>
+<a className="cps-navcta" href="/auth?signup" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '44px', padding: '0 18px', borderRadius: '999px', background: 'linear-gradient(90deg,#6D28D9,#BE185D)', color: '#FFFFFF', textDecoration: 'none', fontWeight: '700', fontSize: '15px' }}>Get started</a>
 </nav>
 </div>
 </header>
 
 {/* HERO */}
-<section id="top" style={{ position: 'relative', overflow: 'hidden', padding: '80px 24px 24px', backgroundImage: 'radial-gradient(#E4DCF4 1px, transparent 1px)', backgroundSize: '22px 22px' }}>
+<section id="top" data-live="word" style={{ position: 'relative', overflow: 'hidden', padding: '80px 24px 24px', backgroundImage: 'radial-gradient(#E4DCF4 1px, transparent 1px)', backgroundSize: '22px 22px' }}>
 <div aria-hidden="true" style={{ position: 'absolute', inset: '0', background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, #FFFFFF 92%)', pointerEvents: 'none' }}></div>
 <div aria-hidden="true" className="cps-glow" style={{ position: 'absolute', left: '50%', top: '180px', width: '1000px', height: '520px', marginLeft: '-500px', borderRadius: '50%', background: 'radial-gradient(closest-side, rgba(167,139,250,.5), rgba(244,114,182,.28), rgba(255,255,255,0))', filter: 'blur(30px)', pointerEvents: 'none' }}></div>
 <div style={{ position: 'relative', maxWidth: '1160px', margin: '0 auto', textAlign: 'center' }}>
 
 <div className="cps-fu" style={{ display: 'inline-flex', alignItems: 'center', gap: '12px', marginBottom: '24px', fontSize: '16px', fontWeight: '600', letterSpacing: '.01em', color: '#3D3747' }}>Plans.<span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)' }}></span>Writes.<span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)' }}></span><span style={{ background: 'linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Learns.</span></div>
-<h1 style={{ fontFamily: 'Newsreader, serif', fontWeight: '500', fontSize: 'clamp(24px, 6.2vw, 82px)', lineHeight: '1.04', letterSpacing: '-.035em', margin: '0 auto', color: '#17131F' }}><span style={{ display: 'block', whiteSpace: 'nowrap' }}>Run a <span style={{ position: 'relative', display: 'inline-block', fontStyle: 'italic', paddingRight: '.05em' }}>sold-out<svg className="cps-swipe" aria-hidden="true" viewBox="0 0 300 20" preserveAspectRatio="none" style={{ position: 'absolute', left: '-2%', bottom: '-.1em', width: '104%', height: '.26em', overflow: 'visible' }}><defs><linearGradient id="lgS" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#3B1FD1" /><stop offset=".5" stopColor="#9B1FD6" /><stop offset="1" stopColor="#FF00B8" /></linearGradient></defs><path d="M4 15 C 70 6, 160 3, 296 8" fill="none" stroke="url(#lgS)" strokeWidth="6" strokeLinecap="round" vectorEffect="non-scaling-stroke" pathLength="1" /></svg></span></span><span style={{ display: 'block', whiteSpace: 'nowrap' }}>{v.w0 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#3B1FD1 0%,#9B1FD6 50%,#FF00B8 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Webinar Launch</span></>)}{v.w1 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#2E1BB8 0%,#7C3AED 55%,#C026D3 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Black Friday</span></>)}{v.w2 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#9333EA 0%,#E11DB0 60%,#FF4D8D 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Flash Sale</span></>)}{v.w3 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#5B21B6 0%,#A21CAF 50%,#EC4899 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Cart Close</span></>)}{v.w4 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#4338CA 0%,#A855F7 50%,#F472B6 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Product Launch</span></>)}{v.w5 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#6D28D9 0%,#D946EF 55%,#FB7185 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Win-Back</span></>)} Campaign</span></h1>
+<h1 className="cps-h1" style={{ fontFamily: 'Newsreader, serif', fontWeight: '500', fontSize: 'clamp(24px, 6.2vw, 82px)', lineHeight: '1.04', letterSpacing: '-.035em', margin: '0 auto', color: '#17131F' }}><span style={{ display: 'block', whiteSpace: 'nowrap' }}>Run a <span style={{ position: 'relative', display: 'inline-block', fontStyle: 'italic', paddingRight: '.05em' }}>sold-out<svg className="cps-swipe" aria-hidden="true" viewBox="0 0 300 20" preserveAspectRatio="none" style={{ position: 'absolute', left: '-2%', bottom: '-.1em', width: '104%', height: '.26em', overflow: 'visible' }}><defs><linearGradient id="lgS" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#3B1FD1" /><stop offset=".5" stopColor="#9B1FD6" /><stop offset="1" stopColor="#FF00B8" /></linearGradient></defs><path d="M4 15 C 70 6, 160 3, 296 8" fill="none" stroke="url(#lgS)" strokeWidth="6" strokeLinecap="round" vectorEffect="non-scaling-stroke" pathLength="1" /></svg></span></span><span style={{ display: 'block', whiteSpace: 'nowrap' }}>{v.w0 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#3B1FD1 0%,#9B1FD6 50%,#FF00B8 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Webinar Launch</span></>)}{v.w1 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#2E1BB8 0%,#7C3AED 55%,#C026D3 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Black Friday</span></>)}{v.w2 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#9333EA 0%,#E11DB0 60%,#FF4D8D 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Flash Sale</span></>)}{v.w3 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#5B21B6 0%,#A21CAF 50%,#EC4899 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Cart Close</span></>)}{v.w4 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#4338CA 0%,#A855F7 50%,#F472B6 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Product Launch</span></>)}{v.w5 && (<><span className="cps-word" style={{ display: 'inline-block', padding: '0 .04em .1em', marginBottom: '-.1em', background: 'linear-gradient(90deg,#6D28D9 0%,#D946EF 55%,#FB7185 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>Win-Back</span></>)} Campaign</span></h1>
 <p className="cps-fu" style={{ animationDelay: '.1s', fontSize: '20px', lineHeight: '1.6', color: '#5B5566', maxWidth: '600px', margin: '26px auto 0' }}>No more blank pages. Campeos writes your whole launch. Every win you save trains your agent, so each launch starts smarter than the last.</p>
 <div className="cps-fu" style={{ animationDelay: '.18s', display: 'flex', justifyContent: 'center', marginTop: '32px' }}><a href="/auth?signup" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', minHeight: '52px', padding: '0 24px', borderRadius: '12px', background: '#17131F', color: '#FFFFFF', textDecoration: 'none', fontWeight: '600', fontSize: '17px', boxShadow: '0 10px 24px -12px rgba(23,19,31,.6)' }}>Get started<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a></div>
 <div className="cps-fu" style={{ animationDelay: '.32s', display: 'inline-flex', alignItems: 'center', gap: '10px', marginTop: '20px', padding: '6px 16px 6px 6px', borderRadius: '999px', background: '#FFFFFF', border: '1px solid #EEEAF5', fontSize: '14px', color: '#3D3747', textAlign: 'left' }}>
@@ -238,7 +256,7 @@ export default class LandingPage extends React.Component {
 </section>
 
 {/* FEATURES */}
-<section id="features" style={{ padding: '112px 24px' }}>
+<section id="features" data-live="tick" style={{ padding: '112px 24px' }}>
 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
 <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: '500', fontSize: 'clamp(40px, 5.6vw, 72px)', letterSpacing: '-.035em', lineHeight: '1.02', margin: '0 auto', textAlign: 'center', maxWidth: '820px' }}>Everything you need to run a launch</h2>
 <div data-reveal="f" className={`cps-bento cps-rg ${v.inF}`} style={{ marginTop: '64px' }}>

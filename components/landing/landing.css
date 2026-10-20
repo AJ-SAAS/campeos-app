@@ -81,3 +81,21 @@
 
 /* Reduced motion: show one clean frame of each looping demo instead of stacked layers */
 @media (prefers-reduced-motion:reduce){.cps-show4,.cps-capOn,.cps-nodeOn{animation:none !important;opacity:0 !important}.cps-show4:first-of-type,.cps-capOn:first-child{opacity:1 !important}.cps-swapB{opacity:0 !important}.cps-swapA{opacity:1 !important}}
+
+/* ---- Phones ---- */
+@media (max-width:760px){
+  /* Header scrolls away with the page, one row: logo, Sign in, Get started */
+  .cps-root header.cps-nav{position:relative !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;background:#FFFFFF !important;box-shadow:none !important}
+  .cps-navin{flex-wrap:nowrap !important;padding:10px 16px !important;gap:10px !important}
+  .cps-nav img{height:24px !important}
+  .cps-nav nav{gap:14px !important;flex-wrap:nowrap !important}
+  .cps-navcta{min-height:40px !important;padding:0 14px !important;font-size:14px !important;white-space:nowrap}
+  /* Headline: big enough to read, allowed to wrap, fixed height so the
+     rotating word doesn't make the page jump */
+  .cps-h1{font-size:40px !important;line-height:1.08 !important;min-height:3.3em}
+  .cps-h1 > span{white-space:normal !important}
+  /* Feature cards: just show them. A staggered fade on a 6,000px-tall
+     stack of cards meant blank space until you'd scrolled deep into it. */
+  .cps-rg > *{opacity:1 !important;transform:none !important;transition:none !important}
+  .cps-glow{display:none}
+}

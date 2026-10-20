@@ -1,0 +1,147 @@
+import { Campaign, CampaignStepDoc } from "@/lib/firebase/campaigns";
+
+// Pure helpers behind the dashboard (app/dashboard/page.tsx): the week
+// strip, each campaign's progress line, and the next big sales date.
+// No Firestore here, so it's easy to reason about.
+
+export interface WeekItem {
+  campaignId: string;
+  campaignTitle: string;
+  templateStepId: string;
+  channel: string;
+  title: string;
+  at: Date;
+  status: "Sent" | "Ready" | "Add details" | "Not written";
+}
+
+export interface WeekDay {
+  date: Date;
+  label: string;
+  num: string;
+  isToday: boolean;
+  items: WeekItem[];
+}
+
+/** Matches CLAUDE.md's [ALL CAPS] placeholders, the same test the builder's
+ * Timeline uses for its "Add details" tag. */
+const PLACEHOLDER = /\[[A-Z][A-Z0-9 _'&/-]{1,}\]/;
+
+export function needsInput(copy: Record<string, string> | null | undefined): boolean {
+  if (!copy) return false;
+  return PLACEHOLDER.test(Object.values(copy).join(" "));
+}
+
+export function startOfWeek(d: Date): Date {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = (x.getDay() + 6) % 7; // Monday = 0
+  x.setDate(x.getDate() - dow);
+  return x;
+}
+
+export function buildWeek(
+  now: Date,
+  campaigns: { campaign: Campaign; steps: CampaignStepDoc[] }[]
+): WeekDay[] {
+  const start = startOfWeek(now);
+  const days: WeekDay[] = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    days.push({
+      date,
+      label: date.toLocaleDateString(undefined, { weekday: "short" }),
+      num: String(date.getDate()),
+      isToday: date.toDateString() === now.toDateString(),
+      items: [],
+    });
+  }
+  const end = new Date(start);
+  end.setDate(start.getDate() + 7);
+
+  for (const { campaign, steps } of campaigns) {
+    for (const s of steps) {
+      const at = new Date(s.scheduledAt);
+      if (at < start || at >= end) continue;
+      const day = days[(((at.getDay() + 6) % 7) + 7) % 7];
+      const status: WeekItem["status"] =
+        at < now ? "Sent" : !s.copy ? "Not written" : needsInput(s.copy) ? "Add details" : "Ready";
+      day.items.push({
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        templateStepId: s.templateStepId,
+        channel: s.channel,
+        title: s.title,
+        at,
+        status,
+      });
+    }
+  }
+  for (const d of days) d.items.sort((a, b) => a.at.getTime() - b.at.getTime());
+  return days;
+}
+
+export interface CampaignSummary {
+  campaign: Campaign;
+  total: number;
+  written: number;
+  status: "Live" | "Draft" | "Done";
+  next: { title: string; at: Date } | null;
+}
+
+export function summarize(
+  now: Date,
+  campaign: Campaign,
+  steps: CampaignStepDoc[] | undefined
+): CampaignSummary {
+  const list = steps ?? [];
+  const written = list.filter((s) => s.copy).length;
+  const upcoming = list
+    .map((s) => ({ title: s.title, at: new Date(s.scheduledAt) }))
+    .filter((s) => s.at >= now)
+    .sort((a, b) => a.at.getTime() - b.at.getTime());
+  const status: CampaignSummary["status"] =
+    written === 0 ? "Draft" : upcoming.length === 0 && list.length > 0 ? "Done" : "Live";
+  return { campaign, total: list.length, written, status, next: upcoming[0] ?? null };
+}
+
+export function formatWhen(at: Date, now: Date): string {
+  const time = at.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  if (at.toDateString() === now.toDateString()) return `today ${time}`;
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  if (at.toDateString() === tomorrow.toDateString()) return `tomorrow ${time}`;
+  const inWeek = at.getTime() - now.getTime() < 6 * 86400000;
+  return inWeek
+    ? `${at.toLocaleDateString(undefined, { weekday: "short" })} ${time}`
+    : `${at.toLocaleDateString(undefined, { month: "short", day: "numeric" })} ${time}`;
+}
+
+/** The next big sales date, the same list as the sales page countdown. */
+export function nextSalesDate(now: Date): { name: string; days: number } {
+  const nthWeekday = (year: number, month: number, weekday: number, n: number) => {
+    const first = new Date(year, month, 1);
+    const offset = (weekday - first.getDay() + 7) % 7;
+    return new Date(year, month, 1 + offset + (n - 1) * 7);
+  };
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dates: { name: string; date: Date }[] = [];
+  for (const y of [now.getFullYear(), now.getFullYear() + 1]) {
+    const bf = nthWeekday(y, 10, 4, 4);
+    bf.setDate(bf.getDate() + 1); // the Friday after the 4th Thursday
+    dates.push({ name: "Black Friday", date: bf });
+    dates.push({ name: "Cyber Monday", date: new Date(bf.getFullYear(), bf.getMonth(), bf.getDate() + 3) });
+    dates.push({ name: "Christmas", date: new Date(y, 11, 25) });
+    dates.push({ name: "Valentine's Day", date: new Date(y, 1, 14) });
+    dates.push({ name: "New Year", date: new Date(y, 0, 1) });
+  }
+  const upcoming = dates
+    .map((d) => ({ name: d.name, days: Math.round((d.date.getTime() - today.getTime()) / 86400000) }))
+    .filter((d) => d.days >= 1)
+    .sort((a, b) => a.days - b.days);
+  return upcoming[0];
+}
+
+export function greeting(now: Date): string {
+  const h = now.getHours();
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
