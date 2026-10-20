@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { getSubscription, Subscription } from "@/lib/firebase/subscription";
 import { PlanKey } from "@/lib/stripe/client";
+import { authFetch } from "@/lib/firebase/authFetch";
 
 // Two tiers, no free tier, no trial — the billing decision on record.
 // Feature differences between Starter and Pro aren't decided yet, so
@@ -38,7 +39,7 @@ export default function BillingPage() {
     setError(null);
     setPendingPlan(plan);
     try {
-      const res = await fetch("/api/stripe/checkout", {
+      const res = await authFetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid: user.uid, email: user.email, plan }),
@@ -57,7 +58,7 @@ export default function BillingPage() {
     setError(null);
     setPortalPending(true);
     try {
-      const res = await fetch("/api/stripe/portal", {
+      const res = await authFetch("/api/stripe/portal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid: user.uid }),
@@ -75,12 +76,12 @@ export default function BillingPage() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-paper text-slate font-body">
-      <Sidebar active="dashboard" />
+      <Sidebar active={null} />
 
       <main className="flex-grow min-w-0 px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 pb-24 md:pb-10 max-w-3xl">
         <div className="flex flex-col gap-1.5">
           <h1 className="font-display text-[28px] sm:text-[34px] font-semibold tracking-tight">Billing</h1>
-          <p className="text-sm text-muted">Paid only — no free tier, no trial.</p>
+          <p className="text-sm text-muted">Pick the plan that fits how often you launch. Cancel anytime.</p>
         </div>
 
         {!authLoading && !user && (

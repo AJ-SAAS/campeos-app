@@ -18,6 +18,9 @@ export interface OnboardingAnswers {
   salesPage?: string;
   /** When onboarding was finished (ISO string). */
   onboardedAt?: string;
+  /** The campaign built straight after onboarding, shown as "Your first
+   * launch" on the dashboard. */
+  firstCampaignId?: string;
 }
 
 export interface BusinessProfile extends OfferContext, OnboardingAnswers {
@@ -52,4 +55,8 @@ export async function saveBusinessProfile(
     { ...clean, updatedAt: serverTimestamp() },
     { merge: true }
   );
+}
+
+export async function saveFirstCampaignId(uid: string, campaignId: string): Promise<void> {
+  await setDoc(doc(db, "businessProfiles", uid), { firstCampaignId: campaignId }, { merge: true });
 }

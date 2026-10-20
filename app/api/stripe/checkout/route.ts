@@ -1,26 +1,27 @@
 import { NextResponse } from "next/server";
 import { getStripeClient, PLANS, isPlanKey } from "@/lib/stripe/client";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
 
 /**
  * Starts a Stripe Checkout session for one of the two plans. No free
  * trial (billing decision: paid only, no free tier/trial) — the
  * Checkout Session is created without a trial_period_days.
  *
- * Body: { uid: string, email: string, plan: "starter" | "pro" }
- * uid/email come from the signed-in Firebase user on the client — there's
- * no server session to read them from (same trust model the rest of the
- * app uses: lib/firebase/usage.ts's own comment explains why that's
- * acceptable here, same reasoning applies).
+ * Body: { plan: "starter" | "pro" }. The uid and email come from the
+ * verified ID token (lib/serverAuth.ts), not the body.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { uid, email, plan } = body as { uid?: string; email?: string; plan?: string };
+    const { plan } = body as { plan?: string };
 
-    if (!uid || !email) {
-      return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+    const caller = await getVerifiedUser(req);
+    if (!caller) {
+      return NextResponse.json({ error: SIGN_IN_AGAIN }, { status: 401 });
     }
+    const uid = caller.uid;
+    const email = caller.email ?? undefined;
     if (!plan || !isPlanKey(plan)) {
       return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
     }

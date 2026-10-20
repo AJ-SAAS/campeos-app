@@ -10,6 +10,7 @@ import { AgentChatMessage, CreateCampaignArgs, EditStepArgs } from "@/lib/ai/age
 import { buildTimeline } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext, StepContext } from "@/lib/ai/prompts";
+import { authFetch } from "@/lib/firebase/authFetch";
 
 interface DisplayMessage {
   role: "user" | "assistant";
@@ -97,7 +98,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
     try {
       await addAgentMessage(user.uid, "user", text);
 
-      const res = await fetch("/api/agent", {
+      const res = await authFetch("/api/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -173,9 +174,9 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
       const result = await executeCreateCampaign(uid, args, user?.displayName ?? undefined);
       const doneMessage =
         result.failedCount > 0
-          ? `Done. ${result.writtenCount - result.failedCount} of ${result.stepCount} steps are ready — ${result.failedCount} failed to generate, you can retry those in the builder.`
+          ? `Done. ${result.writtenCount - result.failedCount} of ${result.stepCount} steps are ready. ${result.failedCount} didn't write, and you can retry those in the builder.`
           : result.writtenCount < result.stepCount
-            ? `Done. The schedule is saved and the first step is written — the other ${result.stepCount - result.writtenCount} are ready whenever you want them. Want to take a look?`
+            ? `Done. The schedule is saved and the first step is written. The other ${result.stepCount - result.writtenCount} are ready whenever you want them. Want to take a look?`
             : `Done. All ${result.stepCount} steps are ready. Want to take a look?`;
       setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
       await addAgentMessage(uid, "assistant", doneMessage);
@@ -205,7 +206,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
   async function editStep(uid: string, args: EditStepArgs, ctx: AgentPanelCampaignContext) {
     const step = ctx.steps.find((s) => s.templateStepId === args.templateStepId);
     if (!step) {
-      const message = "I picked a step that isn't actually in this campaign — try asking again.";
+      const message = "I picked a step that isn't in this campaign. Try asking again.";
       setMessages((prev) => [...prev, { role: "assistant", content: message }]);
       await addAgentMessage(uid, "assistant", message);
       return;
@@ -239,7 +240,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
       // angle..."), but strip a leading "changed " defensively in case
       // it echoes the word back anyway — avoids "Done — changed Changed...".
       const changedFragment = result.changed?.replace(/^changed\s+/i, "");
-      const doneMessage = changedFragment ? `Done — changed ${changedFragment}.` : "Done — take a look.";
+      const doneMessage = changedFragment ? `Done. I changed ${changedFragment}.` : "Done. Take a look.";
       setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
       await addAgentMessage(uid, "assistant", doneMessage);
     } catch (err) {
@@ -273,8 +274,8 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
   const emptyStateText = campaign
     ? "Ask the agent to change a step in this campaign, or build a new one."
     : profile
-      ? `Tell the agent what you need — it already knows ${profile.name}.`
-      : 'Tell the agent what you need — "Build me a webinar promo for Thursday" works.';
+      ? `Tell the agent what you need. It already knows ${profile.name}.`
+      : 'Tell the agent what you need, like "Build me a webinar promo for Thursday".';
 
   return (
     <section

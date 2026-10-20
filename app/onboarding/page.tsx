@@ -15,6 +15,7 @@ import {
   suggestedPlan,
 } from "@/lib/onboarding/answers";
 import "@/components/onboarding/onboarding.css";
+import { authFetch } from "@/lib/firebase/authFetch";
 
 // New-user onboarding: five plain-English questions on the left, and on
 // the right the user's first email filling itself in as they answer
@@ -181,7 +182,7 @@ export default function OnboardingPage() {
     } = {};
     try {
       const [res] = await Promise.all([
-        fetch("/api/analyze-offer-page", {
+        authFetch("/api/analyze-offer-page", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ input }),

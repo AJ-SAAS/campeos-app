@@ -1,19 +1,36 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { PlanModal, PLAN_PRICE, usePlanSuggestion } from "@/components/PlanModal";
 
-// The mailcheap.ai-style nag banner — shown across the top of every
-// signed-in page once onboarding is done but there's no active
-// subscription yet. Not a block, just a constant reminder; the real
-// enforcement happens at generate-time (see generateCampaign() in
-// app/builder/page.tsx and executeCreateCampaign in lib/ai/agentActions.ts).
+// The thin black banner across the top of signed-in pages for accounts
+// with no plan yet. Not a block, just a reminder. It names the plan that
+// fits this person (from onboarding) and opens the plan picker right
+// here instead of sending them off to another page. The real paywall is
+// server-side in /api/generate-step (see lib/access.ts).
 export function SubscribeBanner() {
+  const { plan } = usePlanSuggestion();
+  const [open, setOpen] = useState(false);
+  const name = plan === "pro" ? "Pro" : "Starter";
+
   return (
-    <div className="bg-slate text-white px-4 py-2.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[13px]">
-      <span>Pick a plan to start generating campaigns — Starter fits most launches, at $39/mo.</span>
-      <Link href="/billing" className="shrink-0 font-semibold underline underline-offset-2">
-        See plans &rarr;
-      </Link>
-    </div>
+    <>
+      <div className="bg-slate text-white px-4 py-2.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[13px]">
+        <span>
+          <b>Pick a plan to start launching</b>
+          <span className="opacity-75"> · {name} fits how you launch, at {PLAN_PRICE[plan]} a month</span>
+        </span>
+        <button
+          onClick={() => setOpen(true)}
+          className="shrink-0 inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-white text-slate text-xs font-bold"
+        >
+          See plans
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </button>
+      </div>
+      <PlanModal open={open} onClose={() => setOpen(false)} />
+    </>
   );
 }

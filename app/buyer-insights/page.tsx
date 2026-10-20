@@ -12,6 +12,7 @@ import {
   deleteSalesCall,
   listSalesCalls,
 } from "@/lib/firebase/library";
+import { authFetch } from "@/lib/firebase/authFetch";
 
 // Standalone home for "Why people buy" — same fix as /winning-copy:
 // previously only reachable as a cramped widget inside the Builder, with
@@ -40,7 +41,7 @@ export default function BuyerInsightsPage() {
     setAnalyzing(true);
     setError(null);
     try {
-      const res = await fetch("/api/analyze-call", {
+      const res = await authFetch("/api/analyze-call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transcript: transcript.trim() }),
@@ -84,7 +85,7 @@ export default function BuyerInsightsPage() {
           </h1>
           <p className="text-sm text-muted">
             Paste a sales call transcript and Campeos pulls out the themes in your
-            buyers&apos; own words — used automatically in every campaign you build.
+            buyers&apos; own words. Every campaign you build uses them.
           </p>
         </div>
 

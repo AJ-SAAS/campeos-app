@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
 import { z } from "zod";
 import { analyzeOfferPage, MIN_READABLE_LENGTH } from "@/lib/ai/analyzeOfferPage";
 
@@ -68,6 +69,9 @@ function stripHtmlToText(html: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  if (!(await getVerifiedUser(req))) {
+    return NextResponse.json({ error: SIGN_IN_AGAIN }, { status: 401 });
+  }
   let body: unknown;
   try {
     body = await req.json();

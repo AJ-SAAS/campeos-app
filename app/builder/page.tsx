@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { IconRail } from "@/components/builder/IconRail";
+import { Sidebar } from "@/components/Sidebar";
+import { PlanModal } from "@/components/PlanModal";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { OfferPicker } from "@/components/builder/OfferPicker";
 import { SetupPanel } from "@/components/builder/SetupPanel";
@@ -31,9 +32,10 @@ import {
   listCallThemes,
 } from "@/lib/firebase/library";
 import { checkAndIncrementUsage } from "@/lib/firebase/usage";
-import { getBusinessProfile } from "@/lib/firebase/businessProfile";
+import { getBusinessProfile, saveFirstCampaignId } from "@/lib/firebase/businessProfile";
 import { templateChannelsFor, CHANNEL_LABELS } from "@/lib/onboarding/answers";
 import type { Channel } from "@/lib/templates/types";
+import { authFetch } from "@/lib/firebase/authFetch";
 
 // The Campaign Builder — Builder.dc.html, wired to the real engine, the
 // real /api/generate-step route, and real Firestore persistence.
@@ -41,7 +43,25 @@ import type { Channel } from "@/lib/templates/types";
 // saved until you click "Generate campaign copy."
 // Existing campaign: /builder?id=<campaignId> — loads saved steps and
 // copy instead of starting fresh.
-const DEFAULT_EVENT_DATE = new Date("2026-10-15T19:00:00");
+// A new campaign's event defaults to 7 PM, 8 days from today: the
+// webinar template's earliest step goes out 6 days before the event, so
+// this puts every step in the future with a day to spare. (This used to
+// be a fixed date, which put every new campaign in the past.)
+function defaultEventDate(): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + 8);
+  d.setHours(19, 0, 0, 0);
+  return d;
+}
+
+function toDateInput(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// How many steps a free account gets written. Must match FREE_STEP_LIMIT
+// in lib/access.ts (the server is what actually enforces it).
+const FREE_STEPS = 3;
 
 // No more default offer. A brand-new campaign now starts with an empty
 // one and waits for the OfferPicker screen (below) to fill it in — the
@@ -89,7 +109,7 @@ function BuilderInner() {
 
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [offer, setOffer] = useState<OfferContext>(EMPTY_OFFER);
-  const [eventDate, setEventDate] = useState<Date>(DEFAULT_EVENT_DATE);
+  const [eventDate, setEventDate] = useState<Date>(defaultEventDate);
   const [loadedSteps, setLoadedSteps] = useState<CampaignStepDoc[] | null>(null);
   const [loadingCampaign, setLoadingCampaign] = useState(!!existingId);
   // A brand-new campaign (no ?id=) shows the OfferPicker until an offer
@@ -106,6 +126,11 @@ function BuilderInner() {
   const [allowedChannels, setAllowedChannels] = useState<Set<Channel> | null>(null);
   const [profileLoading, setProfileLoading] = useState(!existingId);
   const [showFirstRun, setShowFirstRun] = useState(isFirst);
+  const [planOpen, setPlanOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  // Set once the first auto-generate has been kicked off, so a re-render
+  // can't start a second one.
+  const autoStarted = useRef(false);
 
   useEffect(() => {
     if (existingId) {
@@ -117,6 +142,12 @@ function BuilderInner() {
       .then((profile) => {
         if (!profile) return;
         setAllowedChannels(templateChannelsFor(profile.channels));
+        // Came back to /builder?first=1 after the first campaign already
+        // exists: open that one instead of starting a duplicate.
+        if (isFirst && profile.firstCampaignId) {
+          router.replace(`/builder?id=${profile.firstCampaignId}`);
+          return;
+        }
         if (isFirst && profile.name) {
           setOffer({
             name: profile.name,
@@ -131,7 +162,7 @@ function BuilderInner() {
       })
       .catch(() => {})
       .finally(() => setProfileLoading(false));
-  }, [existingId, isFirst, user]);
+  }, [existingId, isFirst, user, router]);
 
   // Load an existing campaign's saved steps and copy when ?id= is present.
   useEffect(() => {
@@ -282,7 +313,7 @@ function BuilderInner() {
 
   async function handleAddSalesCall(transcript: string) {
     if (!user) throw new Error("Sign in first to save a sales call.");
-    const res = await fetch("/api/analyze-call", {
+    const res = await authFetch("/api/analyze-call", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ transcript }),
@@ -302,28 +333,28 @@ function BuilderInner() {
 
   async function generateCampaign() {
     if (!user) {
-      setError("Sign in first — campaigns are saved to your account.");
+      setError("Sign in first. Campaigns are saved to your account.");
       return;
     }
     setGenerating(true);
     setError(null);
     try {
-      // Soft gate: the dashboard and builder are visible without a
-      // subscription, but writing copy is the actual paid action — same
-      // check lib/ai/agentActions.ts's executeCreateCampaign makes for
-      // the agent's build path.
+      // No plan: write just the first FREE_STEPS steps (by send time) so
+      // they see their own launch. The server enforces this and says no
+      // once the free steps are used (see lib/access.ts).
       const sub = await getSubscription(user.uid);
-      if (!isActive(sub)) {
-        setError("Pick a plan to generate campaign copy — click your plan in the sidebar to subscribe.");
-        setGenerating(false);
-        return;
-      }
+      const paid = isActive(sub);
+      const stepsToWrite = paid
+        ? scheduledSteps
+        : [...scheduledSteps]
+            .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+            .slice(0, FREE_STEPS);
 
       // Same daily cap the agent's build path already enforces (see
       // lib/firebase/usage.ts) — this was the one way to burn through
       // the OpenAI budget with no limit at all, since it's a manual
       // click a user can hit repeatedly.
-      const allowed = await checkAndIncrementUsage(user.uid, scheduledSteps.length);
+      const allowed = await checkAndIncrementUsage(user.uid, stepsToWrite.length);
       if (!allowed) {
         setError(
           "You've hit today's generation limit for your account. Try again tomorrow, or generate fewer steps at a time."
@@ -333,14 +364,14 @@ function BuilderInner() {
       }
 
       const eventAt = formatForPrompt(eventDate);
-      const res = await fetch("/api/generate-step", {
+      const res = await authFetch("/api/generate-step", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "generate",
           uid: user.uid,
           offer: { ...offer, fromName: user.displayName ?? undefined },
-          steps: scheduledSteps.map((s) => ({
+          steps: stepsToWrite.map((s) => ({
             templateStepId: s.templateStepId,
             step: {
               channel: s.channel,
@@ -360,6 +391,10 @@ function BuilderInner() {
         }),
       });
       const data = await res.json();
+      if (res.status === 402) {
+        setPlanOpen(true);
+        throw new Error(data.error ?? "Pick a plan to write the rest of your campaign.");
+      }
       if (!res.ok) throw new Error(data.error ?? "Generation failed.");
 
       const next: Record<string, Record<string, string>> = { ...copyByStep };
@@ -394,6 +429,7 @@ function BuilderInner() {
           stepDocs
         );
         setCampaignId(newId);
+        if (isFirst) saveFirstCampaignId(user.uid, newId).catch(() => {});
         // Bake the new campaign into the URL so browser back/forward and
         // refresh don't lose it — without this, forward-navigating here
         // reloads a blank /builder with nothing to load (the page only
@@ -426,7 +462,7 @@ function BuilderInner() {
   async function requestVariation(instruction: string) {
     if (!selected) return;
     if (!user) {
-      setError("Sign in first — campaigns are saved to your account.");
+      setError("Sign in first. Campaigns are saved to your account.");
       return;
     }
     setVariationPending(true);
@@ -441,7 +477,7 @@ function BuilderInner() {
         return;
       }
 
-      const res = await fetch("/api/generate-step", {
+      const res = await authFetch("/api/generate-step", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -482,6 +518,74 @@ function BuilderInner() {
     }
   }
 
+  // Onboarding promised "your emails, texts and posts write themselves
+  // while you watch", so the first campaign starts writing on arrival.
+  useEffect(() => {
+    if (!isFirst || autoStarted.current || !offerPicked || !user || campaignId || generating) return;
+    if (!offer.name || subLoading) return;
+    autoStarted.current = true;
+    generateCampaign();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFirst, offerPicked, user, campaignId, offer.name, subLoading]);
+
+  // Free accounts: everything past the free first steps is locked.
+  const lockedIds = useMemo(() => {
+    if (subLoading || active) return undefined;
+    const written = new Set(Object.keys(copyByStep));
+    const ids = scheduledSteps.map((s) => s.templateStepId).filter((id) => !written.has(id));
+    // Before anything's written, the first FREE_STEPS by time are the
+    // free ones, so don't lock those.
+    if (written.size === 0) {
+      const free = new Set(
+        [...scheduledSteps]
+          .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+          .slice(0, FREE_STEPS)
+          .map((s) => s.templateStepId)
+      );
+      return new Set(ids.filter((id) => !free.has(id)));
+    }
+    return new Set(ids);
+  }, [subLoading, active, copyByStep, scheduledSteps]);
+
+  const writtenCount = scheduledSteps.filter((s) => copyByStep[s.templateStepId]).length;
+  const channelsInUse = (Object.keys(CHANNEL_LABELS) as Channel[]).filter((c) =>
+    scheduledSteps.some((s) => s.channel === c)
+  );
+
+  async function copyCampaign() {
+    const text = scheduledSteps
+      .filter((s) => copyByStep[s.templateStepId])
+      .map((s) => {
+        const when = s.scheduledAt.toLocaleString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+        const fields = s.fields
+          .map((f) => {
+            const v = copyByStep[s.templateStepId]?.[f.key];
+            return v ? `${f.label}:\n${v}` : null;
+          })
+          .filter(Boolean)
+          .join("\n\n");
+        return `${s.title.toUpperCase()} (${CHANNEL_LABELS[s.channel as Channel] ?? s.channel}, ${when})\n\n${fields}`;
+      })
+      .join("\n\n---\n\n");
+    if (!text) {
+      setError("Nothing to copy yet. Write the campaign first.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Your browser blocked copying. Open a step to copy it by hand.");
+    }
+  }
+
   if (!ready) {
     return <div className="h-screen bg-paper" />;
   }
@@ -498,7 +602,7 @@ function BuilderInner() {
     if (!user) {
       return (
         <div className="h-screen flex items-center justify-center bg-paper text-muted text-sm">
-          Sign in first — campaigns are saved to your account.
+          Sign in first. Campaigns are saved to your account.
         </div>
       );
     }
@@ -517,7 +621,7 @@ function BuilderInner() {
     <div className="h-screen flex flex-col bg-paper text-slate font-body">
       {!subLoading && !active && <SubscribeBanner />}
       <div className="flex-grow min-h-0 flex bg-gradient-to-br from-violet-50 via-white to-pink-50">
-      <IconRail />
+      <Sidebar active={null} inBuilder />
 
       <div className="flex-grow min-w-0 flex flex-col">
         <header className="shrink-0 bg-paper border-b border-line flex flex-col gap-3 px-4 py-3 sm:px-6 sm:h-16 sm:flex-row sm:items-center sm:gap-4 sm:py-0">
@@ -541,37 +645,80 @@ function BuilderInner() {
               {campaignId ? "Saved" : "Draft"}
             </span>
           </div>
+          {!campaignId && (
+            <label className="shrink-0 flex items-center gap-2 text-[13px] text-muted">
+              <span className="font-semibold">Goes live</span>
+              <input
+                type="date"
+                value={toDateInput(eventDate)}
+                min={toDateInput(new Date())}
+                onChange={(e) => {
+                  const [y, m, d] = e.target.value.split("-").map(Number);
+                  if (!y || !m || !d) return;
+                  const next = new Date(eventDate);
+                  next.setFullYear(y, m - 1, d);
+                  setEventDate(next);
+                }}
+                className="h-8 px-2 rounded-lg border border-line bg-paper text-slate text-[13px]"
+              />
+            </label>
+          )}
           {error && <span className="text-xs text-dangerFg sm:ml-0">{error}</span>}
           <div className="hidden sm:flex flex-grow" />
           <div className="hidden sm:flex items-center gap-2 shrink-0">
-            <button className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] border border-line bg-paper text-sm font-semibold">
-              Preview
-            </button>
-            <button className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold">
-              Copy campaign
+            <button
+              onClick={copyCampaign}
+              disabled={writtenCount === 0}
+              className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold disabled:opacity-50"
+            >
+              {copied ? "Copied" : "Copy campaign"}
             </button>
           </div>
         </header>
 
         {showFirstRun && (
           <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 sm:px-6 py-2.5 bg-agentWash border-b border-line text-sm">
-            <span className="font-semibold text-slate">Your first campaign is set up from your answers.</span>
+            {generating ? (
+              <span className="font-semibold text-slate">
+                Writing your first campaign. Watch the steps fill in on the right.
+              </span>
+            ) : writtenCount > 0 ? (
+              <span className="font-semibold text-slate">
+                {lockedIds && lockedIds.size > 0
+                  ? `Your first ${writtenCount} steps are written.`
+                  : "Your first campaign is written."}
+              </span>
+            ) : (
+              <span className="font-semibold text-slate">Your first campaign is set up from your answers.</span>
+            )}
             <span className="text-muted">
-              Writing for{" "}
-              {allowedChannels
-                ? (Object.keys(CHANNEL_LABELS) as Channel[])
-                    .filter((c) => allowedChannels.has(c))
-                    .map((c) => CHANNEL_LABELS[c])
-                    .join(", ")
-                : "every channel"}
-              . Check the details on the left, then generate.
+              {channelsInUse.map((c) => CHANNEL_LABELS[c]).join(", ")}
+              {lockedIds && lockedIds.size > 0 && !generating && writtenCount > 0
+                ? `. ${lockedIds.size} more are ready to write when you pick a plan.`
+                : "."}
             </span>
-            <button
-              onClick={() => setShowFirstRun(false)}
-              className="ml-auto text-muted text-xs font-semibold hover:text-slate"
-            >
-              Got it
-            </button>
+            <span className="ml-auto flex items-center gap-2">
+              {lockedIds && lockedIds.size > 0 && writtenCount > 0 && !generating && (
+                <button
+                  onClick={() => setPlanOpen(true)}
+                  className="h-8 px-3 rounded-lg bg-slate text-white text-xs font-bold"
+                >
+                  Unlock my launch
+                </button>
+              )}
+              {!generating && writtenCount > 0 && (
+                <Link href="/dashboard" className="h-8 px-3 inline-flex items-center rounded-lg border border-line bg-paper text-xs font-semibold">
+                  Go to dashboard
+                </Link>
+              )}
+              <button
+                onClick={() => setShowFirstRun(false)}
+                aria-label="Hide this"
+                className="text-muted text-xs font-semibold hover:text-slate px-1"
+              >
+                Hide
+              </button>
+            </span>
           </div>
         )}
 
@@ -625,6 +772,8 @@ function BuilderInner() {
               eventDate={eventDate}
               phases={activeTemplate.phases}
               generating={generating}
+              lockedIds={lockedIds}
+              onLockedClick={() => setPlanOpen(true)}
             />
           </div>
         </div>
@@ -652,6 +801,8 @@ function BuilderInner() {
           saveStatus={fieldSaveStatus}
         />
       </div>
+
+      <PlanModal open={planOpen} onClose={() => setPlanOpen(false)} />
 
       <AgentLauncher
         // Only wired up for edit_step once this draft is actually saved —

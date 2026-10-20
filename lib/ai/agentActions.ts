@@ -9,6 +9,7 @@ import { saveBusinessProfile } from "@/lib/firebase/businessProfile";
 import { listWinningCopy, listCallThemes } from "@/lib/firebase/library";
 import { getSubscription, isActive } from "@/lib/firebase/subscription";
 import { CreateCampaignArgs } from "@/lib/ai/agent";
+import { authFetch } from "@/lib/firebase/authFetch";
 
 export class UsageLimitError extends Error {}
 export class SubscriptionRequiredError extends Error {}
@@ -42,7 +43,7 @@ export async function executeCreateCampaign(
   const sub = await getSubscription(uid);
   if (!isActive(sub)) {
     throw new SubscriptionRequiredError(
-      "Pick a plan before I can write your campaign — head to Billing to subscribe, then come back."
+      "Pick a plan and I can write your whole campaign. Tap See plans at the top of the page."
     );
   }
 
@@ -85,7 +86,7 @@ export async function executeCreateCampaign(
     listCallThemes(uid),
   ]);
 
-  const res = await fetch("/api/generate-step", {
+  const res = await authFetch("/api/generate-step", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -192,7 +193,7 @@ export async function executeEditStep(
       listWinningCopy(uid),
       listCallThemes(uid),
     ]);
-    const res = await fetch("/api/generate-step", {
+    const res = await authFetch("/api/generate-step", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -217,7 +218,7 @@ export async function executeEditStep(
     return { copy: result.copy };
   }
 
-  const res = await fetch("/api/generate-step", {
+  const res = await authFetch("/api/generate-step", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mode: "variation", offer, step, currentCopy, instruction }),

@@ -11,10 +11,17 @@ import { useSubscription } from "@/lib/firebase/useSubscription";
 // fit a phone screen, and a hamburger drawer hides navigation behind an
 // extra tap for what's only four destinations — a bottom bar keeps them
 // one tap away, which is the standard mobile pattern for this count.
+//
+// The builder uses this same sidebar (so the app feels like one app, not
+// two), with `inBuilder`: full width on wide screens, icons only between
+// lg and xl where the timeline needs the room, hidden below lg, and no
+// mobile top/bottom bars (the builder has its own mobile header).
 export function Sidebar({
   active,
+  inBuilder = false,
 }: {
-  active: "dashboard" | "campaigns" | "offers" | "winning-copy" | "buyer-insights";
+  active: "dashboard" | "campaigns" | "offers" | "winning-copy" | "buyer-insights" | "settings" | null;
+  inBuilder?: boolean;
 }) {
   const { user, loading, signIn, signOut } = useAuth();
   const { sub, loading: subLoading, active: subActive } = useSubscription();
@@ -31,11 +38,24 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="hidden md:flex w-60 shrink-0 bg-paper border-r border-line text-slate flex-col p-4 gap-7 overflow-y-auto">
-        <div className="px-1">
+      <aside
+        className={`${
+          inBuilder ? "hidden lg:flex lg:w-[72px] xl:w-60 group/side" : "hidden md:flex w-60"
+        } shrink-0 bg-paper border-r border-line text-slate flex-col p-4 gap-7 overflow-y-auto`}
+        data-compact={inBuilder ? "lg" : undefined}
+      >
+        <Link href="/dashboard" className="px-1" aria-label="Campeos home">
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-          <img src="/logo-lockup.png" alt="Campeos" className="h-8 w-auto object-contain" />
-        </div>
+          <img
+            src="/logo-lockup.png"
+            alt="Campeos"
+            className={`h-8 w-auto object-contain ${inBuilder ? "hidden xl:block" : ""}`}
+          />
+          {inBuilder && (
+            // eslint-disable-next-line @next/next/no-img-element -- local /public asset
+            <img src="/logo-mark.png" alt="" className="xl:hidden w-9 h-9 object-contain -ml-1" />
+          )}
+        </Link>
 
         <nav aria-label="Main" className="flex flex-col gap-1">
           <NavItem href="/dashboard" label="Dashboard" active={active === "dashboard"}>
@@ -53,11 +73,14 @@ export function Sidebar({
           <NavItem href="/buyer-insights" label="Buyer insights" active={active === "buyer-insights"}>
             <BarsIcon />
           </NavItem>
+          <NavItem href="/settings" label="Settings" active={active === "settings"}>
+            <GearIcon />
+          </NavItem>
         </nav>
 
         <div className="flex-grow" />
 
-        <div className="flex flex-col gap-2 px-2 py-2.5 border-t border-line">
+        <div className={`flex flex-col gap-2 px-2 py-2.5 border-t border-line ${inBuilder ? "hidden xl:flex" : ""}`}>
           {loading ? (
             <div className="text-sm text-muted">Loading...</div>
           ) : user ? (
@@ -83,14 +106,14 @@ export function Sidebar({
                       href="/billing"
                       className={`text-xs truncate block ${subActive ? "text-muted" : "text-clay font-semibold"}`}
                     >
-                      {subActive ? `${planLabel(sub?.plan)} plan` : "No plan — subscribe"}
+                      {subActive ? `${planLabel(sub?.plan)} plan` : "No plan · Pick one"}
                     </Link>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-3 pl-[46px]">
-                <Link href="/settings" className="text-xs text-muted font-medium">
-                  Settings
+                <Link href="/billing" className="text-xs text-muted font-medium">
+                  Billing
                 </Link>
                 <button onClick={() => signOut()} className="text-xs text-muted font-medium">
                   Sign out
@@ -115,6 +138,8 @@ export function Sidebar({
 
       {/* Mobile top bar: logo + account, since the bottom bar below only
           has room for the four nav destinations. */}
+      {!inBuilder && (
+      <>
       <header className="md:hidden flex items-center justify-between h-14 px-4 border-b border-line bg-paper">
         <div className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
@@ -161,6 +186,8 @@ export function Sidebar({
           <BarsIcon />
         </MobileNavItem>
       </nav>
+      </>
+      )}
     </>
   );
 }
@@ -180,14 +207,15 @@ function NavItem({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 min-h-11 px-3 rounded-[10px] text-sm ${
+      title={label}
+      className={`flex items-center gap-3 min-h-11 px-3 rounded-[10px] text-sm group-data-[compact=lg]/side:max-xl:justify-center group-data-[compact=lg]/side:max-xl:px-0 ${
         active
           ? "bg-ivory text-slate font-semibold"
           : "text-muted font-medium hover:bg-ivory"
       }`}
     >
-      {children}
-      {label}
+      <span className="shrink-0">{children}</span>
+      <span className="group-data-[compact=lg]/side:max-xl:hidden">{label}</span>
     </Link>
   );
 }

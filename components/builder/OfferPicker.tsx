@@ -89,7 +89,7 @@ export function OfferPicker({
 
             {offers?.length === 0 && (
               <div className="px-4 py-6 text-sm text-faint text-center border border-dashed border-line rounded-xl">
-                No saved offers yet — add one below.
+                No saved offers yet. Add one below.
               </div>
             )}
 

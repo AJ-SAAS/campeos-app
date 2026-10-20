@@ -25,6 +25,10 @@ interface TimelineProps {
    * easy to scroll past, especially on mobile where it's a different
    * panel entirely. */
   generating?: boolean;
+  /** Steps a free account can't have written yet (everything past the
+   * free first few). Shown with a lock instead of a writing shimmer. */
+  lockedIds?: Set<string>;
+  onLockedClick?: () => void;
 }
 
 type ChannelKey = "ad" | "email" | "sms";
@@ -44,7 +48,7 @@ const ALL_CHANNELS: ChannelKey[] = ["ad", "email", "sms"];
 // narrow to one or two channels at a time; toggling all three back on
 // collapses back to "All" rather than sitting as three separately-lit
 // pills. The remaining lane(s) animate to fill the freed-up width.
-export function Timeline({ steps, selectedId, onSelect, eventDate, phases, generating }: TimelineProps) {
+export function Timeline({ steps, selectedId, onSelect, eventDate, phases, generating, lockedIds, onLockedClick }: TimelineProps) {
   const [selectedChannels, setSelectedChannels] = useState<Set<ChannelKey>>(
     new Set(ALL_CHANNELS)
   );
@@ -216,8 +220,13 @@ export function Timeline({ steps, selectedId, onSelect, eventDate, phases, gener
                               step={s}
                               lane={lane}
                               selected={s.templateStepId === selectedId}
-                              onSelect={() => onSelect(s.templateStepId)}
+                              onSelect={() =>
+                                lockedIds?.has(s.templateStepId) && !s.copy && onLockedClick
+                                  ? onLockedClick()
+                                  : onSelect(s.templateStepId)
+                              }
                               generating={!!generating}
+                              locked={!!lockedIds?.has(s.templateStepId) && !s.copy}
                             />
                           ))}
                       </div>
@@ -239,16 +248,18 @@ function StepCard({
   selected,
   onSelect,
   generating,
+  locked,
 }: {
   step: UIStep;
   lane: (typeof LANES)[number];
   selected: boolean;
   onSelect: () => void;
   generating: boolean;
+  locked?: boolean;
 }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const firstField = step.fields[0];
-  const isWaiting = generating && !step.copy;
+  const isWaiting = generating && !step.copy && !locked;
   const preview = step.copy?.[firstField?.key ?? ""] ?? "Not written yet";
 
   return (
@@ -295,7 +306,15 @@ function StepCard({
           </span>
         </span>
         <span className="text-[13px] font-semibold leading-snug">{step.title}</span>
-        {isWaiting ? (
+        {locked ? (
+          <span className="flex items-center gap-1.5 text-xs text-muted">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg>
+            Pick a plan to write this
+          </span>
+        ) : isWaiting ? (
           <span className="h-3 w-4/5 rounded bg-ivory animate-pulse" aria-label="Writing..." />
         ) : (
           <span className="text-xs text-muted whitespace-nowrap overflow-hidden text-ellipsis">

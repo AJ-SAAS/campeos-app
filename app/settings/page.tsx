@@ -45,7 +45,7 @@ export default function SettingsPage() {
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-paper text-slate font-body">
       <div className="flex-grow flex flex-col md:flex-row min-h-0">
-        <Sidebar active="dashboard" />
+        <Sidebar active="settings" />
 
         <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-8 pb-24 md:pb-10 max-w-xl">
           <div className="flex flex-col gap-1.5">
@@ -84,7 +84,7 @@ export default function SettingsPage() {
                   <a href="/billing" className="text-clay font-semibold">
                     Billing
                   </a>{" "}
-                  first — deleting your account here doesn&apos;t cancel it.
+                  first. Deleting your account here doesn&apos;t cancel it.
                 </p>
 
                 <label className="flex flex-col gap-1.5 max-w-xs">

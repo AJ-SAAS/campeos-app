@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
 import { z } from "zod";
 import { analyzeSalesCall } from "@/lib/ai/analyzeSalesCall";
 
@@ -12,6 +13,9 @@ const requestSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  if (!(await getVerifiedUser(req))) {
+    return NextResponse.json({ error: SIGN_IN_AGAIN }, { status: 401 });
+  }
   let body: unknown;
   try {
     body = await req.json();

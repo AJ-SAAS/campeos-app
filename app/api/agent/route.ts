@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
 import { z } from "zod";
 import { runAgentTurn } from "@/lib/ai/agent";
 
@@ -49,6 +50,9 @@ const requestSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  if (!(await getVerifiedUser(req))) {
+    return NextResponse.json({ error: SIGN_IN_AGAIN }, { status: 401 });
+  }
   let body: unknown;
   try {
     body = await req.json();
@@ -58,10 +62,14 @@ export async function POST(req: NextRequest) {
 
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Invalid request." },
-      { status: 400 }
-    );
+    // Plain words only: this text shows up in the chat, and a raw zod
+    // issue (e.g. "message: Required") means nothing to the user.
+    const issue = parsed.error.issues[0];
+    const text =
+      issue?.path[0] === "message"
+        ? "Type a message first."
+        : "That didn't send. Refresh the page and try again.";
+    return NextResponse.json({ error: text }, { status: 400 });
   }
 
   try {
@@ -71,9 +79,17 @@ export async function POST(req: NextRequest) {
       parsed.data.profile ?? null,
       parsed.data.campaignContext ?? null
     );
-    return NextResponse.json(result);
+    // The prompt says "no em dashes", but replies still slip one in now
+    // and then. Same safety net generateStepCopy uses for campaign copy.
+    const reply = String(result.reply ?? "")
+      .replace(/\s*—\s*/g, ", ")
+      .replace(/,\s*$/, ".");
+    return NextResponse.json({ ...result, reply });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("agent turn failed", err);
+    return NextResponse.json(
+      { error: "The agent didn't answer that time. Try sending it again." },
+      { status: 500 }
+    );
   }
 }

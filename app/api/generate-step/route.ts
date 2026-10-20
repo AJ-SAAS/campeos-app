@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { generateStepCopy, generateStepVariation } from "@/lib/ai/generateStepCopy";
-import { canGenerate } from "@/lib/access";
+import { canGenerate, claimFreeSteps, refundFreeSteps, FREE_STEP_LIMIT } from "@/lib/access";
+import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
 
 // This route does two jobs, picked by the "mode" field:
 //   "generate"  — write fresh copy for one or more steps (called in
@@ -47,7 +48,9 @@ const sourceSchema = z.object({
 
 const generateRequestSchema = z.object({
   mode: z.literal("generate"),
-  uid: z.string(),
+  // Ignored: who's calling comes from the verified ID token. Kept
+  // optional so older clients that still send it don't fail validation.
+  uid: z.string().optional(),
   offer: offerSchema,
   steps: z.array(z.object({ templateStepId: z.string(), step: stepSchema })),
   source: sourceSchema,
@@ -55,7 +58,9 @@ const generateRequestSchema = z.object({
 
 const variationRequestSchema = z.object({
   mode: z.literal("variation"),
-  uid: z.string(),
+  // Ignored: who's calling comes from the verified ID token. Kept
+  // optional so older clients that still send it don't fail validation.
+  uid: z.string().optional(),
   offer: offerSchema,
   step: stepSchema,
   currentCopy: z.record(z.string()),
@@ -75,35 +80,43 @@ export async function POST(req: NextRequest) {
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Request didn't match the expected shape.", details: parsed.error.flatten() },
+      { error: "Something in that request was missing. Refresh the page and try again." },
       { status: 400 }
     );
   }
 
-  // Paid only, no free tier — this is the one route that actually spends
-  // OpenAI money, so it's the real paywall. See lib/access.ts.
-  //
-  // Wrapped in its own try/catch: canGenerate() reaches Firestore through
-  // the Admin SDK, and an unhandled throw here (a missing/stale
-  // FIREBASE_SERVICE_ACCOUNT_KEY, most likely) used to fall through to
-  // Next's default HTML error page instead of JSON — which breaks the
-  // client with "Unexpected token '<' ... is not valid JSON" instead of
-  // a message that says what's actually wrong.
-  let allowed: boolean;
-  try {
-    allowed = await canGenerate(parsed.data.uid);
-  } catch (err) {
-    return NextResponse.json(
-      {
-        error: `Couldn't check your plan: ${err instanceof Error ? err.message : "unknown error"}. This usually means FIREBASE_SERVICE_ACCOUNT_KEY is missing or wrong in the deploy environment.`,
-      },
-      { status: 500 }
-    );
+  const caller = await getVerifiedUser(req);
+  if (!caller) {
+    return NextResponse.json({ error: SIGN_IN_AGAIN }, { status: 401 });
   }
-  if (!allowed) {
+  const uid = caller.uid;
+
+  // The paywall. A plan (or admin) writes without limit. No plan gets
+  // the free taste: the first FREE_STEP_LIMIT steps of one campaign,
+  // reserved up front and handed back if they fail. See lib/access.ts.
+  //
+  // canGenerate() reaches Firestore through the Admin SDK; a throw here
+  // (missing FIREBASE_SERVICE_ACCOUNT_KEY, most likely) is returned as
+  // JSON rather than falling through to Next's HTML error page.
+  let freeClaimed = 0;
+  try {
+    const paid = await canGenerate(uid);
+    if (!paid) {
+      const count = parsed.data.mode === "generate" ? parsed.data.steps.length : 0;
+      const ok = count > 0 && count <= FREE_STEP_LIMIT && (await claimFreeSteps(uid, count));
+      if (!ok) {
+        return NextResponse.json(
+          { error: "Pick a plan to write the rest of your campaign.", code: "plan_required" },
+          { status: 402 }
+        );
+      }
+      freeClaimed = count;
+    }
+  } catch (err) {
+    console.error("generate-step plan check failed", err);
     return NextResponse.json(
-      { error: "Subscribe to generate campaign copy — see /billing." },
-      { status: 402 }
+      { error: "We couldn't check your plan just now. Try again in a minute." },
+      { status: 500 }
     );
   }
 
@@ -136,7 +149,10 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      return NextResponse.json({ results: succeeded, failed });
+      if (freeClaimed > 0 && failed.length > 0) {
+        await refundFreeSteps(uid, failed.length).catch(() => {});
+      }
+      return NextResponse.json({ results: succeeded, failed, free: freeClaimed > 0 });
     }
 
     // mode === "variation"
@@ -144,7 +160,11 @@ export async function POST(req: NextRequest) {
     const result = await generateStepVariation(offer, step, currentCopy, instruction);
     return NextResponse.json({ result });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    if (freeClaimed > 0) await refundFreeSteps(uid, freeClaimed).catch(() => {});
+    console.error("generate-step failed", err);
+    return NextResponse.json(
+      { error: "Writing that didn't work. Try again in a minute." },
+      { status: 500 }
+    );
   }
 }
