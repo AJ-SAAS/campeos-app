@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Pictures people add to campaign messages (see lib/firebase/stepImages.ts).
+// Each user can only see and change files in their own folder, and only
+// images under 5 MB can be saved. Deleting is always allowed in your own
+// folder. Everything else is closed.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{uid}/{allPaths=**} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|gif|webp)');
+    }
+  }
+}

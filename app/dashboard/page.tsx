@@ -95,7 +95,7 @@ export default function Dashboard() {
     if (!window.confirm(`Delete "${c.title}" from ${new Date(c.eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}? This can't be undone.`)) return;
     setDeletingId(c.id);
     try {
-      await deleteCampaign(c.id);
+      await deleteCampaign(c.id, c.uid);
       setCampaigns((prev) => prev?.filter((x) => x.id !== c.id) ?? prev);
     } catch {
       window.alert("Couldn't delete that campaign. Try again in a moment.");

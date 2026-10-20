@@ -190,8 +190,11 @@ export function buildStepCopyPrompt(
       if (step.channel === "social" && f.key === "caption") {
         return `- "${f.key}": ${f.label} (an organic social post, not an ad: a scroll-stopping first line, short lines with line breaks, one clear call to action like "link in bio", at most 3 relevant hashtags at the end)`;
       }
-      if (step.channel === "social" && f.key === "visual") {
+      if ((step.channel === "social" || step.channel === "ad") && f.key === "visual") {
         return `- "${f.key}": ${f.label} (one line describing what to show, e.g. "you at your desk holding a coffee". A suggestion only, never a claim about a real photo)`;
+      }
+      if (step.channel === "email" && f.key === "body") {
+        return `- "${f.key}": ${f.label} (formatted as real email copy, NOT a solid block paragraph — see the formatting rule below. Where a picture would help the reader, put it on a line of its own as [IMAGE: what to show], e.g. [IMAGE: you on stage holding the workbook]. Use 0 to 2 of these, only where they help, never inside a sentence. A suggestion only, never a claim about a real photo.)`;
       }
       if (step.channel === "sms") {
         return `- "${f.key}": ${f.label} (a real text message: 1-2 short sentences, under 300 characters, no subject line feel to it)`;

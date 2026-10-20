@@ -13,6 +13,7 @@ import { SequenceView } from "@/components/builder/SequenceView";
 import { channelInfo, LogoStack, PlatformLogo } from "@/components/builder/channels";
 import { needsInput } from "@/lib/dashboard";
 import { resolveSignOff } from "@/lib/signOff";
+import { StepImage } from "@/lib/images";
 import { StepEditor } from "@/components/builder/StepEditor";
 import { AgentLauncher } from "@/components/agent/AgentLauncher";
 import { AgentPanelCampaignStep } from "@/components/agent/AgentPanel";
@@ -287,13 +288,20 @@ function BuilderInner() {
     }, 800);
   }
 
+  // Pictures on each message, by step then slot (see lib/images.ts).
+  // ImageSlot saves them itself; this just keeps the editor in sync.
+  const [imagesByStep, setImagesByStep] = useState<Record<string, Record<string, StepImage>>>({});
+
   useEffect(() => {
     if (!loadedSteps) return;
     const copy: Record<string, Record<string, string>> = {};
+    const images: Record<string, Record<string, StepImage>> = {};
     for (const s of loadedSteps) {
       if (s.copy) copy[s.templateStepId] = s.copy;
+      if (s.images) images[s.templateStepId] = s.images;
     }
     setCopyByStep(copy);
+    setImagesByStep(images);
   }, [loadedSteps]);
 
   const [selectedId, setSelectedId] = useState("");
@@ -892,6 +900,7 @@ function BuilderInner() {
                 lockedIds={lockedIds}
                 generating={generating}
                 userPlatforms={userPlatforms}
+                imageCounts={Object.fromEntries(Object.entries(imagesByStep).map(([id, m]) => [id, Object.keys(m).length]))}
               />
             </section>
           </div>
@@ -913,6 +922,19 @@ function BuilderInner() {
             }}
             saveStatus={fieldSaveStatus}
             draft={!campaignId}
+            campaignId={campaignId}
+            userPlatforms={userPlatforms}
+            images={selected ? imagesByStep[selected.templateStepId] : undefined}
+            onImageChange={(slot, img) => {
+              if (!selected) return;
+              const id = selected.templateStepId;
+              setImagesByStep((prev) => {
+                const cur = { ...(prev[id] ?? {}) };
+                if (img) cur[slot] = img;
+                else delete cur[slot];
+                return { ...prev, [id]: cur };
+              });
+            }}
           />
         </div>
 

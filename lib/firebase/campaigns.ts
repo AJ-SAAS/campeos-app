@@ -16,6 +16,7 @@ import {
 import { db } from "./client";
 import { OfferContext } from "../ai/prompts";
 import { StepTemplate } from "../templates/types";
+import { StepImage } from "../images";
 
 export interface Campaign {
   id: string;
@@ -44,6 +45,9 @@ export interface CampaignStepDoc {
   fields: StepTemplate["fields"];
   scheduledAt: string; // ISO string
   copy: Record<string, string> | null;
+  /** Pictures added to this message, by slot ("main", or "img-1"... for
+   * an email's [IMAGE] lines). See lib/images.ts. */
+  images?: Record<string, StepImage>;
 }
 
 /**
@@ -143,7 +147,10 @@ export function latestCampaignByTemplate(campaigns: Campaign[]): Record<string, 
  * for confirming with the user before calling this, since it can't be
  * undone.
  */
-export async function deleteCampaign(campaignId: string): Promise<void> {
+export async function deleteCampaign(campaignId: string, uid?: string): Promise<void> {
+  // Loaded only here, so pages that never delete don't carry the
+  // Storage SDK.
+  if (uid) await import("./stepImages").then((m) => m.deleteCampaignImages(uid, campaignId));
   const stepsSnap = await getDocs(collection(db, "campaigns", campaignId, "steps"));
   const batch = writeBatch(db);
   for (const stepDoc of stepsSnap.docs) {

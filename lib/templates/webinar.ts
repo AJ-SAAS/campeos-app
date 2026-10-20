@@ -8,6 +8,7 @@ const shortLong = [
 const adFields = [
   { key: "headline", label: "Headline", kind: "short" as const },
   { key: "primaryText", label: "Primary text", kind: "long" as const },
+  { key: "visual", label: "Image or video idea", kind: "short" as const },
 ];
 
 const smsFields = [{ key: "body", label: "Text", kind: "long" as const }];

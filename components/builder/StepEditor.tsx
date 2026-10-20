@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { UIStep } from "./Timeline";
+import { ImageSlot } from "./ImageSlot";
+import { imageSlots, shapesFor, StepImage } from "@/lib/images";
 
 interface StepEditorProps {
   step: UIStep | undefined;
@@ -24,6 +26,14 @@ interface StepEditorProps {
   /** True for a campaign that hasn't been written yet: there's nothing
    * saved to Firestore until it is, so the badge says so. */
   draft?: boolean;
+  /** Saved campaign id (null until the campaign is written). Pictures
+   * can only be added once there's somewhere to save them. */
+  campaignId?: string | null;
+  /** Social platforms picked in onboarding, for the best picture size. */
+  userPlatforms?: string[];
+  /** This step's saved pictures, by slot. */
+  images?: Record<string, StepImage>;
+  onImageChange?: (slot: string, image: StepImage | null) => void;
 }
 
 const LANE_STYLE: Record<string, { label: string; fg: string; bg: string }> = {
@@ -53,6 +63,10 @@ export function StepEditor({
   onFieldChange,
   saveStatus = "idle",
   draft = false,
+  campaignId = null,
+  userPlatforms = [],
+  images = {},
+  onImageChange,
 }: StepEditorProps) {
   const [instruction, setInstruction] = useState("");
   const [whyOpen, setWhyOpen] = useState(false);
@@ -83,6 +97,31 @@ export function StepEditor({
 
   const lane = LANE_STYLE[step.channel] ?? LANE_STYLE.ad;
   const needs = needsInput(step);
+  const shapes = shapesFor(step.channel, userPlatforms);
+  const slots = imageSlots(step.channel, step.copy);
+  // Pictures whose [IMAGE] line was deleted from the email still show,
+  // so they can be removed instead of sitting in storage unseen.
+  const orphanSlots = Object.keys(images).filter((id) => !slots.some((s) => s.id === id));
+  const isEmail = step.channel === "email";
+  const hasBody = step.fields.some((f) => f.key === "body");
+
+  function addPictureSpot() {
+    const body = step?.copy?.body ?? "";
+    onFieldChange("body", `${body.replace(/\s+$/, "")}\n\n[IMAGE: describe the picture]\n`);
+  }
+
+  const slotEl = (id: string, label: string) => (
+    <ImageSlot
+      key={id}
+      campaignId={campaignId}
+      stepId={step.templateStepId}
+      slot={id}
+      label={label}
+      shapes={shapes}
+      image={images[id]}
+      onChange={(img) => onImageChange?.(id, img)}
+    />
+  );
 
   function send() {
     if (!instruction.trim()) return;
@@ -262,9 +301,40 @@ export function StepEditor({
                         className="w-full -mx-2 resize-none rounded-md border-none bg-transparent px-2 py-1 text-[16px] leading-[1.7] text-slate placeholder:text-faint"
                       />
                     )}
+                    {field.key === "visual" && !isEmail && slots[0] && <div className="mt-2">{slotEl(slots[0].id, "")}</div>}
                   </div>
                 );
               })}
+
+              {/* Ads saved before they had an image idea field still get a picture */}
+              {!isEmail && slots[0] && !step.fields.some((f) => f.key === "visual") && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-mono text-[10.5px] uppercase tracking-wider text-faint">Image</span>
+                  {slotEl(slots[0].id, "")}
+                </div>
+              )}
+
+              {isEmail && hasBody && (
+                <div className="flex flex-col gap-2.5 pt-2 border-t border-line/60">
+                  <span className="font-mono text-[10.5px] uppercase tracking-wider text-faint pt-5">Pictures in this email</span>
+                  {slots.length === 0 && orphanSlots.length === 0 && (
+                    <p className="text-[14px] text-muted leading-relaxed">
+                      No pictures yet. Add a spot, then move its [IMAGE: ...] line to where the picture should go.
+                    </p>
+                  )}
+                  {slots.map((sl, i) => slotEl(sl.id, sl.label || `Picture ${i + 1}`))}
+                  {orphanSlots.map((id) => slotEl(id, "This picture's [IMAGE] line was deleted"))}
+                  <button
+                    onClick={addPictureSpot}
+                    className="self-start inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] border border-[#E3E1E8] bg-white text-[13px] font-semibold"
+                  >
+                    <span aria-hidden="true" className="text-[16px] leading-none">+</span> Add a picture spot
+                  </button>
+                  <p className="text-[12px] text-faint leading-snug">
+                    When you paste this email into your email tool, put each picture where its [IMAGE] line is.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
