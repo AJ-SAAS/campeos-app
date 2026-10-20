@@ -53,6 +53,16 @@ import { authFetch } from "@/lib/firebase/authFetch";
 // webinar template's earliest step goes out 6 days before the event, so
 // this puts every step in the future with a day to spare. (This used to
 // be a fixed date, which put every new campaign in the past.)
+/** /builder?date=2026-11-27 (from the dashboard's sales-date cards):
+ * the campaign goes live at 9 AM that day. Ignored if it's not a real
+ * future date. */
+function eventDateFromParam(value: string | null): Date | null {
+  const m = value?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 9, 0, 0, 0);
+  return isNaN(d.getTime()) || d.getTime() < Date.now() ? null : d;
+}
+
 function defaultEventDate(): Date {
   const d = new Date();
   d.setDate(d.getDate() + 8);
@@ -115,7 +125,9 @@ function BuilderInner() {
 
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [offer, setOffer] = useState<OfferContext>(EMPTY_OFFER);
-  const [eventDate, setEventDate] = useState<Date>(defaultEventDate);
+  const [eventDate, setEventDate] = useState<Date>(
+    () => eventDateFromParam(searchParams.get("date")) ?? defaultEventDate()
+  );
   const [loadedSteps, setLoadedSteps] = useState<CampaignStepDoc[] | null>(null);
   const [loadingCampaign, setLoadingCampaign] = useState(!!existingId);
   // A brand-new campaign (no ?id=) shows the OfferPicker until an offer

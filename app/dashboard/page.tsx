@@ -24,17 +24,21 @@ import {
   CampaignSummary,
   formatWhen,
   greeting,
+  campaignsForSalesDates,
   nextSalesDate,
+  SalesDate,
   summarize,
+  upcomingSalesDates,
   WeekDay,
   WeekItem,
 } from "@/lib/dashboard";
 
 // The dashboard (approved "Campeos dashboard" design, two views):
 //
-// - Paying users: "Good morning", today's messages as a short list (the
-//   same rows as the campaign schedule), the rest of the week folded into
-//   one row per day, a slim sales-date nudge, their campaigns, and the
+// - Paying users: "Good morning", the next big sales dates (Black Friday
+//   and Cyber Monday together when they're close), today's messages as a
+//   short list (the same rows as the campaign schedule), the rest of the
+//   week folded into one row per day, their campaigns, and the
 //   agent beside it all. Only the newest version of each campaign counts.
 // - No plan yet (new users out of onboarding): "Welcome", their first
 //   launch with the free steps written and the rest locked behind
@@ -175,7 +179,11 @@ function PaidView({
   const todayLeft = today.items.filter((i) => i.status !== "Sent");
   const needs = todayLeft.filter((i) => i.status === "Add details" || i.status === "Not written").length;
   const laterDays = later.filter((d) => d.items.length > 0);
-  const sales = nextSalesDate(now);
+  const salesDates = useMemo(() => upcomingSalesDates(now), [now]);
+  const builtFor = useMemo(
+    () => campaignsForSalesDates(salesDates, campaigns ?? []),
+    [salesDates, campaigns]
+  );
 
   const summary = !loaded
     ? " "
@@ -207,6 +215,17 @@ function PaidView({
             <PlusIcon /> New campaign
           </Link>
         </div>
+
+        {salesDates.length > 0 && campaigns !== null && (
+          <section
+            aria-label="Big sales dates"
+            className={`grid grid-cols-1 gap-3 ${salesDates.length > 1 ? "sm:grid-cols-2" : ""}`}
+          >
+            {salesDates.map((d) => (
+              <SalesDateCard key={d.id} sale={d} campaign={builtFor[d.id]} />
+            ))}
+          </section>
+        )}
 
         {/* Today: one row per message, the same rows as the campaign schedule */}
         <section aria-label="Today" className="border border-[#ECEAF0] rounded-[22px] overflow-hidden">
@@ -245,27 +264,6 @@ function PaidView({
           </section>
         )}
 
-        {sales && sales.days <= 60 && (
-          <Link
-            href="/campaigns"
-            className="group flex items-center gap-4 px-5 py-4 rounded-[18px] bg-[#F8F8F8] border border-[#F0F0F0] hover:border-[#E3E1E8]"
-          >
-            <span className="w-12 h-12 shrink-0 rounded-[12px] bg-paper border border-[#ECEAF0] flex flex-col items-center justify-center">
-              <span className="font-serif text-[20px] font-medium leading-none">{sales.days}</span>
-              <span className="font-mono text-[8px] tracking-[.1em] text-muted mt-0.5">{sales.days === 1 ? "DAY" : "DAYS"}</span>
-            </span>
-            <span className="flex-grow min-w-0">
-              <span className="block text-[15px] font-semibold">
-                {sales.name} is in {sales.days} {sales.days === 1 ? "day" : "days"}
-              </span>
-              <span className="hidden sm:block text-[13px] text-muted mt-0.5">Most launches start 3 weeks out.</span>
-            </span>
-            <span className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-[#5B21B6]">
-              Plan it <ArrowIcon />
-            </span>
-          </Link>
-        )}
-
         <CampaignList now={now} campaigns={campaigns} stepsById={stepsById} deletingId={deletingId} onDelete={onDelete} />
       </div>
 
@@ -274,6 +272,39 @@ function PaidView({
         <AgentPanel fill />
       </div>
     </div>
+  );
+}
+
+/** A big sales date. "Plan it" opens the builder with that day as the
+ * go-live date; once a campaign exists for it, "Continue" opens that. */
+function SalesDateCard({ sale, campaign }: { sale: SalesDate; campaign?: Campaign }) {
+  const ymd = `${sale.date.getFullYear()}-${String(sale.date.getMonth() + 1).padStart(2, "0")}-${String(sale.date.getDate()).padStart(2, "0")}`;
+  const href = campaign ? `/builder?id=${campaign.id}` : `/builder?date=${ymd}`;
+  const when = sale.date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-4 px-5 py-4 rounded-[18px] bg-[#F8F8F8] border border-[#F0F0F0] hover:border-[#E3E1E8]"
+    >
+      <span className="w-12 h-12 shrink-0 rounded-[12px] bg-paper border border-[#ECEAF0] flex flex-col items-center justify-center">
+        <span className="font-serif text-[20px] font-medium leading-none">{sale.days}</span>
+        <span className="font-mono text-[8px] tracking-[.1em] text-muted mt-0.5">{sale.days === 1 ? "DAY" : "DAYS"}</span>
+      </span>
+      <span className="flex-grow min-w-0">
+        <span className="block text-[15px] font-semibold truncate">{sale.name}</span>
+        <span className="block text-[13px] text-muted mt-0.5 truncate">
+          {when}
+          {campaign ? " · Started" : ""}
+        </span>
+      </span>
+      <span
+        className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] text-sm font-semibold ${
+          campaign ? "bg-paper border border-[#E3E1E8] text-slate" : "bg-slate text-white"
+        }`}
+      >
+        {campaign ? "Continue" : "Plan it"} <ArrowIcon />
+      </span>
+    </Link>
   );
 }
 
