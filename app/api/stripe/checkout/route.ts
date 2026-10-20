@@ -1,20 +1,21 @@
 import { NextResponse } from "next/server";
-import { getStripeClient, PLANS, isPlanKey } from "@/lib/stripe/client";
+import { getStripeClient, PLANS, isPlanKey, isBillingInterval, type BillingInterval } from "@/lib/stripe/client";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
 
 /**
- * Starts a Stripe Checkout session for one of the two plans. No free
- * trial (billing decision: paid only, no free tier/trial) — the
- * Checkout Session is created without a trial_period_days.
+ * Starts a Stripe Checkout session for one of the two plans, monthly or
+ * yearly. No free trial (billing decision: paid only, no free tier/trial).
  *
- * Body: { plan: "starter" | "pro" }. The uid and email come from the
- * verified ID token (lib/serverAuth.ts), not the body.
+ * Body: { plan: "starter" | "pro", interval?: "monthly" | "yearly" }.
+ * interval defaults to "monthly". The uid and email come from the
+ * verified ID token (lib/serverAuth.ts), never the body, so nobody can
+ * start a checkout as someone else.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { plan } = body as { plan?: string };
+    const { plan, interval: rawInterval } = body as { plan?: string; interval?: string };
 
     const caller = await getVerifiedUser(req);
     if (!caller) {
@@ -25,13 +26,15 @@ export async function POST(req: Request) {
     if (!plan || !isPlanKey(plan)) {
       return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
     }
+    const interval: BillingInterval =
+      rawInterval && isBillingInterval(rawInterval) ? rawInterval : "monthly";
 
     const planConfig = PLANS[plan];
-    if (!planConfig.priceId) {
+    const priceId = planConfig.priceId[interval];
+    if (!priceId) {
+      const envVar = interval === "yearly" ? `STRIPE_PRICE_${plan.toUpperCase()}_YEARLY` : `STRIPE_PRICE_${plan.toUpperCase()}`;
       return NextResponse.json(
-        {
-          error: `No Stripe price id configured for the ${planConfig.name} plan — set STRIPE_PRICE_${plan.toUpperCase()} in your environment.`,
-        },
+        { error: `No Stripe price id configured for the ${planConfig.name} ${interval} plan. Set ${envVar} in your environment.` },
         { status: 500 }
       );
     }
@@ -51,11 +54,11 @@ export async function POST(req: Request) {
       customer: existingCustomerId,
       customer_email: existingCustomerId ? undefined : email,
       client_reference_id: uid,
-      line_items: [{ price: planConfig.priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
-        metadata: { uid, plan },
+        metadata: { uid, plan, interval },
       },
-      metadata: { uid, plan },
+      metadata: { uid, plan, interval },
       success_url: `${req.headers.get("origin")}/dashboard?checkout=success`,
       cancel_url: `${req.headers.get("origin")}/billing?checkout=canceled`,
     });

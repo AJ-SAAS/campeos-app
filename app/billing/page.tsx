@@ -5,19 +5,21 @@ import { Sidebar } from "@/components/Sidebar";
 import { usePlanSuggestion } from "@/components/PlanModal";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { getSubscription, Subscription } from "@/lib/firebase/subscription";
-import { PlanKey } from "@/lib/stripe/client";
+import { PlanKey, BillingInterval } from "@/lib/stripe/client";
 import { authFetch } from "@/lib/firebase/authFetch";
 
 // Billing, laid out like MailCheap's: one big card. The left side picks
 // the plan (what changes between them, shown big), the right side shows
 // the price, what's included, and one Subscribe button. Feature lists
-// match the pricing on the sales page (components/landing).
+// match the pricing on the sales page (components/landing). Yearly is
+// 10 months' price billed once a year ("2 months free"), its own Stripe
+// price (STRIPE_PRICE_*_YEARLY, see lib/stripe/client.ts).
 
 const PLANS: Record<
   PlanKey,
   {
     name: string;
-    price: string;
+    price: Record<BillingInterval, string>;
     tagline: string;
     big: string;
     bigLabel: string;
@@ -27,7 +29,7 @@ const PLANS: Record<
 > = {
   starter: {
     name: "Starter",
-    price: "$39",
+    price: { monthly: "$39", yearly: "$33" },
     tagline: "A few launches a year",
     big: "3",
     bigLabel: "campaigns a month",
@@ -45,7 +47,7 @@ const PLANS: Record<
   },
   pro: {
     name: "Pro",
-    price: "$99",
+    price: { monthly: "$99", yearly: "$83" },
     tagline: "Launch all year",
     big: "Unlimited",
     bigLabel: "campaigns",
@@ -69,6 +71,7 @@ export default function BillingPage() {
   const { plan: fit, reason } = usePlanSuggestion();
   const [sub, setSub] = useState<Subscription | null>(null);
   const [picked, setPicked] = useState<PlanKey | null>(null);
+  const [pickedInterval, setPickedInterval] = useState<BillingInterval | null>(null);
   const [pending, setPending] = useState(false);
   const [portalPending, setPortalPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +87,8 @@ export default function BillingPage() {
   const activePlan = sub?.status === "active" ? sub.plan : null;
   const selected: PlanKey = picked ?? activePlan ?? fit;
   const plan = PLANS[selected];
+  const currentInterval: BillingInterval = sub?.interval ?? "monthly";
+  const billingInterval: BillingInterval = pickedInterval ?? (activePlan ? currentInterval : "monthly");
 
   async function subscribe() {
     if (!user) {
@@ -95,7 +100,7 @@ export default function BillingPage() {
     try {
       const res = await authFetch("/api/stripe/checkout", {
         method: "POST",
-        body: JSON.stringify({ plan: selected }),
+        body: JSON.stringify({ plan: selected, interval: billingInterval }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error ?? "Checkout didn't open.");
@@ -121,7 +126,7 @@ export default function BillingPage() {
     }
   }
 
-  const isCurrent = activePlan === selected;
+  const isCurrent = activePlan === selected && currentInterval === billingInterval;
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-paper text-slate font-body">
@@ -134,7 +139,7 @@ export default function BillingPage() {
           </h1>
           <p className="mt-2 text-[16px] text-muted leading-relaxed">
             {activePlan
-              ? `You're on ${PLANS[activePlan].name}. Change or cancel anytime.`
+              ? `You're on ${PLANS[activePlan].name}, billed ${currentInterval}. Change or cancel anytime.`
               : "Both plans write every email, text, ad and post. They differ in how many campaigns you run."}
           </p>
         </div>
@@ -148,12 +153,25 @@ export default function BillingPage() {
         <div className="w-full max-w-[1080px] grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] rounded-[28px] border border-line overflow-hidden shadow-[0_30px_60px_-50px_rgba(23,19,31,.4)]">
           {/* Left: pick the plan */}
           <div className="bg-paper p-6 sm:p-10 flex flex-col">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-[15px] font-semibold">How often do you launch?</span>
-              {reason && !activePlan && (
-                <span className="hidden sm:inline text-xs text-muted text-right max-w-[220px]">{reason}</span>
-              )}
+              <div className="inline-flex items-center gap-1 rounded-full bg-[#F5F5F5] p-1" role="group" aria-label="Billing period">
+                {(["monthly", "yearly"] as BillingInterval[]).map((iv) => (
+                  <button
+                    key={iv}
+                    onClick={() => setPickedInterval(iv)}
+                    aria-pressed={billingInterval === iv}
+                    className={`h-9 px-4 rounded-full text-sm font-semibold transition-colors ${
+                      billingInterval === iv ? "bg-paper text-slate shadow-[0_1px_3px_rgba(23,19,31,.12)]" : "text-muted"
+                    }`}
+                  >
+                    {iv === "monthly" ? "Monthly" : "Yearly"}
+                    {iv === "yearly" && <span className="ml-1.5 text-[#15803D]">2 months free</span>}
+                  </button>
+                ))}
+              </div>
             </div>
+            {reason && !activePlan && <div className="mt-2 text-xs text-muted">{reason}</div>}
 
             <div key={selected} className="mt-8 animate-step-in">
               <div className="font-display text-[64px] sm:text-[84px] font-bold leading-none tracking-tight">
@@ -191,7 +209,7 @@ export default function BillingPage() {
                     )}
                     <div className="text-[15px] font-semibold">{PLANS[id].tagline}</div>
                     <div className={`text-[13px] mt-0.5 ${on ? "text-white/70" : "text-muted"}`}>
-                      {PLANS[id].name} · {PLANS[id].price}/mo
+                      {PLANS[id].name} · {PLANS[id].price[billingInterval]}/mo
                     </div>
                   </button>
                 );
@@ -208,10 +226,18 @@ export default function BillingPage() {
               </span>
             </div>
             <div key={selected} className="mt-3 flex items-baseline gap-1.5 animate-step-in">
-              <span className="font-display text-[56px] font-bold tracking-tight leading-none">{plan.price}</span>
+              <span className="font-display text-[56px] font-bold tracking-tight leading-none">{plan.price[billingInterval]}</span>
               <span className="text-[17px] text-muted">/month</span>
             </div>
-            <div className="mt-1.5 text-[14px] text-muted">Billed monthly</div>
+            <div className="mt-1.5 text-[14px] text-muted">
+              {billingInterval === "yearly" ? (
+                <>
+                  Billed yearly. <span className="text-[#15803D] font-semibold">2 months free.</span>
+                </>
+              ) : (
+                "Billed monthly"
+              )}
+            </div>
 
             <div className="mt-6 pt-6 border-t border-line lg:min-h-[250px]">
               <div className="text-[13px] text-muted mb-3">{plan.name} includes</div>
@@ -244,7 +270,11 @@ export default function BillingPage() {
                     disabled={portalPending}
                     className="h-14 rounded-xl bg-slate text-white text-[16px] font-semibold disabled:opacity-60"
                   >
-                    {portalPending ? "Opening..." : `Switch to ${plan.name}`}
+                    {portalPending
+                      ? "Opening..."
+                      : activePlan === selected
+                        ? `Switch to ${billingInterval}`
+                        : `Switch to ${plan.name}`}
                   </button>
                 )
               ) : (

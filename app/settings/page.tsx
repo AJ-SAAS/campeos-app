@@ -103,7 +103,8 @@ export default function SettingsPage() {
 
   const provider = user?.providerData?.[0]?.providerId === "google.com" ? "Google" : "email and password";
   const planName = sub?.plan === "pro" ? "Pro" : "Starter";
-  const planPrice = sub?.plan === "pro" ? "$99" : "$39";
+  const yearly = sub?.interval === "yearly";
+  const planPrice = sub?.plan === "pro" ? (yearly ? "$83" : "$99") : yearly ? "$33" : "$39";
   // No answer saved (accounts from before onboarding) means "every
   // channel", which is what the builder does in that case too.
   const channels: string[] = profile?.channels?.length ? profile.channels : PLATFORMS.map((p) => p.id);
@@ -164,7 +165,7 @@ export default function SettingsPage() {
                           <span className="text-[20px] font-semibold">{planName} plan</span>
                           <span className="px-2 py-0.5 rounded-full bg-[#DCFCE7] text-[#166534] text-[11px] font-bold">Active</span>
                         </div>
-                        <div className="text-[15px] text-muted mt-0.5">{planPrice} a month. Change your card, see invoices or cancel anytime.</div>
+                        <div className="text-[15px] text-muted mt-0.5">{planPrice} a month{yearly ? ", billed yearly" : ""}. Change your card, see invoices or cancel anytime.</div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Link href="/billing" className="h-11 px-4 rounded-xl border border-[#E3E1E8] text-[15px] font-semibold hover:bg-[#FAFAFA] inline-flex items-center">
