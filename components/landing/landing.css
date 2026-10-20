@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+
+/* Campeos landing page. All classes are prefixed cps- so nothing clashes with the app. */
+.cps-root{background:#FFFFFF;min-height:100vh}
+.cps-root,.cps-root *{box-sizing:border-box}
+.cps-root a{color:#6D28D9}.cps-root a:hover{color:#4C1D95}
+@keyframes cps-fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.cps-fu{animation:cps-fu .55s cubic-bezier(.2,.7,.2,1) both}
+@keyframes cps-pop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
+.cps-pop{animation:cps-pop .45s cubic-bezier(.2,.7,.2,1) both}
+@keyframes cps-type{from{max-width:0}to{max-width:100%}}
+.cps-type{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom;animation:cps-type 1.5s steps(40,end) both}
+@keyframes cps-caret{50%{opacity:0}}
+.cps-caret{display:inline-block;width:2px;height:1.1em;background:#6D28D9;vertical-align:text-bottom;margin-left:2px;animation:cps-caret 1s step-end infinite}
+@keyframes cps-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.cps-draw{transform-origin:left;animation:cps-draw 1.2s ease-out both}
+@keyframes cps-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.cps-fill{transform-origin:left;animation:cps-fill 4.2s linear both}
+@keyframes cps-word{0%{opacity:0;transform:translateY(55%)}100%{opacity:1;transform:none}}
+.cps-word{display:inline-block;animation:cps-word .45s cubic-bezier(.2,.7,.2,1) both}
+@keyframes cps-hl{0%,22%{background:#6D28D9;color:#fff;border-color:#6D28D9}28%,100%{background:#fff;color:#17131F;border-color:#E8E4F0}}
+.cps-hl{animation:cps-hl 6s infinite both}
+@keyframes cps-ltype{0%{max-width:0}35%,88%{max-width:100%;opacity:1}100%{max-width:100%;opacity:0}}
+.cps-ltype{display:block;overflow:hidden;white-space:nowrap;animation:cps-ltype 5s steps(36,end) infinite both}
+@keyframes cps-lfade{0%{opacity:0;transform:translateY(10px)}15%,85%{opacity:1;transform:none}100%{opacity:0}}
+.cps-lfade{animation:cps-lfade 5s infinite both}
+@keyframes cps-ldraw{0%{transform:scaleX(0)}40%,88%{transform:scaleX(1);opacity:1}100%{transform:scaleX(1);opacity:0}}
+.cps-ldraw{transform-origin:left;animation:cps-ldraw 5s ease-out infinite both}
+@keyframes cps-lpop{0%,12%{opacity:0;transform:scale(.5)}22%,88%{opacity:1;transform:scale(1)}100%{opacity:0}}
+.cps-lpop{animation:cps-lpop 5s infinite both}
+@keyframes cps-ldim{0%,25%{opacity:1}35%,88%{opacity:.35}100%{opacity:1}}
+.cps-ldim{animation:cps-ldim 5s infinite both}
+@keyframes cps-swapA{0%,40%{opacity:1}45%,90%{opacity:0}95%,100%{opacity:1}}
+@keyframes cps-swapB{0%,40%{opacity:0}45%,90%{opacity:1}95%,100%{opacity:0}}
+.cps-swapA{animation:cps-swapA 4s infinite both}.cps-swapB{animation:cps-swapB 4s infinite both}
+@keyframes cps-stackIn{from{opacity:0;transform:translateY(-70px) scale(1.05)}to{opacity:1;transform:none}}
+.cps-stack{animation:cps-stackIn .55s cubic-bezier(.2,.7,.2,1) both;animation-play-state:paused}
+.cps-in .cps-stack{animation-play-state:running}
+.cps-reveal{opacity:0;transform:translateY(30px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+.cps-reveal.cps-in{opacity:1;transform:none}
+.cps-rg > *{opacity:0;transform:translateY(34px) scale(.97);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1),box-shadow .35s,border-color .35s}
+.cps-rg.cps-in > *{opacity:1;transform:none}
+.cps-rg.cps-in > *:nth-child(2){transition-delay:.08s}.cps-rg.cps-in > *:nth-child(3){transition-delay:.16s}.cps-rg.cps-in > *:nth-child(4){transition-delay:.24s}.cps-rg.cps-in > *:nth-child(5){transition-delay:.32s}.cps-rg.cps-in > *:nth-child(6){transition-delay:.4s}.cps-rg.cps-in > *:nth-child(7){transition-delay:.48s}.cps-rg.cps-in > *:nth-child(8){transition-delay:.56s}.cps-rg.cps-in > *:nth-child(9){transition-delay:.64s}
+.cps-rg.cps-in > .cps-card:hover{transform:translateY(-5px);transition-delay:0s;box-shadow:0 26px 50px -28px rgba(76,29,149,.5);border-color:#D8CCF5}
+@keyframes cps-tilt{from{opacity:0;transform:perspective(1400px) rotateX(16deg) translateY(40px) scale(.97)}to{opacity:1;transform:perspective(1400px) rotateX(0) translateY(0) scale(1)}}
+.cps-tilt{animation:cps-tilt 1.2s cubic-bezier(.2,.7,.2,1) both}
+@keyframes cps-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.cps-marquee{display:flex;width:max-content;animation:cps-marquee 40s linear infinite}
+@keyframes cps-marqueeR{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+.cps-marqueeR{display:flex;width:max-content;animation:cps-marqueeR 80s linear infinite}
+@keyframes cps-glow{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:.9;transform:scale(1.08)}}
+.cps-glow{animation:cps-glow 9s ease-in-out infinite}
+.cps-root header{transition:box-shadow .3s}
+.cps-root header.cps-scrolled{box-shadow:0 12px 30px -20px rgba(23,19,31,.4)}
+@keyframes cps-ring{0%{box-shadow:0 0 0 0 rgba(109,40,217,.35)}100%{box-shadow:0 0 0 9px rgba(109,40,217,0)}}
+.cps-ring{animation:cps-ring 1.4s ease-out infinite}
+@keyframes cps-cursor{0%{transform:translate(200px,150px)}35%{transform:translate(0,0)}40%{transform:translate(0,0) scale(.82)}46%,82%{transform:translate(0,0) scale(1)}100%{transform:translate(200px,150px)}}
+.cps-cur{animation:cps-cursor 6s cubic-bezier(.6,0,.2,1) infinite}
+@keyframes cps-clickRing{0%,38%{box-shadow:0 0 0 0 rgba(124,58,237,0)}41%{box-shadow:0 0 0 0 rgba(124,58,237,.55)}65%,100%{box-shadow:0 0 0 14px rgba(124,58,237,0)}}
+.cps-click{animation:cps-clickRing 6s infinite}
+@keyframes cps-show4{0%,22%{opacity:1;transform:none}26%,100%{opacity:0;transform:translateY(4px)}}
+.cps-show4{animation:cps-show4 6s infinite both}
+@keyframes cps-dots{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.cps-dot{animation:cps-dots 1.2s infinite}
+.cps-bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:20px}
+.cps-s7{grid-column:span 7}.cps-s5{grid-column:span 5}.cps-s12{grid-column:span 12}
+@media (max-width:900px){.cps-s7,.cps-s5,.cps-s12{grid-column:span 12}}
+.cps-swipe path{stroke-dasharray:1;stroke-dashoffset:1;animation:cps-swipe .9s .7s cubic-bezier(.6,0,.2,1) forwards}
+@keyframes cps-swipe{to{stroke-dashoffset:0}}
+@keyframes cps-flow{to{stroke-dashoffset:-24}}
+@keyframes cps-orbit{from{transform:rotate(-150deg)}to{transform:rotate(210deg)}}
+.cps-orbit{transform-origin:150px 150px;animation:cps-orbit 5.6s linear infinite}
+@keyframes cps-nodeOn{0%,22%{opacity:1;transform:scale(1)}27%,95%{opacity:0;transform:scale(.6)}100%{opacity:1;transform:scale(1)}}
+.cps-nodeOn{opacity:0;animation:cps-nodeOn 5.6s linear infinite}
+@keyframes cps-capOn{0%,21%{opacity:1;filter:blur(0)}26%,96%{opacity:0;filter:blur(4px)}100%{opacity:1;filter:blur(0)}}
+.cps-capOn{opacity:0;animation:cps-capOn 5.6s linear infinite}
+.cps-flow{animation:cps-flow 2.4s linear infinite}
+.cps-side{display:flex}
+@media (max-width:760px){.cps-side{display:none}.cps-hide-sm{display:none}}
+@media (prefers-reduced-motion:reduce){.cps-root *{animation-duration:.01ms !important;animation-iteration-count:1 !important;animation-delay:0s !important}}
+
+/* Reduced motion: show one clean frame of each looping demo instead of stacked layers */
+@media (prefers-reduced-motion:reduce){.cps-show4,.cps-capOn,.cps-nodeOn{animation:none !important;opacity:0 !important}.cps-show4:first-of-type,.cps-capOn:first-child{opacity:1 !important}.cps-swapB{opacity:0 !important}.cps-swapA{opacity:1 !important}}
