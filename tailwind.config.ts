@@ -46,6 +46,12 @@ const config: Config = {
         display: ["Space Grotesk", "sans-serif"],
         body: ["DM Sans", "sans-serif"],
         mono: ["DM Mono", "monospace"],
+        // Newsreader — only for the marketing page's big section
+        // headlines (app/page.tsx), per the approved "Campeos sales
+        // page" design: an italic serif display face reads as "written
+        // by a person," a deliberate contrast with Space Grotesk's
+        // geometric, product-UI voice used everywhere else in the app.
+        serif: ["Newsreader", "serif"],
       },
       // Added for the marketing page (app/page.tsx) — the rest of the app
       // sticks to Tailwind's built-in animate-pulse/animate-spin, but the
@@ -69,12 +75,29 @@ const config: Config = {
           "0%, 100%": { backgroundPosition: "0% 50%" },
           "50%": { backgroundPosition: "100% 50%" },
         },
+        // Each onboarding question remounts under a new `key`, so this
+        // plays on every step change (forward or back) — the fade/rise
+        // is what tells you something moved, since there's no exit
+        // animation on the step you're leaving.
+        "step-in": {
+          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        // The campaign-type marquee on the marketing page: the strip is
+        // rendered twice back to back and slides exactly one copy's
+        // width, so the loop point is invisible.
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         drift: "drift 13s ease-in-out infinite",
         drift2: "drift2 15s ease-in-out infinite",
         floaty: "floaty 5s ease-in-out infinite",
         "gradient-move": "gradient-move 10s ease-in-out infinite",
+        "step-in": "step-in 0.32s cubic-bezier(0.16,1,0.3,1) both",
+        marquee: "marquee 42s linear infinite",
       },
     },
   },

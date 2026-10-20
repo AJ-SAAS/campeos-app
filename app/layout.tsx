@@ -8,7 +8,7 @@ import { AuthProvider } from "@/lib/firebase/AuthProvider";
 // canonical URL. Falls back to the production domain so this still
 // works correctly even if the env var isn't set somewhere (a preview
 // deploy, local dev); set NEXT_PUBLIC_SITE_URL in Vercel to override.
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://campeos.ai";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://campeos.com";
 const TAGLINE = "Plan and write your whole campaign, not just one post.";
 
 export const metadata: Metadata = {
@@ -65,7 +65,7 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link
-          href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400..700&family=Space+Grotesk:wght@500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400..700&family=Space+Grotesk:wght@500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&display=swap"
           rel="stylesheet"
         />
       </head>
