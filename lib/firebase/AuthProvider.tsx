@@ -47,6 +47,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signIn() {
     const provider = new GoogleAuthProvider();
+    // Without this, Google silently reuses whatever Google account is
+    // already active in the browser and never shows the account picker —
+    // so there's no way to sign in as a different Google account.
+    provider.setCustomParameters({ prompt: "select_account" });
     await signInWithPopup(auth, provider);
   }
 
