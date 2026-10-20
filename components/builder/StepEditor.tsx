@@ -120,19 +120,19 @@ export function StepEditor({
           <div className="flex items-center gap-3">
             {/* Always visible, so after any edit you can see it's kept:
                 "Saving..." while typing, then "Saved" with a tick. */}
-            <span role="status" aria-live="polite" className="inline-flex items-center gap-1.5 text-[13px] font-semibold">
+            <span role="status" aria-live="polite" className="inline-flex items-center gap-2 text-[15px] sm:text-base font-semibold">
               {draft ? (
-                <span className="text-muted">Saves when you write the campaign</span>
+                <span className="text-muted text-[14px]">Saves when you write the campaign</span>
               ) : saveStatus === "saving" ? (
                 <>
-                  <svg className="animate-spin text-muted" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+                  <svg className="animate-spin text-[#15803D]" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
                     <path d="M21 12a9 9 0 1 1-6.2-8.6" />
                   </svg>
-                  <span className="text-muted">Saving...</span>
+                  <span className="text-[#15803D]">Saving...</span>
                 </>
               ) : (
-                <span key={saveStatus} className={`inline-flex items-center gap-1.5 text-[#15803D] ${saveStatus === "saved" ? "animate-step-in" : ""}`}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <span key={saveStatus} className={`inline-flex items-center gap-2 text-[#15803D] ${saveStatus === "saved" ? "animate-step-in" : ""}`}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M5 12l5 5 9-10" />
                   </svg>
                   Saved
