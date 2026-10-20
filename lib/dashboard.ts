@@ -80,6 +80,79 @@ export function buildWeek(
   return days;
 }
 
+/**
+ * One campaign per name: the newest. listCampaigns() returns newest
+ * first, so older copies of "Fall Reset Program" drop out here and stop
+ * filling the dashboard with the same email five times.
+ */
+export function latestVersions(campaigns: Campaign[]): Campaign[] {
+  const seen = new Set<string>();
+  return campaigns.filter((c) => {
+    const key = c.title.trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
+ * Today plus the next (count - 1) days, for the dashboard's "Today" list
+ * and the folded "Coming up" rows. Only the newest version of each
+ * campaign counts, and messages switched off in the builder
+ * (skippedSteps / skippedChannels) are left out.
+ */
+export function buildDays(
+  now: Date,
+  campaigns: { campaign: Campaign; steps: CampaignStepDoc[] }[],
+  count = 7
+): WeekDay[] {
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days: WeekDay[] = [];
+  for (let i = 0; i < count; i++) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    days.push({
+      date,
+      label: date.toLocaleDateString(undefined, { weekday: "short" }),
+      num: String(date.getDate()),
+      isToday: i === 0,
+      items: [],
+    });
+  }
+  const end = new Date(start);
+  end.setDate(start.getDate() + count);
+
+  const latest = new Set(latestVersions(campaigns.map((c) => c.campaign)).map((c) => c.id));
+  for (const { campaign, steps } of campaigns) {
+    if (!latest.has(campaign.id)) continue;
+    const offSteps = new Set(campaign.skippedSteps ?? []);
+    const offChannels = new Set(campaign.skippedChannels ?? []);
+    for (const s of steps) {
+      if (offSteps.has(s.templateStepId) || offChannels.has(s.channel)) continue;
+      const at = new Date(s.scheduledAt);
+      if (at < start || at >= end) continue;
+      const idx = Math.round(
+        (new Date(at.getFullYear(), at.getMonth(), at.getDate()).getTime() - start.getTime()) / 86400000
+      );
+      const day = days[idx];
+      if (!day) continue;
+      const status: WeekItem["status"] =
+        at < now ? "Sent" : !s.copy ? "Not written" : needsInput(s.copy) ? "Add details" : "Ready";
+      day.items.push({
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        templateStepId: s.templateStepId,
+        channel: s.channel,
+        title: s.title,
+        at,
+        status,
+      });
+    }
+  }
+  for (const d of days) d.items.sort((a, b) => a.at.getTime() - b.at.getTime());
+  return days;
+}
+
 export interface CampaignSummary {
   campaign: Campaign;
   total: number;

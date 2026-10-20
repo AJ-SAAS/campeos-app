@@ -18,8 +18,9 @@ import {
 } from "@/lib/firebase/campaigns";
 import { getBusinessProfile } from "@/lib/firebase/businessProfile";
 import { getTemplate } from "@/lib/templates";
+import { channelInfo, LogoStack, PlatformKey } from "@/components/builder/channels";
 import {
-  buildWeek,
+  buildDays,
   CampaignSummary,
   formatWhen,
   greeting,
@@ -31,9 +32,10 @@ import {
 
 // The dashboard (approved "Campeos dashboard" design, two views):
 //
-// - Paying users: "Good morning", what's going out this week (a 7-day
-//   strip of every email, ad and text), the next big sales date, their
-//   campaigns with progress, and the agent.
+// - Paying users: "Good morning", today's messages as a short list (the
+//   same rows as the campaign schedule), the rest of the week folded into
+//   one row per day, a slim sales-date nudge, their campaigns, and the
+//   agent beside it all. Only the newest version of each campaign counts.
 // - No plan yet (new users out of onboarding): "Welcome", their first
 //   launch with the free steps written and the rest locked behind
 //   "Unlock my launch". The Get started list floats bottom-right (it
@@ -53,6 +55,7 @@ export default function Dashboard() {
   const [stepsById, setStepsById] = useState<Record<string, CampaignStepDoc[]>>({});
   const [stepsLoaded, setStepsLoaded] = useState(false);
   const [firstId, setFirstId] = useState<string | null>(null);
+  const [userPlatforms, setUserPlatforms] = useState<string[]>([]);
   const [planOpen, setPlanOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const now = useMemo(() => new Date(), []);
@@ -77,7 +80,10 @@ export default function Dashboard() {
         setStepsLoaded(true);
       });
     getBusinessProfile(user.uid)
-      .then((p) => setFirstId(p?.firstCampaignId ?? null))
+      .then((p) => {
+        setFirstId(p?.firstCampaignId ?? null);
+        setUserPlatforms(p?.channels ?? []);
+      })
       .catch(() => {});
   }, [user]);
 
@@ -121,6 +127,7 @@ export default function Dashboard() {
               campaigns={campaigns}
               stepsById={stepsById}
               stepsLoaded={stepsLoaded}
+              userPlatforms={userPlatforms}
               deletingId={deletingId}
               onDelete={handleDelete}
             />
@@ -142,6 +149,7 @@ function PaidView({
   campaigns,
   stepsById,
   stepsLoaded,
+  userPlatforms,
   deletingId,
   onDelete,
 }: {
@@ -150,150 +158,234 @@ function PaidView({
   campaigns: Campaign[] | null;
   stepsById: Record<string, CampaignStepDoc[]>;
   stepsLoaded: boolean;
+  userPlatforms: string[];
   deletingId: string | null;
   onDelete: (c: Campaign) => void;
 }) {
   const loaded = stepsLoaded;
-  const week = useMemo(
+  const days = useMemo(
     () =>
-      buildWeek(
+      buildDays(
         now,
         (campaigns ?? []).filter((c) => stepsById[c.id]).map((c) => ({ campaign: c, steps: stepsById[c.id] }))
       ),
     [now, campaigns, stepsById]
   );
-  const upcoming = week.flatMap((d) => d.items).filter((i) => i.status !== "Sent");
-  const needs = upcoming.filter((i) => i.status === "Add details" || i.status === "Not written").length;
-  const campaignCount = new Set(upcoming.map((i) => i.campaignId)).size;
+  const [today, ...later] = days;
+  const todayLeft = today.items.filter((i) => i.status !== "Sent");
+  const needs = todayLeft.filter((i) => i.status === "Add details" || i.status === "Not written").length;
+  const laterDays = later.filter((d) => d.items.length > 0);
   const sales = nextSalesDate(now);
 
-  const summary =
-    !loaded
-      ? " "
-      : upcoming.length === 0
-        ? "Nothing is going out the rest of this week."
-        : `${upcoming.length} ${upcoming.length === 1 ? "message" : "messages"} still go out this week, across ${campaignCount} ${campaignCount === 1 ? "campaign" : "campaigns"}.${
+  const summary = !loaded
+    ? " "
+    : today.items.length === 0
+      ? laterDays.length
+        ? `Nothing goes out today. Next up is ${laterDays[0].label} ${laterDays[0].num}.`
+        : "Nothing goes out today."
+      : todayLeft.length === 0
+        ? "Everything for today has gone out."
+        : `${todayLeft.length} ${todayLeft.length === 1 ? "message goes" : "messages go"} out today.${
             needs > 0 ? ` ${needs} ${needs === 1 ? "needs" : "need"} something from you.` : ""
           }`;
 
   return (
-    <div className="max-w-[1120px] flex flex-col gap-7">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="font-mono text-xs uppercase tracking-[.08em] text-muted">
-            {now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" })}
+    <div className="max-w-[1180px] grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 lg:gap-8 items-start">
+      <div className="flex flex-col gap-6 min-w-0">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="font-mono text-xs uppercase tracking-[.08em] text-muted">
+              {now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" })}
+            </div>
+            <h1 className="font-serif text-[34px] sm:text-[42px] leading-[1.05] font-medium tracking-tight mt-1.5">
+              {greeting(now)}
+              {firstName ? `, ${firstName}` : ""}
+            </h1>
+            <p className="text-[16px] text-muted mt-2 min-h-[24px]">{summary}</p>
           </div>
-          <h1 className="font-serif text-[36px] sm:text-[44px] leading-[1.05] font-medium tracking-tight mt-1.5">
-            {greeting(now)}
-            {firstName ? `, ${firstName}` : ""}
-          </h1>
-          <p className="text-[16px] text-muted mt-2 min-h-[24px]">{summary}</p>
-        </div>
-        <div className="flex gap-2.5">
-          <a href="#agent" className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-[#E3E1E8] text-[15px] font-semibold hover:bg-[#FAFAFA]">
-            <SparkIcon /> Ask the agent
-          </a>
           <Link href="/campaigns" className="inline-flex items-center gap-2 h-11 px-[18px] rounded-xl bg-slate text-white text-[15px] font-semibold">
             <PlusIcon /> New campaign
           </Link>
         </div>
-      </div>
 
-      {sales && sales.days <= 60 && (
-        <section aria-label="Coming up" className="flex flex-wrap items-center gap-5 px-6 py-5 rounded-[22px] bg-[#F8F8F8] border border-[#F0F0F0]">
-          <div className="w-[84px] h-[84px] rounded-[18px] bg-paper border border-[#ECEAF0] flex flex-col items-center justify-center">
-            <div className="font-serif text-[36px] font-medium leading-none tracking-tight">{sales.days}</div>
-            <div className="font-mono text-[10px] tracking-[.1em] text-muted mt-1">{sales.days === 1 ? "DAY" : "DAYS"}</div>
+        {/* Today: one row per message, the same rows as the campaign schedule */}
+        <section aria-label="Today" className="border border-[#ECEAF0] rounded-[22px] overflow-hidden">
+          <div className="flex items-baseline justify-between px-5 py-4 border-b border-[#F0F0F0]">
+            <h2 className="text-[18px] font-semibold">Today</h2>
+            <span className="font-mono text-xs text-muted">
+              {today.label} {today.num}
+            </span>
           </div>
-          <div className="flex-[1_1_320px] min-w-0">
-            <div className="text-[18px] font-semibold">
-              {sales.name} is in {sales.days} {sales.days === 1 ? "day" : "days"}
+          {!loaded ? (
+            <div className="p-5 flex flex-col gap-2.5">
+              <span className="h-12 rounded-xl bg-[#F5F5F7] animate-pulse" />
+              <span className="h-12 rounded-xl bg-[#F5F5F7] animate-pulse" />
             </div>
-            <div className="text-[15px] text-muted mt-1 leading-relaxed">
-              Most launches start 3 weeks out. Build yours now and every email, text and ad is ready before the rush.
+          ) : today.items.length === 0 ? (
+            <div className="px-5 py-8 text-center">
+              <div className="text-[15px] font-semibold">Nothing goes out today</div>
+              <div className="text-sm text-muted mt-1">
+                {laterDays.length ? "Your next messages are below." : "Start a campaign, or ask the agent to build one."}
+              </div>
             </div>
-          </div>
+          ) : (
+            <MessageList items={today.items} userPlatforms={userPlatforms} limit={6} />
+          )}
+        </section>
+
+        {/* Coming up: one folded row per day */}
+        {loaded && laterDays.length > 0 && (
+          <section aria-label="Coming up">
+            <h2 className="text-[15px] font-semibold text-muted mb-2.5">Coming up this week</h2>
+            <div className="flex flex-col gap-2">
+              {laterDays.map((d) => (
+                <DayRow key={d.date.toISOString()} day={d} userPlatforms={userPlatforms} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {sales && sales.days <= 60 && (
           <Link
             href="/campaigns"
-            className="inline-flex items-center gap-2 h-11 px-[18px] rounded-xl text-white text-[15px] font-bold"
-            style={{ background: "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)" }}
+            className="group flex items-center gap-4 px-5 py-4 rounded-[18px] bg-[#F8F8F8] border border-[#F0F0F0] hover:border-[#E3E1E8]"
           >
-            Plan my {sales.name} launch <ArrowIcon />
+            <span className="w-12 h-12 shrink-0 rounded-[12px] bg-paper border border-[#ECEAF0] flex flex-col items-center justify-center">
+              <span className="font-serif text-[20px] font-medium leading-none">{sales.days}</span>
+              <span className="font-mono text-[8px] tracking-[.1em] text-muted mt-0.5">{sales.days === 1 ? "DAY" : "DAYS"}</span>
+            </span>
+            <span className="flex-grow min-w-0">
+              <span className="block text-[15px] font-semibold">
+                {sales.name} is in {sales.days} {sales.days === 1 ? "day" : "days"}
+              </span>
+              <span className="hidden sm:block text-[13px] text-muted mt-0.5">Most launches start 3 weeks out.</span>
+            </span>
+            <span className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-[#5B21B6]">
+              Plan it <ArrowIcon />
+            </span>
           </Link>
-        </section>
-      )}
+        )}
 
-      <section aria-label="Going out this week">
-        <div className="flex items-baseline justify-between gap-3 mb-3.5">
-          <h2 className="text-[20px] font-semibold tracking-tight">Going out this week</h2>
-        </div>
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="grid grid-cols-7 gap-2.5 min-w-[920px]">
-            {week.map((d) => (
-              <DayColumn key={d.date.toISOString()} day={d} loaded={loaded} />
-            ))}
-          </div>
-        </div>
-      </section>
+        <CampaignList now={now} campaigns={campaigns} stepsById={stepsById} deletingId={deletingId} onDelete={onDelete} />
+      </div>
 
-      <div className="flex flex-wrap gap-6 items-start">
-        <CampaignList
-          now={now}
-          campaigns={campaigns}
-          stepsById={stepsById}
-          deletingId={deletingId}
-          onDelete={onDelete}
-        />
-        <div className="flex-[1_1_340px] min-w-0">
-          <AgentPanel />
-        </div>
+      {/* The agent sits beside the day, always in reach */}
+      <div className="min-w-0 lg:sticky lg:top-0 lg:h-[calc(100dvh-80px)] flex flex-col">
+        <AgentPanel fill />
       </div>
     </div>
   );
 }
 
-function DayColumn({ day, loaded }: { day: WeekDay; loaded: boolean }) {
+const ITEM_STATUS: Record<WeekItem["status"], { label: string; pill: string }> = {
+  Sent: { label: "Sent", pill: "bg-[#F2F1F5] text-muted" },
+  Ready: { label: "Ready", pill: "bg-[#DCFCE7] text-[#166534]" },
+  "Add details": { label: "Needs input", pill: "bg-[#FFEDD5] text-[#9A3412]" },
+  "Not written": { label: "Not written", pill: "bg-[#F2F1F5] text-muted" },
+};
+
+function MessageList({ items, userPlatforms, limit }: { items: WeekItem[]; userPlatforms: string[]; limit?: number }) {
+  const [all, setAll] = useState(false);
+  const shown = limit && !all ? items.slice(0, limit) : items;
   return (
-    <div
-      className={`flex flex-col gap-2 p-3 rounded-[18px] min-h-[220px] ${
-        day.isToday ? "bg-paper border-[1.5px] border-slate" : "bg-[#F8F8F8] border border-[#F0F0F0]"
-      }`}
-    >
-      <div className="flex items-baseline justify-between">
-        <span className={`text-[13px] font-semibold ${day.isToday ? "text-slate" : "text-muted"}`}>
-          {day.isToday ? "Today" : day.label}
-        </span>
-        <span className="font-mono text-xs text-muted">{day.num}</span>
-      </div>
-      {day.items.map((it) => (
-        <WeekCard key={`${it.campaignId}-${it.templateStepId}`} item={it} />
+    <div>
+      {shown.map((it) => (
+        <MessageRow key={`${it.campaignId}-${it.templateStepId}`} item={it} userPlatforms={userPlatforms} />
       ))}
-      {loaded && day.items.length === 0 && <span className="text-xs text-[#A39DAD] mt-1">Nothing planned</span>}
-      {!loaded && <span className="h-16 rounded-xl bg-paper/70 animate-pulse" />}
+      {limit && items.length > limit && (
+        <button
+          onClick={() => setAll(!all)}
+          className="w-full px-5 py-3 text-sm font-semibold text-muted hover:text-slate border-t border-[#F5F4F7]"
+        >
+          {all ? "Show less" : `Show ${items.length - limit} more`}
+        </button>
+      )}
     </div>
   );
 }
 
-function WeekCard({ item }: { item: WeekItem }) {
-  const color =
-    item.status === "Sent" ? "text-muted" : item.status === "Ready" ? "text-[#15803D]" : "text-[#B45309]";
+function MessageRow({ item, userPlatforms }: { item: WeekItem; userPlatforms: string[] }) {
+  const info = channelInfo(item.channel, userPlatforms);
+  const st = ITEM_STATUS[item.status];
   return (
     <Link
       href={`/builder?id=${item.campaignId}`}
       title={`${item.title} · ${item.campaignTitle}`}
-      className={`flex flex-col gap-1 p-2.5 rounded-xl bg-paper border border-[#ECEAF0] hover:border-[#CDB8F5] ${
-        item.status === "Sent" ? "opacity-60" : ""
+      className={`flex items-center gap-2.5 sm:gap-3.5 px-4 sm:px-5 py-3.5 border-t border-[#F5F4F7] first:border-t-0 hover:bg-[#FCFCFD] ${
+        item.status === "Sent" ? "opacity-55" : ""
       }`}
     >
-      <span className="flex items-center gap-1.5">
-        <ChannelIcon channel={item.channel} />
-        <span className="font-mono text-[11px] text-muted">
-          {item.at.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+      <span className="w-[54px] sm:w-[62px] shrink-0 font-mono text-[11px] sm:text-[12px] text-muted">
+        {item.at.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+      </span>
+      <Logos platforms={info.platforms} />
+      <span className="flex-grow min-w-0">
+        <span className="block text-[15px] font-semibold truncate">{item.title}</span>
+        <span className="block text-[13px] text-muted truncate">
+          {info.name} · {item.campaignTitle}
         </span>
       </span>
-      <span className="text-[13px] font-semibold leading-snug">{item.title}</span>
-      <span className={`text-xs font-medium ${color}`}>{item.status}</span>
+      <span className={`shrink-0 text-[11px] font-bold px-[7px] py-px rounded-full ${st.pill}`}>{st.label}</span>
     </Link>
+  );
+}
+
+/** Fixed-width logo cell so titles line up. Phones show one logo. */
+function Logos({ platforms }: { platforms: PlatformKey[] }) {
+  return (
+    <>
+      <span className="sm:hidden shrink-0 w-[30px] flex">
+        <LogoStack platforms={platforms.slice(0, 1)} size={16} />
+      </span>
+      <span className="hidden sm:flex shrink-0 w-[74px]">
+        <LogoStack platforms={platforms.slice(0, 3)} size={16} />
+      </span>
+    </>
+  );
+}
+
+function DayRow({ day, userPlatforms }: { day: WeekDay; userPlatforms: string[] }) {
+  const [open, setOpen] = useState(false);
+  const platforms = Array.from(
+    new Set(day.items.flatMap((i) => channelInfo(i.channel, userPlatforms).platforms))
+  ) as PlatformKey[];
+  const needs = day.items.filter((i) => i.status === "Add details" || i.status === "Not written").length;
+  return (
+    <div className="border border-[#ECEAF0] rounded-[16px] overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="w-full flex items-center gap-2.5 sm:gap-3.5 px-4 sm:px-5 py-3.5 text-left hover:bg-[#FCFCFD]"
+      >
+        <span className="w-[54px] sm:w-[62px] shrink-0 text-[14px] font-semibold">
+          {day.label} {day.num}
+        </span>
+        <Logos platforms={platforms} />
+        <span className="flex-grow min-w-0 text-[14px] text-muted truncate">
+          {day.items.length} {day.items.length === 1 ? "message" : "messages"}
+          {needs > 0 && <span className="text-[#9A3412] font-semibold"> · {needs} need input</span>}
+        </span>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#A39DAD"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <div className="border-t border-[#F0F0F0]">
+          <MessageList items={day.items} userPlatforms={userPlatforms} />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -322,9 +414,11 @@ function CampaignList({
     }
     return Array.from(map.values());
   }, [campaigns]);
+  const [showAll, setShowAll] = useState(false);
+  const shownGroups = showAll ? groups : groups.slice(0, 4);
 
   return (
-    <section aria-label="Your campaigns" className="flex-[1.35_1_480px] min-w-0 border border-[#ECEAF0] rounded-[22px] overflow-hidden">
+    <section aria-label="Your campaigns" className="min-w-0 border border-[#ECEAF0] rounded-[22px] overflow-hidden">
       <div className="flex items-center justify-between px-[22px] py-[18px] border-b border-[#F0F0F0]">
         <h2 className="text-[18px] font-semibold">Your campaigns</h2>
         <Link href="/campaigns" className="text-sm font-semibold text-[#5B21B6]">
@@ -343,7 +437,7 @@ function CampaignList({
           or ask the agent.
         </div>
       ) : (
-        groups.map((group) => {
+        shownGroups.map((group) => {
           const main = group[0];
           const s = summarize(now, main, stepsById[main.id]);
           const key = main.title.trim().toLowerCase();
@@ -393,6 +487,14 @@ function CampaignList({
             </div>
           );
         })
+      )}
+      {groups.length > 4 && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="w-full px-[22px] py-3 text-sm font-semibold text-muted hover:text-slate border-t border-[#F5F4F7]"
+        >
+          {showAll ? "Show less" : `Show all ${groups.length}`}
+        </button>
       )}
     </section>
   );

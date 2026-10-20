@@ -39,6 +39,9 @@ interface AgentPanelProps {
   /** Present only when the agent should be able to edit an existing
    * campaign, not just build new ones — see AgentLauncher. */
   campaign?: AgentPanelCampaignContext;
+  /** Fill the parent's height (the dashboard's side column) instead of
+   * capping the chat at 380px. */
+  fill?: boolean;
 }
 
 // The dashboard's primary surface — from the "Agent" panel in
@@ -51,7 +54,7 @@ interface AgentPanelProps {
 // Loads the user's saved business profile (lib/firebase/businessProfile.ts)
 // so a second campaign doesn't start the conversation from zero — the
 // agent already knows the offer and only asks what's actually new.
-export function AgentPanel({ campaign }: AgentPanelProps) {
+export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -286,7 +289,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
     <section
       aria-label="Agent"
       id="agent"
-      className="flex flex-col min-h-0 bg-paper border border-[#ECEAF0] rounded-[22px] overflow-hidden"
+      className={`flex flex-col min-h-0 bg-paper border border-[#ECEAF0] rounded-[22px] overflow-hidden ${fill ? "lg:h-full" : ""}`}
     >
       <div className="shrink-0 flex items-center gap-2.5 px-5 py-4 border-b border-[#F0F0F0]">
         <span className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center" style={{ background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)" }}>
@@ -299,7 +302,7 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
         </span>
       </div>
 
-      <div ref={scrollRef} className="flex-grow min-h-[180px] max-h-[380px] overflow-y-auto flex flex-col gap-3 px-4 sm:px-5 py-5 bg-[#FAFAFA]">
+      <div ref={scrollRef} className={`flex-grow min-h-[180px] max-h-[380px] ${fill ? "lg:max-h-none lg:min-h-0" : ""} overflow-y-auto flex flex-col gap-3 px-4 sm:px-5 py-5 bg-[#FAFAFA]`}>
         {messages.length === 0 && <div className="text-sm text-faint">{emptyStateText}</div>}
         {messages.map((m, i) =>
           m.role === "user" ? (
