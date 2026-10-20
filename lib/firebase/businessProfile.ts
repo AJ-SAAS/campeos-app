@@ -21,6 +21,8 @@ export interface OnboardingAnswers {
   /** The campaign built straight after onboarding, shown as "Your first
    * launch" on the dashboard. */
   firstCampaignId?: string;
+  /** True once they close the floating "Get started" list for good. */
+  checklistHidden?: boolean;
 }
 
 export interface BusinessProfile extends OfferContext, OnboardingAnswers {
@@ -59,4 +61,8 @@ export async function saveBusinessProfile(
 
 export async function saveFirstCampaignId(uid: string, campaignId: string): Promise<void> {
   await setDoc(doc(db, "businessProfiles", uid), { firstCampaignId: campaignId }, { merge: true });
+}
+
+export async function hideChecklist(uid: string): Promise<void> {
+  await setDoc(doc(db, "businessProfiles", uid), { checklistHidden: true }, { merge: true });
 }

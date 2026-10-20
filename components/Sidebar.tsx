@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { useSubscription } from "@/lib/firebase/useSubscription";
+import { GetStartedWidget } from "@/components/GetStartedWidget";
 
 // Light, hairline-bordered nav — Cloudflare's own left nav is a quiet
 // white column, not a dark slab, so this moved off bg-slate entirely.
@@ -140,6 +141,7 @@ export function Sidebar({
           has room for the four nav destinations. */}
       {!inBuilder && (
       <>
+      {user && <GetStartedWidget />}
       <header className="md:hidden flex items-center justify-between h-14 px-4 border-b border-line bg-paper">
         <div className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}

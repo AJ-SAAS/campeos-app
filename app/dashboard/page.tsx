@@ -17,7 +17,6 @@ import {
   listCampaigns,
 } from "@/lib/firebase/campaigns";
 import { getBusinessProfile } from "@/lib/firebase/businessProfile";
-import { listCallThemes, listWinningCopy } from "@/lib/firebase/library";
 import { getTemplate } from "@/lib/templates";
 
 // The dashboard has two jobs, depending on who's looking:
@@ -47,8 +46,6 @@ export default function Dashboard() {
   // Only needed for the no-plan view.
   const [firstId, setFirstId] = useState<string | null>(null);
   const [first, setFirst] = useState<{ campaign: Campaign; steps: CampaignStepDoc[] } | null>(null);
-  const [winnerCount, setWinnerCount] = useState(0);
-  const [callCount, setCallCount] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -65,8 +62,6 @@ export default function Dashboard() {
     getBusinessProfile(user.uid)
       .then((p) => setFirstId(p?.firstCampaignId ?? null))
       .catch(() => {});
-    listWinningCopy(user.uid).then((w) => setWinnerCount(w.length)).catch(() => {});
-    listCallThemes(user.uid).then((c) => setCallCount(c.length)).catch(() => {});
   }, [user, showWelcome]);
 
   // The first launch: the campaign onboarding built, or else their newest.
@@ -138,24 +133,18 @@ export default function Dashboard() {
           </div>
 
           {showWelcome && (
-            <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-6 items-start">
+            <div className="max-w-[880px] w-full">
               <FirstLaunchCard
                 data={first}
                 hasCampaigns={hasCampaigns}
                 onUnlock={() => setPlanOpen(true)}
-              />
-              <GetStarted
-                built={hasCampaigns}
-                winners={winnerCount > 0}
-                calls={callCount > 0}
-                onPickPlan={() => setPlanOpen(true)}
               />
             </div>
           )}
 
           <div
             className={`grid grid-cols-1 gap-6 items-start ${
-              showWelcome ? "" : "lg:grid-cols-[1.25fr_1fr]"
+              showWelcome ? "max-w-[880px] w-full" : "lg:grid-cols-[1.25fr_1fr]"
             }`}
           >
             {/* Free accounts can't have the agent build anything yet, so
@@ -357,103 +346,6 @@ function FirstLaunchCard({
   );
 }
 
-function GetStarted({
-  built,
-  winners,
-  calls,
-  onPickPlan,
-}: {
-  built: boolean;
-  winners: boolean;
-  calls: boolean;
-  onPickPlan: () => void;
-}) {
-  const items = [
-    { done: built, title: "Build your first launch", href: "/campaigns" },
-    {
-      done: false,
-      title: "Pick a plan",
-      sub: "Write every step, copy them, and build more launches.",
-      action: onPickPlan,
-    },
-    { done: winners, title: "Save a line that already sold", href: "/winning-copy" },
-    { done: calls, title: "Add a sales call", href: "/buyer-insights" },
-  ];
-  const doneCount = items.filter((i) => i.done).length;
-  // The first not-done item gets the expanded, highlighted row.
-  const nextIndex = items.findIndex((i) => !i.done);
-
-  return (
-    <section aria-label="Get started" className="bg-paper border border-line rounded-3xl p-5 sm:p-6 flex flex-col gap-4 animate-step-in">
-      <div className="flex items-center justify-between">
-        <div className="font-semibold">Get started</div>
-        <span className="font-mono text-xs text-muted">
-          {doneCount} of {items.length}
-        </span>
-      </div>
-      <div className="flex gap-1.5">
-        {items.map((it, i) => (
-          <span key={i} className={`flex-1 h-1 rounded-full ${it.done ? "bg-slate" : "bg-[#ECEAF0]"}`} />
-        ))}
-      </div>
-      <div className="flex flex-col gap-1.5">
-        {items.map((it, i) => {
-          const badge = it.done ? (
-            <span className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)" }}>
-              <CheckIcon />
-            </span>
-          ) : (
-            <span className="shrink-0 w-6 h-6 rounded-full border border-line flex items-center justify-center font-mono text-[11px] text-muted">
-              {i + 1}
-            </span>
-          );
-
-          if (i === nextIndex && it.action) {
-            return (
-              <div key={it.title} className="flex gap-3 rounded-2xl bg-[#FAF9FC] border border-[#ECEAF0] px-3.5 py-3.5">
-                {badge}
-                <div className="min-w-0">
-                  <div className="text-[14px] font-semibold">{it.title}</div>
-                  {it.sub && <div className="text-[13px] text-muted mt-0.5">{it.sub}</div>}
-                  <button onClick={it.action} className="mt-2.5 h-9 px-4 rounded-lg bg-slate text-white text-[13px] font-semibold">
-                    See plans
-                  </button>
-                </div>
-              </div>
-            );
-          }
-
-          const row = (
-            <>
-              {badge}
-              <span className={`flex-1 text-[14px] ${it.done ? "text-muted line-through decoration-[#C9C4D2]" : "font-medium"}`}>
-                {it.title}
-              </span>
-              {!it.done && <ChevronIcon />}
-            </>
-          );
-          if (it.done) {
-            return (
-              <div key={it.title} className="flex items-center gap-3 px-3.5 py-2.5">
-                {row}
-              </div>
-            );
-          }
-          return it.action ? (
-            <button key={it.title} onClick={it.action} className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-ivory text-left">
-              {row}
-            </button>
-          ) : (
-            <Link key={it.title} href={it.href!} className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-ivory">
-              {row}
-            </Link>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
 function TrashIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -479,18 +371,4 @@ function LockIcon() {
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12l5 5 9-10" />
-    </svg>
-  );
-}
 
-function ChevronIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A9089" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9 6l6 6-6 6" />
-    </svg>
-  );
-}
