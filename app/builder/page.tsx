@@ -885,6 +885,7 @@ function BuilderInner() {
               handleFieldEdit(selected.templateStepId, fieldKey, value);
             }}
             saveStatus={fieldSaveStatus}
+            draft={!campaignId}
           />
         </div>
 

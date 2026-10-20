@@ -21,6 +21,9 @@ interface StepEditorProps {
   // the quiet "Saving.../Saved" Docs shows, so it's clear edits here
   // aren't sitting unsaved in a modal waiting for a Save button.
   saveStatus?: "idle" | "saving" | "saved";
+  /** True for a campaign that hasn't been written yet: there's nothing
+   * saved to Firestore until it is, so the badge says so. */
+  draft?: boolean;
 }
 
 const LANE_STYLE: Record<string, { label: string; fg: string; bg: string }> = {
@@ -49,6 +52,7 @@ export function StepEditor({
   onClose,
   onFieldChange,
   saveStatus = "idle",
+  draft = false,
 }: StepEditorProps) {
   const [instruction, setInstruction] = useState("");
   const [whyOpen, setWhyOpen] = useState(false);
@@ -112,19 +116,37 @@ export function StepEditor({
             <span className="font-mono text-xs text-muted">
               Step {stepNumber} of {totalSteps}
             </span>
-            {saveStatus !== "idle" && (
-              <span className="text-xs text-faint">
-                {saveStatus === "saving" ? "Saving…" : "Saved"}
-              </span>
-            )}
           </div>
-          <button
-            aria-label="Close"
-            onClick={onClose}
-            className="w-9 h-9 rounded-[10px] bg-ivory flex items-center justify-center text-muted"
-          >
-            <CloseIcon />
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Always visible, so after any edit you can see it's kept:
+                "Saving..." while typing, then "Saved" with a tick. */}
+            <span role="status" aria-live="polite" className="inline-flex items-center gap-1.5 text-[13px] font-semibold">
+              {draft ? (
+                <span className="text-muted">Saves when you write the campaign</span>
+              ) : saveStatus === "saving" ? (
+                <>
+                  <svg className="animate-spin text-muted" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+                    <path d="M21 12a9 9 0 1 1-6.2-8.6" />
+                  </svg>
+                  <span className="text-muted">Saving...</span>
+                </>
+              ) : (
+                <span key={saveStatus} className={`inline-flex items-center gap-1.5 text-[#15803D] ${saveStatus === "saved" ? "animate-step-in" : ""}`}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12l5 5 9-10" />
+                  </svg>
+                  Saved
+                </span>
+              )}
+            </span>
+            <button
+              aria-label="Close"
+              onClick={onClose}
+              className="w-9 h-9 rounded-[10px] bg-ivory flex items-center justify-center text-muted"
+            >
+              <CloseIcon />
+            </button>
+          </div>
         </div>
 
         {/* centered content column */}
@@ -136,7 +158,7 @@ export function StepEditor({
               </h1>
               <span className="inline-flex items-center gap-1.5 text-[13px] text-muted">
                 <ClockIcon />
-                Suggested send time &mdash;{" "}
+                Suggested send time:{" "}
                 {step.scheduledAt.toLocaleString(undefined, {
                   weekday: "short",
                   hour: "numeric",
@@ -156,7 +178,7 @@ export function StepEditor({
                   <span className="text-[13px] font-semibold text-muted">Why this step</span>
                   {!whyOpen && (
                     <span className="text-xs text-faint">
-                      &mdash; {step.phaseName ? `${step.phaseName} phase` : ""}
+                      · {step.phaseName ? `${step.phaseName} phase` : ""}
                       {step.phaseName && step.angle ? " · " : ""}
                       {step.angle}
                     </span>
@@ -198,7 +220,7 @@ export function StepEditor({
             )}
 
             <span className="text-xs text-faint">
-              Built from &mdash; {step.copy?.source ?? "not generated yet"}
+              Built from: {step.copy?.source ?? "not written yet"}
             </span>
 
             {needs && (
