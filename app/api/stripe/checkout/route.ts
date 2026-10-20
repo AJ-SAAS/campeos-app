@@ -1,36 +1,45 @@
 import { NextResponse } from "next/server";
-import { getStripeClient, PLANS, isPlanKey } from "@/lib/stripe/client";
+import { getStripeClient, PLANS, isPlanKey, isBillingInterval, type BillingInterval } from "@/lib/stripe/client";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
 
 /**
- * Starts a Stripe Checkout session for one of the two plans. No free
- * trial (billing decision: paid only, no free tier/trial) — the
- * Checkout Session is created without a trial_period_days.
+ * Starts a Stripe Checkout session for one of the two plans, monthly or
+ * yearly. No free trial (billing decision: paid only, no free tier/trial)
+ * — the Checkout Session is created without a trial_period_days.
  *
- * Body: { plan: "starter" | "pro" }. The uid and email come from the
- * verified ID token (lib/serverAuth.ts), not the body.
+ * Body: { uid: string, email: string, plan: "starter" | "pro", interval?: "monthly" | "yearly" }
+ * interval defaults to "monthly" so existing callers that don't send it
+ * keep working. uid/email come from the signed-in Firebase user on the
+ * client — there's no server session to read them from (same trust model
+ * the rest of the app uses: lib/firebase/usage.ts's own comment explains
+ * why that's acceptable here, same reasoning applies).
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { plan } = body as { plan?: string };
+    const { uid, email, plan, interval: rawInterval } = body as {
+      uid?: string;
+      email?: string;
+      plan?: string;
+      interval?: string;
+    };
 
-    const caller = await getVerifiedUser(req);
-    if (!caller) {
-      return NextResponse.json({ error: SIGN_IN_AGAIN }, { status: 401 });
+    if (!uid || !email) {
+      return NextResponse.json({ error: "Sign in first." }, { status: 401 });
     }
-    const uid = caller.uid;
-    const email = caller.email ?? undefined;
     if (!plan || !isPlanKey(plan)) {
       return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
     }
+    const interval: BillingInterval =
+      rawInterval && isBillingInterval(rawInterval) ? rawInterval : "monthly";
 
     const planConfig = PLANS[plan];
-    if (!planConfig.priceId) {
+    const priceId = planConfig.priceId[interval];
+    if (!priceId) {
+      const envVar = interval === "yearly" ? `STRIPE_PRICE_${plan.toUpperCase()}_YEARLY` : `STRIPE_PRICE_${plan.toUpperCase()}`;
       return NextResponse.json(
         {
-          error: `No Stripe price id configured for the ${planConfig.name} plan — set STRIPE_PRICE_${plan.toUpperCase()} in your environment.`,
+          error: `No Stripe price id configured for the ${planConfig.name} ${interval} plan — set ${envVar} in your environment.`,
         },
         { status: 500 }
       );
@@ -51,11 +60,11 @@ export async function POST(req: Request) {
       customer: existingCustomerId,
       customer_email: existingCustomerId ? undefined : email,
       client_reference_id: uid,
-      line_items: [{ price: planConfig.priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
-        metadata: { uid, plan },
+        metadata: { uid, plan, interval },
       },
-      metadata: { uid, plan },
+      metadata: { uid, plan, interval },
       success_url: `${req.headers.get("origin")}/dashboard?checkout=success`,
       cancel_url: `${req.headers.get("origin")}/billing?checkout=canceled`,
     });

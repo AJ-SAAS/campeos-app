@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { getStripeClient, PlanKey } from "@/lib/stripe/client";
+import { getStripeClient, PlanKey, BillingInterval } from "@/lib/stripe/client";
 import { getAdminDb } from "@/lib/firebase/admin";
 
 // Stripe needs the raw request body to verify the signature — Next.js
@@ -11,6 +11,7 @@ async function upsertSubscription(
   uid: string,
   fields: Partial<{
     plan: PlanKey | null;
+    interval: BillingInterval | null;
     status: Stripe.Subscription.Status | null;
     stripeCustomerId: string;
     stripeSubscriptionId: string | null;
@@ -55,10 +56,12 @@ export async function POST(req: Request) {
         const session = event.data.object as Stripe.Checkout.Session;
         const uid = session.client_reference_id ?? session.metadata?.uid;
         const plan = session.metadata?.plan as PlanKey | undefined;
+        const interval = session.metadata?.interval as BillingInterval | undefined;
         if (!uid) break; // Shouldn't happen — checkout always sets it.
 
         await upsertSubscription(uid, {
           plan: plan ?? null,
+          interval: interval ?? null,
           status: "active",
           stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id,
           stripeSubscriptionId:

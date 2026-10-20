@@ -20,21 +20,36 @@ export function getStripeClient(): Stripe {
   return stripeClient;
 }
 
+export type BillingInterval = "monthly" | "yearly";
+
+export function isBillingInterval(value: string): value is BillingInterval {
+  return value === "monthly" || value === "yearly";
+}
+
 /**
  * The two plans, mapped to env-configured Stripe Price ids so the actual
  * ids (test or live) never get hardcoded here. Keep in sync with the
- * pricing decision on record: two tiers, no free tier, no trial.
+ * pricing decision on record: two tiers, no free tier, no trial. Each
+ * plan has a separate yearly price (not the same price billed less often
+ * — Stripe prices are tied to one billing interval each), set from its
+ * own env var so the existing monthly ids never need to change.
  */
 export const PLANS = {
   starter: {
     name: "Starter",
-    price: "$39/mo",
-    priceId: process.env.STRIPE_PRICE_STARTER,
+    price: { monthly: "$39/mo", yearly: "$33/mo, billed yearly" },
+    priceId: {
+      monthly: process.env.STRIPE_PRICE_STARTER,
+      yearly: process.env.STRIPE_PRICE_STARTER_YEARLY,
+    },
   },
   pro: {
     name: "Pro",
-    price: "$99/mo",
-    priceId: process.env.STRIPE_PRICE_PRO,
+    price: { monthly: "$99/mo", yearly: "$83/mo, billed yearly" },
+    priceId: {
+      monthly: process.env.STRIPE_PRICE_PRO,
+      yearly: process.env.STRIPE_PRICE_PRO_YEARLY,
+    },
   },
 } as const;
 

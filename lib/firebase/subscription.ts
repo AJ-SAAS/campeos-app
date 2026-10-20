@@ -10,6 +10,7 @@ import { db } from "./client";
 export interface Subscription {
   uid: string;
   plan: "starter" | "pro" | null;
+  interval: "monthly" | "yearly" | null;
   status: "active" | "past_due" | "canceled" | "incomplete" | null;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
@@ -18,6 +19,7 @@ export interface Subscription {
 
 const EMPTY: Omit<Subscription, "uid"> = {
   plan: null,
+  interval: null,
   status: null,
   stripeCustomerId: null,
   stripeSubscriptionId: null,
