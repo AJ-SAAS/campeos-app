@@ -51,6 +51,11 @@ export function OfferForm({
         value={offer.whatTheyGet}
         onChange={(v) => set("whatTheyGet", v)}
       />
+      <OfferField
+        label="Sign emails as"
+        value={offer.fromName ?? ""}
+        onChange={(v) => set("fromName", v)}
+      />
 
       <div className="flex flex-col gap-2">
         <div className="text-sm font-semibold">Tone</div>

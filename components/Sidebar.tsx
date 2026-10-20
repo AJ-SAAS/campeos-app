@@ -149,6 +149,7 @@ function OfferSwitcher({ uid }: { uid: string }) {
       whatTheyGet: o.whatTheyGet,
       tone: o.tone,
       readingLevel: o.readingLevel,
+      fromName: o.fromName ?? "",
     }).catch(() => {});
   }
 

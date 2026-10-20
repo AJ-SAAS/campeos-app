@@ -23,6 +23,8 @@ export interface OnboardingAnswers {
   firstCampaignId?: string;
   /** True once they close the floating "Get started" list for good. */
   checklistHidden?: boolean;
+  /** Default "Sign emails as" name for new offers (Settings). */
+  signOffName?: string;
 }
 
 export interface BusinessProfile extends OfferContext, OnboardingAnswers {

@@ -52,9 +52,9 @@ export async function listOffers(uid: string): Promise<Offer[]> {
       whatTheyGet: (data.whatTheyGet as string) ?? "",
       tone: (data.tone as string) ?? "",
       readingLevel: data.readingLevel as string | undefined,
-      // An offer has no fromName of its own — that's the signed-in
-      // user's display name, filled in at generation time (see
-      // builder/page.tsx), not something saved per offer.
+      // "Sign emails as" for this offer. Empty means use the account
+      // default (see lib/signOff.ts).
+      fromName: (data.fromName as string | undefined) ?? "",
       createdAt: data.createdAt?.toDate?.() ?? null,
     } as Offer;
   });

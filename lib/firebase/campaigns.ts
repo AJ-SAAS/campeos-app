@@ -94,6 +94,12 @@ export async function saveStepCopy(
   );
 }
 
+/** Saves the campaign's own copy of the offer after it's edited in setup. */
+export async function saveCampaignOffer(campaignId: string, offer: OfferContext): Promise<void> {
+  const clean = Object.fromEntries(Object.entries(offer).filter(([, v]) => v !== undefined));
+  await updateDoc(doc(db, "campaigns", campaignId), { offer: clean, title: offer.name || "Untitled campaign" });
+}
+
 /** Saves which messages and channels are switched off for a campaign. */
 export async function saveCampaignSkips(
   campaignId: string,

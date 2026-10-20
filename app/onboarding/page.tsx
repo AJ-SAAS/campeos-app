@@ -15,6 +15,7 @@ import {
   suggestedPlan,
 } from "@/lib/onboarding/answers";
 import "@/components/onboarding/onboarding.css";
+import { firstName } from "@/lib/signOff";
 import { authFetch } from "@/lib/firebase/authFetch";
 
 // New-user onboarding: five plain-English questions on the left, and on
@@ -64,6 +65,10 @@ export default function OnboardingPage() {
   const [who, setWho] = useState("");
   const [what, setWhat] = useState("");
   const [price, setPrice] = useState("");
+  // "Sign emails as": starts as the first name on their login, which is
+  // usually right, so most people just leave it.
+  const [signOff, setSignOff] = useState("");
+  const signOffTouched = useRef(false);
   const [channels, setChannels] = useState<PlatformId[]>(DEFAULT_PLATFORMS);
   const [frequency, setFrequency] = useState<FrequencyId | null>(null);
 
@@ -246,6 +251,10 @@ export default function OnboardingPage() {
     setChannels((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
   }
 
+  useEffect(() => {
+    if (!signOffTouched.current && user?.displayName) setSignOff(firstName(user.displayName));
+  }, [user]);
+
   async function finish() {
     if (!user || !frequency) return;
     setSaving(true);
@@ -257,10 +266,12 @@ export default function OnboardingPage() {
       price: price.trim(),
       tone: "Friendly",
       readingLevel: "5th grade",
+      fromName: signOff.trim() || undefined,
     };
     try {
       await saveBusinessProfile(user.uid, {
         ...offer,
+        signOffName: signOff.trim() || undefined,
         channels,
         frequency,
         suggestedPlan: suggestedPlan(frequency),
@@ -288,7 +299,7 @@ export default function OnboardingPage() {
   }
 
   // ---- preview values ----
-  const fromName = user?.displayName || user?.email?.split("@")[0] || "You";
+  const fromName = signOff.trim() || user?.displayName || user?.email?.split("@")[0] || "You";
   const initials =
     fromName
       .split(/\s+/)
@@ -459,6 +470,19 @@ export default function OnboardingPage() {
                 <input id="f-what" className="cob-field" value={what} onChange={(e) => setWhat(e.target.value)} onKeyDown={onEnter} placeholder="Done-for-you ads, or we keep working free" />
                 <label htmlFor="f-price" className="cob-label" style={{ marginTop: 16 }}>Price</label>
                 <input id="f-price" className="cob-field" value={price} onChange={(e) => setPrice(e.target.value)} onKeyDown={onEnter} placeholder="$997" style={{ width: 160 }} />
+                <label htmlFor="f-signoff" className="cob-label" style={{ marginTop: 16 }}>Sign emails as</label>
+                <input
+                  id="f-signoff"
+                  className="cob-field"
+                  value={signOff}
+                  onChange={(e) => {
+                    signOffTouched.current = true;
+                    setSignOff(e.target.value);
+                  }}
+                  onKeyDown={onEnter}
+                  placeholder="Your first name, or your brand"
+                  style={{ maxWidth: 320 }}
+                />
                 <div>
                   <button className="cob-btn" onClick={next} disabled={!canContinue()} style={{ marginTop: 24 }}>
                     Continue
@@ -599,6 +623,11 @@ export default function OnboardingPage() {
             <span style={{ display: "inline-flex", alignItems: "center", marginTop: 16, padding: "10px 16px", borderRadius: 10, background: "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)", color: "#FFFFFF", fontSize: 14, fontWeight: 700 }}>
               Save my seat
             </span>
+            <p style={{ fontSize: 15, lineHeight: 1.6, color: "#3D3747", margin: "14px 0 0" }}>
+              Talk soon,
+              <br />
+              <span className={`cob-hl ${step === 2 ? "on" : ""} ${signOff.trim() ? "" : "cob-ph"}`}>{signOff.trim() || "Your name"}</span>
+            </p>
             <div style={{ display: "grid", gap: 8, marginTop: 18 }}>
               <span style={{ height: 8, width: "100%", borderRadius: 4, background: "#F2F1F5" }} />
               <span style={{ height: 8, width: "82%", borderRadius: 4, background: "#F2F1F5" }} />

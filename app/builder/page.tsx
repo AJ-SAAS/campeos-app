@@ -12,6 +12,7 @@ import { UIStep } from "@/components/builder/Timeline";
 import { SequenceView } from "@/components/builder/SequenceView";
 import { channelInfo, LogoStack, PlatformLogo } from "@/components/builder/channels";
 import { needsInput } from "@/lib/dashboard";
+import { resolveSignOff } from "@/lib/signOff";
 import { StepEditor } from "@/components/builder/StepEditor";
 import { AgentLauncher } from "@/components/agent/AgentLauncher";
 import { AgentPanelCampaignStep } from "@/components/agent/AgentPanel";
@@ -26,6 +27,7 @@ import {
   createCampaign,
   getCampaignWithSteps,
   saveCampaignSkips,
+  saveCampaignOffer,
   saveStepCopy,
   CampaignStepDoc,
 } from "@/lib/firebase/campaigns";
@@ -139,6 +141,8 @@ function BuilderInner() {
   const [skippedChannels, setSkippedChannels] = useState<Set<string>>(new Set());
   // The platforms they picked in onboarding, for the real logos.
   const [userPlatforms, setUserPlatforms] = useState<string[]>([]);
+  // Account default for "Sign emails as" (Settings).
+  const [defaultSignOff, setDefaultSignOff] = useState<string>("");
   // Set once the first auto-generate has been kicked off, so a re-render
   // can't start a second one.
   const autoStarted = useRef(false);
@@ -149,6 +153,7 @@ function BuilderInner() {
       .then((profile) => {
         if (!profile) return;
         setUserPlatforms(profile.channels ?? []);
+        setDefaultSignOff(profile.signOffName ?? "");
         if (existingId) return;
         setAllowedChannels(templateChannelsFor(profile.channels));
         // Came back to /builder?first=1 after the first campaign already
@@ -165,6 +170,7 @@ function BuilderInner() {
             whatTheyGet: profile.whatTheyGet ?? "",
             tone: profile.tone || "Friendly",
             readingLevel: profile.readingLevel || "5th grade",
+            fromName: profile.fromName || profile.signOffName || undefined,
           });
           setOfferPicked(true);
         }
@@ -342,6 +348,8 @@ function BuilderInner() {
   const selected = steps.find((s) => s.templateStepId === selectedId);
   const selectedIndex = steps.findIndex((s) => s.templateStepId === selectedId);
 
+  const signOff = resolveSignOff(offer.fromName, defaultSignOff, user?.displayName);
+
   function isOn(s: { templateStepId: string; channel: string }) {
     return !skippedSteps.has(s.templateStepId) && !skippedChannels.has(s.channel);
   }
@@ -411,7 +419,7 @@ function BuilderInner() {
         body: JSON.stringify({
           mode: "generate",
           uid: user.uid,
-          offer: { ...offer, fromName: user.displayName ?? undefined },
+          offer: { ...offer, fromName: signOff },
           steps: stepsToWrite.map((s) => ({
             templateStepId: s.templateStepId,
             step: {
@@ -527,7 +535,7 @@ function BuilderInner() {
         body: JSON.stringify({
           mode: "variation",
           uid: user.uid,
-          offer: { ...offer, fromName: user.displayName ?? undefined },
+          offer: { ...offer, fromName: signOff },
           step: {
             channel: selected.channel,
             title: selected.title,
@@ -660,6 +668,13 @@ function BuilderInner() {
   }
 
   const channelKeys = Array.from(new Set(scheduledSteps.map((s) => s.channel)));
+
+  // Setup edits (offer details, sign-off name) are kept on the campaign
+  // itself once it exists, so they're still there next time.
+  function closeSetup() {
+    setSetupOpen(false);
+    if (campaignId) saveCampaignOffer(campaignId, offer).catch(() => {});
+  }
 
   // Clicking a message opens the full-screen editor: read it, edit it
   // by hand, or ask for a change, one message at a time.
@@ -893,7 +908,7 @@ function BuilderInner() {
         {setupOpen && (
           <div
             className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 bg-[rgba(23,19,31,0.45)] animate-step-in"
-            onClick={() => setSetupOpen(false)}
+            onClick={closeSetup}
           >
             <div
               role="dialog"
@@ -908,7 +923,7 @@ function BuilderInner() {
                   <p className="text-[15px] text-muted mt-1">Every message is written from these details.</p>
                 </div>
                 <button
-                  onClick={() => setSetupOpen(false)}
+                  onClick={closeSetup}
                   aria-label="Close setup"
                   className="shrink-0 w-10 h-10 rounded-full border border-[#ECEAF0] flex items-center justify-center hover:bg-[#FAFAFA]"
                 >
@@ -930,10 +945,11 @@ function BuilderInner() {
                     generateCampaign();
                   }}
                   generating={generating}
+                  signOffPlaceholder={resolveSignOff(undefined, defaultSignOff, user?.displayName)}
                 />
               </div>
               <div className="shrink-0 flex justify-end gap-2 px-6 sm:px-8 py-4 border-t border-[#F0F0F0] bg-[#FCFCFD]">
-                <button onClick={() => setSetupOpen(false)} className="h-11 px-5 rounded-xl bg-slate text-white text-[15px] font-semibold">
+                <button onClick={closeSetup} className="h-11 px-5 rounded-xl bg-slate text-white text-[15px] font-semibold">
                   Done
                 </button>
               </div>
@@ -948,7 +964,7 @@ function BuilderInner() {
             campaignId
               ? {
                   campaignId,
-                  offer: { ...offer, fromName: user?.displayName ?? undefined },
+                  offer: { ...offer, fromName: signOff },
                   steps: steps.map(
                     (st): AgentPanelCampaignStep => ({
                       templateStepId: st.templateStepId,

@@ -12,6 +12,9 @@ interface SetupPanelProps {
   onAddSalesCall: (transcript: string) => Promise<void>;
   onGenerate: () => void;
   generating: boolean;
+  /** Shown greyed in "Sign emails as" when the offer has none: the name
+   * that will actually be used (account default or first name). */
+  signOffPlaceholder?: string;
 }
 
 // Left panel of the Campaign Builder — offer fields, "What already
@@ -40,6 +43,7 @@ export function SetupPanel({
   onAddSalesCall,
   onGenerate,
   generating,
+  signOffPlaceholder,
 }: SetupPanelProps) {
   function set<K extends keyof OfferContext>(key: K, value: OfferContext[K]) {
     onOfferChange({ ...offer, [key]: value });
@@ -74,6 +78,12 @@ export function SetupPanel({
         <SheetField label="Price" value={offer.price} onChange={(v) => set("price", v)} />
         <SheetField label="Who it's for" value={offer.audience} onChange={(v) => set("audience", v)} />
         <SheetField label="What they get" value={offer.whatTheyGet} onChange={(v) => set("whatTheyGet", v)} />
+        <SheetField
+          label="Sign emails as"
+          value={offer.fromName ?? ""}
+          placeholder={signOffPlaceholder}
+          onChange={(v) => set("fromName", v)}
+        />
       </div>
 
       <div className="shrink-0">
@@ -377,10 +387,12 @@ function SheetField({
   label,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  placeholder?: string;
 }) {
   return (
     <label className="flex flex-col gap-1 px-3.5 py-3 cursor-text focus-within:bg-ivory/60 transition-colors">
@@ -389,6 +401,7 @@ function SheetField({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
         className="bg-transparent text-[15px] font-medium text-slate outline-none placeholder:text-faint placeholder:font-normal"
       />
     </label>

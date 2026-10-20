@@ -11,6 +11,7 @@ import { buildTimeline } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext, StepContext } from "@/lib/ai/prompts";
 import { authFetch } from "@/lib/firebase/authFetch";
+import { resolveSignOff } from "@/lib/signOff";
 
 interface DisplayMessage {
   role: "user" | "assistant";
@@ -171,7 +172,11 @@ export function AgentPanel({ campaign }: AgentPanelProps) {
     setBuildTrace(trace);
 
     try {
-      const result = await executeCreateCampaign(uid, args, user?.displayName ?? undefined);
+      const result = await executeCreateCampaign(
+        uid,
+        args,
+        resolveSignOff(profile?.name === args.offerName ? profile?.fromName : undefined, profile?.signOffName, user?.displayName)
+      );
       const doneMessage =
         result.failedCount > 0
           ? `Done. ${result.writtenCount - result.failedCount} of ${result.stepCount} steps are ready. ${result.failedCount} didn't write, and you can retry those in the builder.`

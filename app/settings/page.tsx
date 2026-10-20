@@ -11,6 +11,7 @@ import { useSubscription } from "@/lib/firebase/useSubscription";
 import { authFetch } from "@/lib/firebase/authFetch";
 import { BusinessProfile, getBusinessProfile, saveBusinessProfile } from "@/lib/firebase/businessProfile";
 import { FREQUENCIES, PLATFORMS, PlatformId, suggestedPlan } from "@/lib/onboarding/answers";
+import { firstName } from "@/lib/signOff";
 
 // Settings: everything about the account in one place. You, your plan
 // and billing (Stripe's portal for card, invoices and cancelling), your
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const [portalPending, setPortalPending] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [signOffDraft, setSignOffDraft] = useState("");
 
   const [showDelete, setShowDelete] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -37,7 +39,12 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!user) return;
-    getBusinessProfile(user.uid).then(setProfile).catch(() => {});
+    getBusinessProfile(user.uid)
+      .then((p) => {
+        setProfile(p);
+        setSignOffDraft(p?.signOffName ?? "");
+      })
+      .catch(() => {});
   }, [user]);
 
   async function openPortal() {
@@ -67,6 +74,7 @@ export default function SettingsPage() {
         tone: next.tone,
         channels: next.channels,
         frequency: next.frequency,
+        signOffName: next.signOffName,
         suggestedPlan: next.frequency ? suggestedPlan(next.frequency) : next.suggestedPlan,
       });
       setSaved(note);
@@ -223,6 +231,27 @@ export default function SettingsPage() {
                         <Link href="/offers" className="h-10 px-4 rounded-xl border border-[#E3E1E8] bg-paper text-sm font-semibold inline-flex items-center hover:bg-[#FAFAFA]">
                           Edit offers
                         </Link>
+                      </div>
+
+                      <div>
+                        <label htmlFor="signoff" className="block text-[15px] font-semibold">Your sign-off name</label>
+                        <div className="text-sm text-muted mt-0.5">
+                          How your emails are signed. Each offer can use its own name too, set on the Offers page.
+                        </div>
+                        <input
+                          id="signoff"
+                          value={signOffDraft}
+                          onChange={(e) => setSignOffDraft(e.target.value)}
+                          onBlur={() => {
+                            const v = signOffDraft.trim();
+                            if (v !== (profile.signOffName ?? "")) update({ signOffName: v }, "Saved.");
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                          }}
+                          placeholder={firstName(user.displayName) || "Your name"}
+                          className="mt-3 w-full max-w-[360px] h-12 px-4 rounded-xl border border-[#D4D1DB] bg-paper text-[15px] focus:outline-none focus:border-[#9B1FD6] focus:shadow-[0_0_0_4px_rgba(155,31,214,.12)]"
+                        />
                       </div>
 
                       <div>
