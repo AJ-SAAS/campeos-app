@@ -523,7 +523,7 @@ export const webinarTemplate: CampaignTemplate = {
       channel: "email",
       anchor: "event",
       offsetHours: 219, // ~1 day after email-gratitude
-      title: "Quick favor — why not?",
+      title: "Quick favor: why not?",
       phaseId: "marketing-intel",
       purpose:
         "Anyone still here didn't say no, they just didn't say yes yet. Asking why, with zero pressure, surfaces the real objection — sometimes straight into a sale.",

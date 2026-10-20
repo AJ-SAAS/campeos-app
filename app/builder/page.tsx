@@ -9,8 +9,7 @@ import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { OfferPicker } from "@/components/builder/OfferPicker";
 import { SetupPanel } from "@/components/builder/SetupPanel";
 import { UIStep } from "@/components/builder/Timeline";
-import { SequenceView, statusOf } from "@/components/builder/SequenceView";
-import { StepPreview } from "@/components/builder/StepPreview";
+import { SequenceView } from "@/components/builder/SequenceView";
 import { channelInfo, LogoStack, PlatformLogo } from "@/components/builder/channels";
 import { needsInput } from "@/lib/dashboard";
 import { StepEditor } from "@/components/builder/StepEditor";
@@ -661,19 +660,16 @@ function BuilderInner() {
   }
 
   const channelKeys = Array.from(new Set(scheduledSteps.map((s) => s.channel)));
-  const selectedStatus = selected
-    ? statusOf(selected, isOn(selected), !!lockedIds?.has(selected.templateStepId), generating)
-    : "Not written";
-  const fromName = user?.displayName ?? "You";
 
+  // Clicking a message opens the full-screen editor: read it, edit it
+  // by hand, or ask for a change, one message at a time.
   function select(id: string) {
     setSelectedId(id);
-    // Phones don't have room for the preview column: open the editor.
-    if (typeof window !== "undefined" && window.innerWidth < 1024) setStepModalOpen(true);
+    setStepModalOpen(true);
   }
 
   return (
-    <div className="h-screen flex flex-col bg-paper text-slate font-body">
+    <div className="h-[100dvh] overflow-hidden flex flex-col bg-paper text-slate font-body">
       {!subLoading && !active && <SubscribeBanner />}
       <div className="flex-grow min-h-0 flex">
         <Sidebar active={null} inBuilder />
@@ -856,36 +852,19 @@ function BuilderInner() {
             <span className="hidden sm:inline text-[13px] text-muted">Tap a channel to leave it out</span>
           </div>
 
-          <div className="flex-grow min-h-0 flex overflow-y-auto lg:overflow-hidden">
-            <section aria-label="Sequence" className="flex-[1.15_1_520px] min-w-0 px-4 sm:px-7 py-6 pb-28 lg:overflow-y-auto">
+          <div className="flex-grow min-h-0 overflow-y-auto">
+            <section aria-label="Sequence" className="max-w-[880px] mx-auto px-4 sm:px-7 pt-6 pb-28">
               <SequenceView
                 steps={steps}
                 phases={activeTemplate.phases}
                 eventDate={eventDate}
-                selectedId={selectedId}
+                selectedId={stepModalOpen ? selectedId : ""}
                 onSelect={(id) => (lockedIds?.has(id) && !copyByStep[id] ? setPlanOpen(true) : select(id))}
                 isOn={isOn}
                 onToggleStep={toggleStep}
                 lockedIds={lockedIds}
                 generating={generating}
                 userPlatforms={userPlatforms}
-              />
-            </section>
-            <section
-              aria-label="Preview"
-              className="hidden lg:block flex-[1_1_400px] min-w-0 bg-[#F8F8F8] border-l border-[#F0F0F0] px-7 py-6 overflow-y-auto"
-            >
-              <StepPreview
-                step={selected}
-                status={selectedStatus}
-                fromName={fromName}
-                userPlatforms={userPlatforms}
-                pending={variationPending}
-                onAsk={requestVariation}
-                onEditByHand={() => setStepModalOpen(true)}
-                onUnlock={() => setPlanOpen(true)}
-                onWrite={generateCampaign}
-                canWrite={writableCount > 0 && !generating}
               />
             </section>
           </div>
@@ -909,26 +888,35 @@ function BuilderInner() {
           />
         </div>
 
-        {/* Edit setup: the old left panel, now a drawer you open when needed */}
+        {/* Edit setup: a centred pop-up, opened from the header */}
         {setupOpen && (
-          <div className="fixed inset-0 z-50 flex justify-end bg-[rgba(23,19,31,0.35)] animate-step-in" onClick={() => setSetupOpen(false)}>
+          <div
+            className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 bg-[rgba(23,19,31,0.45)] animate-step-in"
+            onClick={() => setSetupOpen(false)}
+          >
             <div
               role="dialog"
               aria-modal="true"
               aria-label="Campaign setup"
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-[400px] h-full bg-paper shadow-[0_0_60px_-10px_rgba(23,19,31,.35)] flex flex-col"
+              className="relative w-full max-w-[560px] max-h-[calc(100dvh-24px)] sm:max-h-[86vh] flex flex-col bg-paper rounded-[28px] shadow-[0_40px_80px_-30px_rgba(23,19,31,.5)] overflow-hidden"
             >
-              <button
-                onClick={() => setSetupOpen(false)}
-                aria-label="Close setup"
-                className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full border border-[#ECEAF0] bg-paper flex items-center justify-center"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </button>
-              <div className="flex-grow min-h-0 flex">
+              <div className="shrink-0 flex items-start justify-between gap-4 px-6 sm:px-8 pt-6 sm:pt-7 pb-4 border-b border-[#F0F0F0]">
+                <div>
+                  <h2 className="font-serif text-[30px] leading-tight font-medium tracking-tight">Campaign setup</h2>
+                  <p className="text-[15px] text-muted mt-1">Every message is written from these details.</p>
+                </div>
+                <button
+                  onClick={() => setSetupOpen(false)}
+                  aria-label="Close setup"
+                  className="shrink-0 w-10 h-10 rounded-full border border-[#ECEAF0] flex items-center justify-center hover:bg-[#FAFAFA]"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex-grow min-h-0 overflow-y-auto px-2 sm:px-4 [&>aside]:!w-full [&>aside]:!overflow-visible [&>aside]:!pb-6 [&_aside>h2]:hidden">
                 <SetupPanel
                   offer={offer}
                   onOfferChange={setOffer}
@@ -942,6 +930,11 @@ function BuilderInner() {
                   }}
                   generating={generating}
                 />
+              </div>
+              <div className="shrink-0 flex justify-end gap-2 px-6 sm:px-8 py-4 border-t border-[#F0F0F0] bg-[#FCFCFD]">
+                <button onClick={() => setSetupOpen(false)} className="h-11 px-5 rounded-xl bg-slate text-white text-[15px] font-semibold">
+                  Done
+                </button>
               </div>
             </div>
           </div>
