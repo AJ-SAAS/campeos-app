@@ -99,3 +99,10 @@
   .cps-rg > *{opacity:1 !important;transform:none !important;transition:none !important}
   .cps-glow{display:none}
 }
+
+/* Hero app picture: sidebar and agent drop off as the screen narrows */
+.cps-hx-side,.cps-hx-agent{display:flex}
+@media (max-width:1020px){.cps-hx-agent{display:none}}
+@media (max-width:760px){.cps-hx-side{display:none}.cps-hx-logos{width:30px !important;overflow:hidden}.cps-hx-dates{grid-template-columns:1fr !important}}
+@media (max-width:480px){.cps-hx-pill,.cps-hx-time{display:none}}
+@media (max-width:480px){.cps-tl-rail{width:34px !important;font-size:10px !important}.cps-tl-list{padding:6px 12px 14px !important}}
