@@ -103,6 +103,35 @@
 /* Hero app picture: sidebar and agent drop off as the screen narrows */
 .cps-hx-side,.cps-hx-agent{display:flex}
 @media (max-width:1020px){.cps-hx-agent{display:none}}
-@media (max-width:760px){.cps-hx-side{display:none}.cps-hx-logos{width:30px !important;overflow:hidden}.cps-hx-dates{grid-template-columns:1fr !important}}
+@media (max-width:760px){.cps-hx-side{display:none}.cps-hx-logos{width:30px !important}.cps-hx-logos > span > span + span{display:none !important}.cps-hx-dates{grid-template-columns:1fr !important}}
 @media (max-width:480px){.cps-hx-pill,.cps-hx-time{display:none}}
 @media (max-width:480px){.cps-tl-rail{width:34px !important;font-size:10px !important}.cps-tl-list{padding:6px 12px 14px !important}}
+
+/* ---- Phones: feature card pictures ---- */
+.cps-loop-m{display:none}
+@media (max-width:560px){
+  /* Campaign types: one row each, name left, length and status right */
+  .cps-tg{grid-template-columns:minmax(0,1fr) !important;gap:6px !important}
+  .cps-tg > div{display:flex;align-items:center;gap:10px;padding:9px 10px !important}
+  .cps-tg > div > div:first-child{flex:1;min-width:0}
+  .cps-tg > div > div:last-child{margin-top:0 !important;gap:10px}
+  /* Video: title top left, smaller play button bottom right */
+  .cps-vbars{display:none !important}
+  .cps-vt{top:16% !important;transform:none !important;max-width:80% !important}
+  .cps-vt > div{font-size:28px !important}
+  .cps-vplay{width:56px !important;height:56px !important;left:auto !important;top:auto !important;right:18px;bottom:16px;margin:0 !important}
+  /* Saved launches stack: keep each card on one line */
+  .cps-stack > span:last-child{font-size:0 !important;gap:0 !important;padding:6px !important}
+  /* Winning copy: let saved lines wrap, drop the type tag for room */
+  .cps-wl span{white-space:normal !important}
+  .cps-wl span:last-child{display:none}
+  /* Winners library: label on top, the example line under it */
+  .cps-lib > div{flex-wrap:wrap;row-gap:4px}
+  .cps-lib > div > div:first-child{width:calc(100% - 36px) !important}
+  .cps-lib > div > span{order:1}
+  .cps-lib > div > div:nth-child(2){order:2;flex-basis:100% !important;white-space:normal !important}
+  /* Winner loop: a list on phones */
+  .cps-loop{display:none !important}
+  .cps-loop-m{display:grid}
+}
+.cps-stack > div > div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

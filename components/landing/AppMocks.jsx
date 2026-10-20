@@ -479,3 +479,36 @@ export function AgentMock({ v }) {
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Winner loop, phone version: the circle has no room under ~560px, so */
+/* phones get the same 4 steps as a list, lit in the same rhythm.      */
+/* ------------------------------------------------------------------ */
+
+const LOOP = [
+  ['01', 'Write', 'Every email, ad and post, written.', '0.00s'],
+  ['02', 'Test', 'See which hooks and subject lines pull.', '-4.20s'],
+  ['03', 'Save the winners', 'Keep what your buyers responded to.', '-2.80s'],
+  ['04', 'Double down', 'Your next launch is built from it.', '-1.40s'],
+];
+
+export function WinnerLoopList() {
+  return (
+    <div className="cps-loop-m" style={{ gap: '8px', width: '100%' }}>
+      {LOOP.map(([n, title, cap, delay]) => (
+        <div key={n} style={{ position: 'relative', display: 'flex', gap: '14px', alignItems: 'flex-start', padding: '14px 16px', borderRadius: '16px', background: '#FFFFFF', border: `1px solid ${LINE}`, overflow: 'hidden' }}>
+          <span className="cps-nodeOn" aria-hidden="true" style={{ animationDelay: delay, position: 'absolute', inset: 0, background: '#FBF8FF', boxShadow: 'inset 3px 0 0 #9B1FD6' }} />
+          <span style={{ position: 'relative', fontFamily: MONO, fontSize: '12px', color: '#9B1FD6', paddingTop: '2px' }}>{n}</span>
+          <span style={{ position: 'relative', minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: '16px', fontWeight: 600 }}>{title}</span>
+            <span style={{ display: 'block', fontSize: '14px', color: MUTED, marginTop: '2px', lineHeight: 1.45 }}>{cap}</span>
+          </span>
+        </div>
+      ))}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', color: MUTED, paddingTop: '4px' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9B1FD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
+        Then again, smarter each time
+      </div>
+    </div>
+  );
+}
