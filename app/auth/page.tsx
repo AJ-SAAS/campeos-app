@@ -1,93 +1,102 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import Link from "next/link";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { getBusinessProfile } from "@/lib/firebase/businessProfile";
+import "@/components/onboarding/onboarding.css";
 
-// The one sign-in/create-account page for the whole app. Soft gate,
-// mailcheap.ai-style — create an account, answer a few onboarding
-// questions, land in the dashboard. Payment happens later, at
-// generate-time or from the dashboard's nag banner, not here. So
-// "create account" always ends at /onboarding, never at Stripe
-// Checkout — there's no plan to pick yet.
+// The one sign-in / create-account page (approved "Sign in to Campeos"
+// design: form on the left, an example email on the right). Soft gate:
+// create an account, answer five onboarding questions, land in the first
+// campaign. Payment happens later, from the dashboard, never here.
 //
-// Arrives here two ways:
-//   /auth          - nav "Sign in", defaults to the sign-in tab
-//   /auth?signup   - a landing-page CTA, defaults to the create-account tab
+// Arrives here from the sales page:
+//   /auth               "Sign in"
+//   /auth?signup        "Get started"
+//   /auth?plan=starter  a pricing-card button (also pro). The plan is
+//                       remembered in localStorage ("campeos.planIntent")
+//                       so the dashboard can open on that plan later.
+//
+// Email sign-in is email + password (Firebase's Email/Password provider).
+// One email box first, then the password box appears, the same feel as
+// "email me a code" without needing the Email Link provider turned on.
 export default function AuthPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-paper text-muted">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<div className="min-h-screen bg-paper" />}>
       <AuthInner />
     </Suspense>
   );
 }
 
+const PLAN_KEY = "campeos.planIntent";
+
 function AuthInner() {
   const { user, loading: authLoading, signIn, signUpWithEmail, signInWithEmail } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const wantsSignup = searchParams.has("signup");
+  const plan = searchParams.get("plan");
+  const wantsSignup = searchParams.has("signup") || !!plan;
 
   const [mode, setMode] = useState<"signup" | "signin">(wantsSignup ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<"email" | "google" | null>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
-  // Already signed in and lands here anyway (bookmark, back button) —
-  // route the same way a fresh sign-in would, instead of showing the form.
-  // useRequireAccess (run from the destination page) is what actually
-  // decides dashboard vs. onboarding; this just gets them off /auth.
+  useEffect(() => {
+    if (plan === "starter" || plan === "pro") {
+      try {
+        localStorage.setItem(PLAN_KEY, plan);
+      } catch {
+        // Private mode etc. Only a convenience.
+      }
+    }
+  }, [plan]);
+
+  // Signed in (just now, or already): profile means onboarding is done.
   useEffect(() => {
     if (authLoading || !user) return;
-    getBusinessProfile(user.uid).then((profile) => {
-      router.replace(profile ? "/dashboard" : "/onboarding");
-    });
+    getBusinessProfile(user.uid)
+      .then((profile) => router.replace(profile ? "/dashboard" : "/onboarding"))
+      .catch(() => router.replace("/onboarding"));
   }, [authLoading, user, router]);
 
-  function afterSignUp() {
-    router.push("/onboarding");
-  }
-
-  function afterSignIn() {
-    router.push("/dashboard");
-  }
-
-  async function handleEmailSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setPending("email");
-    try {
-      if (mode === "signup") {
-        await signUpWithEmail(email, password);
-        afterSignUp();
-      } else {
-        await signInWithEmail(email, password);
-        afterSignIn();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? friendlyAuthError(err.message) : "Something went wrong.");
-      setPending(null);
-    }
-  }
+  useEffect(() => {
+    if (showPassword) passwordRef.current?.focus();
+  }, [showPassword]);
 
   async function handleGoogle() {
     setError(null);
     setPending("google");
     try {
       await signIn();
+      // The effect above routes once `user` updates.
+    } catch (err) {
+      setError(err instanceof Error ? friendlyAuthError(err.message) : "Something went wrong.");
+      setPending(null);
+    }
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!showPassword) {
+      if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+        setError("That doesn't look like a valid email address.");
+        return;
+      }
+      setShowPassword(true);
+      return;
+    }
+    setPending("email");
+    try {
       if (mode === "signup") {
-        afterSignUp();
+        await signUpWithEmail(email.trim(), password);
       } else {
-        afterSignIn();
+        await signInWithEmail(email.trim(), password);
       }
     } catch (err) {
       setError(err instanceof Error ? friendlyAuthError(err.message) : "Something went wrong.");
@@ -95,141 +104,221 @@ function AuthInner() {
     }
   }
 
+  if (authLoading || user) {
+    return <div className="min-h-screen bg-paper" />;
+  }
+
   return (
-    <div className="min-h-screen bg-paper text-slate font-body flex flex-col">
-      <div className="px-6 py-5">
-        <Link href="/" className="inline-flex items-center">
-          {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-          <img src="/logo-lockup.png" alt="Campeos" className="h-7 w-auto object-contain" />
-        </Link>
-      </div>
-
-      <div className="flex-grow flex items-center justify-center px-6 pb-16">
-        <div className="w-full max-w-[420px] flex flex-col gap-6">
-          <div className="flex flex-col gap-1.5">
-            <h1 className="font-display text-[26px] font-extrabold tracking-tight">
-              {mode === "signup" ? "Create your account" : "Sign in"}
+    <div className="cob-root">
+      <div className="cob-left">
+        {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
+        <img src="/logo-lockup.png" alt="Campeos" style={{ height: 26, width: "auto", alignSelf: "flex-start" }} />
+        <div className="cob-center" style={{ padding: "48px 0" }}>
+          <div style={{ width: "100%", maxWidth: 420 }}>
+            <h1 className="cob-h1" style={{ fontSize: 52, lineHeight: 1.02 }}>
+              Sign in to Campeos
             </h1>
-            <p className="text-sm text-muted">
-              {mode === "signup"
-                ? "Create your account — a few quick questions, then you're in."
-                : "Welcome back."}
-            </p>
-          </div>
 
-          {error && (
-            <div className="px-4 py-3 rounded-xl bg-warnBg text-warnFg text-sm leading-snug">{error}</div>
-          )}
+            <button
+              type="button"
+              onClick={handleGoogle}
+              disabled={pending !== null}
+              style={{
+                marginTop: 36,
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                minHeight: 54,
+                borderRadius: 12,
+                border: "1px solid #E3E1E8",
+                background: "#FFFFFF",
+                color: "#17131F",
+                font: "inherit",
+                fontSize: 17,
+                fontWeight: 600,
+                cursor: "pointer",
+                opacity: pending === "email" ? 0.5 : 1,
+              }}
+            >
+              {pending === "google" ? (
+                <Spinner />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element -- local /public asset
+                <img src="/brand/google.png" alt="" style={{ width: 22, height: 22, objectFit: "contain" }} />
+              )}
+              Continue with Google
+            </button>
 
-          <button
-            onClick={handleGoogle}
-            disabled={pending !== null}
-            className="w-full flex items-center justify-center gap-2.5 min-h-12 rounded-xl border border-line bg-paper text-sm font-semibold disabled:opacity-50"
-          >
-            <GoogleIcon />
-            {pending === "google" ? "Working..." : "Continue with Google"}
-          </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "24px 0", color: "#6B6577", fontSize: 14 }}>
+              <span style={{ flex: 1, height: 1, background: "#ECEAF0" }} />
+              or
+              <span style={{ flex: 1, height: 1, background: "#ECEAF0" }} />
+            </div>
 
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-grow bg-line" />
-            <span className="font-mono text-[11px] text-faint">OR</span>
-            <div className="h-px flex-grow bg-line" />
-          </div>
-
-          <form onSubmit={handleEmailSubmit} className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-muted">Email</span>
+            <form onSubmit={handleEmailSubmit}>
+              <label htmlFor="email" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
+                Email
+              </label>
               <input
+                id="email"
                 type="email"
-                required
                 autoComplete="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-12 px-3.5 rounded-xl border border-line bg-paper text-sm focus-visible:outline-clay"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
+                placeholder="Email"
+                className="cob-field"
+                style={{ minHeight: 54, fontSize: 17 }}
               />
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-muted">Password</span>
-              <input
-                type="password"
-                required
-                minLength={6}
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-12 px-3.5 rounded-xl border border-line bg-paper text-sm focus-visible:outline-clay"
-              />
-            </label>
-            <button
-              type="submit"
-              disabled={pending !== null}
-              className="mt-1 min-h-12 rounded-xl bg-gradient-to-r from-clay to-pink text-white text-sm font-bold disabled:opacity-50"
-            >
-              {pending === "email"
-                ? "Working..."
-                : mode === "signup"
-                ? "Create account"
-                : "Sign in"}
-            </button>
-          </form>
 
-          <p className="text-center text-sm text-muted">
-            {mode === "signup" ? (
-              <>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("signin");
-                    setError(null);
-                  }}
-                  className="font-semibold text-slate"
-                >
-                  Sign in
-                </button>
-              </>
-            ) : (
-              <>
-                Need an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("signup");
-                    setError(null);
-                  }}
-                  className="font-semibold text-slate"
-                >
-                  Create one
-                </button>
-              </>
-            )}
+              {showPassword && (
+                <div className="cob-rise">
+                  <label htmlFor="password" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
+                    Password
+                  </label>
+                  <input
+                    ref={passwordRef}
+                    id="password"
+                    type="password"
+                    autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError(null);
+                    }}
+                    placeholder={mode === "signup" ? "Make a password (6+ characters)" : "Password"}
+                    className="cob-field"
+                    style={{ minHeight: 54, fontSize: 17, marginTop: 10 }}
+                  />
+                </div>
+              )}
+
+              {error && (
+                <div role="alert" className="cob-rise" style={{ marginTop: 12, padding: "12px 14px", borderRadius: 12, background: "#FFF7ED", border: "1px solid #FED7AA", color: "#7C2D12", fontSize: 15, lineHeight: 1.45 }}>
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="cob-btn"
+                disabled={pending !== null || (showPassword && password.length === 0)}
+                style={{ marginTop: 14, width: "100%", minHeight: 54, fontSize: 17 }}
+              >
+                {pending === "email" && <Spinner light />}
+                {!showPassword ? "Continue with email" : mode === "signup" ? "Create my account" : "Sign in"}
+                {pending !== "email" && <Arrow />}
+              </button>
+            </form>
+
+            <p style={{ fontSize: 15, color: "#6B6577", margin: "18px 0 0" }}>
+              {mode === "signup" ? "Already have an account? " : "New to Campeos? "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === "signup" ? "signin" : "signup");
+                  setError(null);
+                }}
+                style={{ border: 0, background: "none", padding: 0, font: "inherit", color: "#17131F", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 4, cursor: "pointer" }}
+              >
+                {mode === "signup" ? "Sign in" : "Create an account"}
+              </button>
+            </p>
+
+            <p style={{ fontSize: 13, lineHeight: 1.5, color: "#6B6577", margin: "20px 0 0" }}>
+              By continuing, you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="cob-right" style={{ padding: "64px 0 0 64px" }}>
+        <h2 style={{ fontFamily: "Newsreader, serif", fontWeight: 500, fontSize: 44, letterSpacing: "-.03em", lineHeight: 1.06, margin: 0, maxWidth: 520, paddingRight: 40 }}>
+          Run a <span style={{ fontStyle: "italic" }}>sold-out</span> launch, without the blank page.
+        </h2>
+        <p style={{ fontSize: 17, lineHeight: 1.6, color: "#5B5566", margin: "16px 0 0", maxWidth: 520, paddingRight: 40 }}>
+          Tell Campeos about your offer. It writes every email, text, ad and post, and plans when each one goes out.
+        </p>
+
+        <div className="cob-rise" style={{ animationDelay: ".3s", margin: "48px 56px 0 0", maxWidth: 500, background: "#FFFFFF", border: "1px solid #ECEAF0", borderRadius: 20, boxShadow: "0 40px 80px -44px rgba(23,19,31,.35)", padding: "24px 28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: "1px solid #F0EEF4" }}>
+            <Avatar initials="SK" size={38} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>Sarah Kim</div>
+              <div style={{ fontSize: 13, color: "#6B6577" }}>To: your customers</div>
+            </div>
+            <span style={{ fontSize: 13, color: "#6B6577" }}>9:00 AM</span>
+          </div>
+          <div style={{ fontFamily: "Newsreader, serif", fontWeight: 500, fontSize: 30, letterSpacing: "-.025em", lineHeight: 1.12, marginTop: 18 }}>
+            Your summer glow starts Monday
+          </div>
+          <p style={{ fontSize: 15, lineHeight: 1.6, color: "#3D3747", margin: "12px 0 0" }}>
+            Hey there, our 4-week skin plan opens Monday. Easy steps, real results, and 20% off for the first 50 people.
           </p>
+          <span style={{ display: "inline-flex", alignItems: "center", marginTop: 16, padding: "10px 16px", borderRadius: 10, background: "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)", color: "#FFFFFF", fontSize: 14, fontWeight: 700 }}>
+            Save my spot
+          </span>
+        </div>
+
+        <div className="cob-rise" style={{ animationDelay: "1.1s", marginTop: 18, display: "inline-flex", alignItems: "center", gap: 12, padding: "12px 16px 12px 12px", borderRadius: 16, background: "#FFFFFF", border: "1px solid #ECEAF0", boxShadow: "0 20px 40px -24px rgba(23,19,31,.35)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)", color: "#FFFFFF" }}>
+            <Check size={15} />
+          </span>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>Written for you in about a minute</div>
+            <div style={{ fontSize: 13, color: "#6B6577" }}>Plus the texts and posts to go with it</div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Firebase's raw "Firebase: Error (auth/weak-password)." messages aren't
-// something to show someone mid-signup.
 function friendlyAuthError(message: string): string {
-  if (message.includes("auth/email-already-in-use")) return "That email already has an account. Try signing in instead.";
+  if (message.includes("auth/email-already-in-use")) return "That email already has an account. Tap \"Sign in\" below.";
   if (message.includes("auth/weak-password")) return "Use at least 6 characters for your password.";
   if (message.includes("auth/invalid-email")) return "That doesn't look like a valid email address.";
-  if (message.includes("auth/invalid-credential") || message.includes("auth/wrong-password")) return "Wrong email or password.";
-  if (message.includes("auth/user-not-found")) return "No account with that email. Try creating one instead.";
+  if (message.includes("auth/invalid-credential") || message.includes("auth/wrong-password"))
+    return "Wrong email or password. New here? Tap \"Create an account\" below.";
+  if (message.includes("auth/user-not-found")) return "No account with that email. Tap \"Create an account\" below.";
   if (message.includes("auth/popup-closed-by-user")) return "Sign-in was closed before it finished.";
-  if (message.includes("auth/operation-not-allowed")) return "Email/password sign-in isn't turned on yet — use Google for now.";
+  if (message.includes("auth/too-many-requests")) return "Too many tries. Wait a minute and try again.";
+  if (message.includes("auth/operation-not-allowed")) return "Email sign-in isn't turned on yet. Use Google for now.";
   return message.replace(/^Firebase:\s*/, "");
 }
 
-function GoogleIcon() {
+function Avatar({ initials, size }: { initials: string; size: number }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.8l5.7-5.7C33.6 6.5 29 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.4-.3-3.5z" />
-      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c2.8 0 5.3 1 7.3 2.8l5.7-5.7C33.6 6.5 29 4.5 24 4.5c-7.5 0-13.9 4.3-17.1 10.5z" />
-      <path fill="#4CAF50" d="M24 43.5c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 34.6 26.7 35.5 24 35.5c-5.3 0-9.7-3.4-11.3-8.1l-6.5 5C9.6 39.1 16.3 43.5 24 43.5z" />
-      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.2 5.2C40.9 36.5 43.5 30.9 43.5 24c0-1.2-.1-2.4-.3-3.5z" />
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: size, height: size, flexShrink: 0, borderRadius: "50%", background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)", color: "#FFFFFF", fontSize: Math.round(size * 0.34), fontWeight: 700 }}>
+      {initials}
+    </span>
+  );
+}
+
+function Arrow() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+function Check({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12l5 5 9-10" />
+    </svg>
+  );
+}
+
+function Spinner({ light }: { light?: boolean }) {
+  return (
+    <svg className="cob-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={light ? "#FFFFFF" : "#9B1FD6"} strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-6.2-8.6" />
     </svg>
   );
 }

@@ -31,6 +31,9 @@ import {
   listCallThemes,
 } from "@/lib/firebase/library";
 import { checkAndIncrementUsage } from "@/lib/firebase/usage";
+import { getBusinessProfile } from "@/lib/firebase/businessProfile";
+import { templateChannelsFor, CHANNEL_LABELS } from "@/lib/onboarding/answers";
+import type { Channel } from "@/lib/templates/types";
 
 // The Campaign Builder — Builder.dc.html, wired to the real engine, the
 // real /api/generate-step route, and real Firestore persistence.
@@ -80,6 +83,9 @@ function BuilderInner() {
   // New campaign: which template to start from, e.g. /builder?template=cart-close.
   // Defaults to the webinar template (the original /builder behavior).
   const templateParam = searchParams.get("template");
+  // /builder?first=1 is where onboarding lands: the offer they just
+  // described is already picked, so skip the OfferPicker entirely.
+  const isFirst = searchParams.get("first") === "1" && !existingId;
 
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [offer, setOffer] = useState<OfferContext>(EMPTY_OFFER);
@@ -93,6 +99,39 @@ function BuilderInner() {
   // was in the URL — a saved campaign always rebuilds from the template
   // it was actually created with.
   const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
+
+  // Onboarding's "Where do you reach your customers?" answer, mapped onto
+  // template channels (lib/onboarding/answers.ts). null = no answer saved
+  // (older accounts), which keeps every step like before.
+  const [allowedChannels, setAllowedChannels] = useState<Set<Channel> | null>(null);
+  const [profileLoading, setProfileLoading] = useState(!existingId);
+  const [showFirstRun, setShowFirstRun] = useState(isFirst);
+
+  useEffect(() => {
+    if (existingId) {
+      setProfileLoading(false);
+      return;
+    }
+    if (!user) return;
+    getBusinessProfile(user.uid)
+      .then((profile) => {
+        if (!profile) return;
+        setAllowedChannels(templateChannelsFor(profile.channels));
+        if (isFirst && profile.name) {
+          setOffer({
+            name: profile.name,
+            price: profile.price ?? "",
+            audience: profile.audience ?? "",
+            whatTheyGet: profile.whatTheyGet ?? "",
+            tone: profile.tone || "Friendly",
+            readingLevel: profile.readingLevel || "5th grade",
+          });
+          setOfferPicked(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setProfileLoading(false));
+  }, [existingId, isFirst, user]);
 
   // Load an existing campaign's saved steps and copy when ?id= is present.
   useEffect(() => {
@@ -123,10 +162,15 @@ function BuilderInner() {
 
   // A brand-new campaign's schedule comes from the engine; a loaded one
   // uses the dates already saved on each step.
-  const freshSteps = useMemo(
-    () => buildTimeline(activeTemplate, { event: eventDate }),
-    [activeTemplate, eventDate]
-  );
+  // Steps on channels the user said they don't use are left out. If that
+  // would leave nothing (a template with none of their channels), keep
+  // the full template rather than show an empty timeline.
+  const freshSteps = useMemo(() => {
+    const all = buildTimeline(activeTemplate, { event: eventDate });
+    if (!allowedChannels) return all;
+    const kept = all.filter((s) => allowedChannels.has(s.channel as Channel));
+    return kept.length > 0 ? kept : all;
+  }, [activeTemplate, eventDate, allowedChannels]);
 
   const scheduledSteps: ScheduledStep[] = loadedSteps
     ? loadedSteps.map((s) => ({ ...s, scheduledAt: new Date(s.scheduledAt) }))
@@ -442,7 +486,7 @@ function BuilderInner() {
     return <div className="h-screen bg-paper" />;
   }
 
-  if (loadingCampaign) {
+  if (loadingCampaign || (profileLoading && !offerPicked)) {
     return (
       <div className="h-screen flex items-center justify-center bg-paper text-muted">
         Loading campaign...
@@ -508,6 +552,28 @@ function BuilderInner() {
             </button>
           </div>
         </header>
+
+        {showFirstRun && (
+          <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 sm:px-6 py-2.5 bg-agentWash border-b border-line text-sm">
+            <span className="font-semibold text-slate">Your first campaign is set up from your answers.</span>
+            <span className="text-muted">
+              Writing for{" "}
+              {allowedChannels
+                ? (Object.keys(CHANNEL_LABELS) as Channel[])
+                    .filter((c) => allowedChannels.has(c))
+                    .map((c) => CHANNEL_LABELS[c])
+                    .join(", ")
+                : "every channel"}
+              . Check the details on the left, then generate.
+            </span>
+            <button
+              onClick={() => setShowFirstRun(false)}
+              className="ml-auto text-muted text-xs font-semibold hover:text-slate"
+            >
+              Got it
+            </button>
+          </div>
+        )}
 
         {/* Mobile-only: pick which single panel is showing. The desktop
             2-column layout below renders both at once (lg:flex), so this

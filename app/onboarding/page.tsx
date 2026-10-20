@@ -1,200 +1,284 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { getBusinessProfile, saveBusinessProfile } from "@/lib/firebase/businessProfile";
-import { addWinningCopy, addSalesCall } from "@/lib/firebase/library";
+import { createOffer } from "@/lib/firebase/offers";
+import { addWinningCopy } from "@/lib/firebase/library";
+import {
+  PLATFORMS,
+  DEFAULT_PLATFORMS,
+  FREQUENCIES,
+  PlatformId,
+  FrequencyId,
+  suggestedPlan,
+} from "@/lib/onboarding/answers";
+import "@/components/onboarding/onboarding.css";
 
-// The mailcheap.ai-style onboarding wizard — one short question at a
-// time, right after sign-up, before the dashboard. Mirrors their step
-// list (newsletter name -> what it's about -> who it's from -> existing
-// subscribers + where to import them) mapped onto Campeos's own offer
-// fields (OfferContext, see lib/ai/prompts.ts): name -> what they get ->
-// audience -> price -> optional winning-copy/sales-call import, using
-// the same library.ts functions the builder's "What already works" /
-// "Why people buy" panels already use.
+// New-user onboarding: five plain-English questions on the left, and on
+// the right the user's first email filling itself in as they answer
+// (approved "Campeos Onboarding" design).
 //
-// Finishing writes a businessProfiles/{uid} doc (lib/firebase/businessProfile.ts).
-// useRequireAccess treats that doc's existence as "onboarding done" —
-// that's the only thing gating a page, not a subscription (see that
-// file's comment).
+//   1. What do you sell?                      -> name
+//   2. Do you have a sales page?              -> link OR pasted words,
+//                                                scanned to pre-fill 3
+//   3. Who's your ideal customer?             -> audience, whatTheyGet, price
+//   4. Where do you reach your customers?     -> channels
+//   5. How often do you run a sale or promo?  -> frequency -> suggested plan
 //
-// "url" is the new first step: optional and always skippable (confirmed
-// decision — a sales-page link isn't required to sign up). When given,
-// app/api/analyze-offer-page does a best-effort plain fetch + AI extract
-// and pre-fills name/whatTheyGet/audience/price below, each marked with
-// a small "found this on your page" note (foundFromCrawl) so it reads as
-// a confirmable guess, not a fait accompli. A JS-rendered page, a failed
-// fetch, or a failed extraction all look identical from here — ok:false
-// — and just fall through to the same blank manual questions as if the
-// user had skipped outright. No error is ever shown for this step.
-const STEPS = ["url", "name", "whatTheyGet", "audience", "price", "import"] as const;
-type Step = (typeof STEPS)[number];
+// Finishing writes businessProfiles/{uid} (which is what marks onboarding
+// as done for useRequireAccess), saves the offer to offers/ so it shows
+// up in the offer switcher, saves any testimonials found on their page as
+// winning copy, then opens the builder on the first campaign
+// (/builder?first=1), where the channels answer decides which steps get
+// written. Nothing is ever invented: anything the scan doesn't find is
+// left blank for the user to fill.
+
+const STEP_COUNT = 5;
+
+const EXAMPLES = ["Beginner Yoga Course", "Business Coaching", "Summer Candle Sale", "10 Clients in 30 Days"];
+
+type ScanState = "idle" | "scanning" | "failed";
+type FieldKey = "name" | "who" | "what" | "price";
+
+const SCAN_ROWS: { label: string; missing: string; field: FieldKey | null }[] = [
+  { label: "Opening your page", missing: "Opening your page", field: null },
+  { label: "Found what you sell", missing: "No name found. You already gave one", field: "name" },
+  { label: "Found your ideal customer", missing: "No customer found. Add it next", field: "who" },
+  { label: "Found what they get", missing: "Not clear what they get. Add it next", field: "what" },
+  { label: "Found the price", missing: "No price on the page. Add it next", field: "price" },
+];
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function OnboardingPage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
   const [checkingProfile, setCheckingProfile] = useState(true);
-  const [stepIndex, setStepIndex] = useState(0);
-
-  const [url, setUrl] = useState("");
-  const [crawling, setCrawling] = useState(false);
-  // Which fields got pre-filled from the crawl, so QuestionStep can show
-  // a "found this on your page" note next to those (and only those).
-  const [foundFromCrawl, setFoundFromCrawl] = useState<Set<string>>(new Set());
-  const [crawledTestimonials, setCrawledTestimonials] = useState<string[]>([]);
+  const [step, setStep] = useState(0);
 
   const [name, setName] = useState("");
-  const [whatTheyGet, setWhatTheyGet] = useState("");
-  const [audience, setAudience] = useState("");
+  const [page, setPage] = useState("");
+  const [who, setWho] = useState("");
+  const [what, setWhat] = useState("");
   const [price, setPrice] = useState("");
-  const [importKind, setImportKind] = useState<"copy" | "call">("copy");
-  const [importText, setImportText] = useState("");
+  const [channels, setChannels] = useState<PlatformId[]>(DEFAULT_PLATFORMS);
+  const [frequency, setFrequency] = useState<FrequencyId | null>(null);
+
+  const [scan, setScan] = useState<ScanState>("idle");
+  const [scanRow, setScanRow] = useState(0);
+  const [missingRows, setMissingRows] = useState<Set<number>>(new Set());
+  const [scanned, setScanned] = useState(false);
+  const [popped, setPopped] = useState<Set<FieldKey>>(new Set());
+  const [testimonials, setTestimonials] = useState<string[]>([]);
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [typed, setTyped] = useState("");
+  const scanToken = useRef(0);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      router.replace("/auth");
+      router.replace("/auth?signup");
       return;
     }
-    // Already finished onboarding (e.g. came back here by hand) -> the
-    // dashboard is where this goes, not another round of questions.
-    getBusinessProfile(user.uid).then((profile) => {
-      if (profile) {
-        router.replace("/dashboard");
-      } else {
-        setCheckingProfile(false);
-      }
-    });
+    getBusinessProfile(user.uid)
+      .then((profile) => {
+        if (profile) router.replace("/dashboard");
+        else setCheckingProfile(false);
+      })
+      .catch(() => setCheckingProfile(false));
   }, [authLoading, user, router]);
 
-  const step: Step = STEPS[stepIndex];
-  const isLast = stepIndex === STEPS.length - 1;
+  // Step 1's placeholder types out example offers, so a beginner sees
+  // what kind of answer we mean. Mirrored in the preview headline.
+  useEffect(() => {
+    if (step !== 0 || name) return;
+    let ex = 0;
+    let i = 0;
+    let deleting = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      const word = EXAMPLES[ex];
+      if (!deleting) {
+        i++;
+        setTyped(word.slice(0, i));
+        if (i === word.length) {
+          deleting = true;
+          timer = setTimeout(tick, 1500);
+          return;
+        }
+        timer = setTimeout(tick, 70);
+      } else {
+        i--;
+        setTyped(word.slice(0, i));
+        if (i === 0) {
+          deleting = false;
+          ex = (ex + 1) % EXAMPLES.length;
+          timer = setTimeout(tick, 300);
+          return;
+        }
+        timer = setTimeout(tick, 35);
+      }
+    };
+    timer = setTimeout(tick, 400);
+    return () => clearTimeout(timer);
+  }, [step, name]);
 
-  function canContinue(): boolean {
-    if (step === "url") return true; // optional, always skippable
-    if (step === "name") return name.trim().length > 0;
-    if (step === "whatTheyGet") return whatTheyGet.trim().length > 0;
-    if (step === "audience") return audience.trim().length > 0;
-    if (step === "price") return price.trim().length > 0;
+  function canContinue(s = step): boolean {
+    if (s === 0) return name.trim().length > 0;
+    if (s === 1) return true;
+    if (s === 2) return who.trim().length > 0 && what.trim().length > 0;
+    if (s === 3) return channels.length > 0;
+    if (s === 4) return frequency !== null;
     return true;
   }
 
+  function next() {
+    if (saving || scan === "scanning") return;
+    if (!canContinue()) return;
+    if (step === STEP_COUNT - 1) {
+      finish();
+      return;
+    }
+    if (step === 2) setPopped(new Set());
+    setStep((s) => s + 1);
+  }
+
+  function back() {
+    if (scan === "scanning") {
+      scanToken.current++;
+      setScan("idle");
+    }
+    setStep((s) => Math.max(0, s - 1));
+  }
+
+  function onEnter(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      next();
+    }
+  }
+
+  async function runScan() {
+    const input = page.trim();
+    if (!input) return;
+    const token = ++scanToken.current;
+    setScan("scanning");
+    setScanRow(0);
+    setMissingRows(new Set());
+    setPopped(new Set());
+
+    let data: {
+      ok?: boolean;
+      name?: string;
+      whatTheyGet?: string;
+      audience?: string;
+      price?: string;
+      testimonials?: string[];
+    } = {};
+    try {
+      const [res] = await Promise.all([
+        fetch("/api/analyze-offer-page", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input }),
+        }),
+        sleep(900),
+      ]);
+      data = await res.json();
+      if (!res.ok) data = { ok: false };
+    } catch {
+      data = { ok: false };
+    }
+    if (token !== scanToken.current) return;
+
+    if (!data.ok) {
+      setScan("failed");
+      return;
+    }
+
+    const found: Record<FieldKey, string> = {
+      name: (data.name ?? "").trim(),
+      who: (data.audience ?? "").trim(),
+      what: (data.whatTheyGet ?? "").trim(),
+      price: (data.price ?? "").trim(),
+    };
+    const missing = new Set<number>();
+
+    // Fill the preview one field at a time, so the user watches their
+    // email write itself. The name they typed in step 1 always wins.
+    for (let row = 1; row < SCAN_ROWS.length; row++) {
+      await sleep(550);
+      if (token !== scanToken.current) return;
+      const field = SCAN_ROWS[row].field!;
+      const value = found[field];
+      setScanRow(row);
+      if (field === "name") {
+        if (value && !name.trim()) setName(value);
+        if (!value) missing.add(row);
+      } else if (value) {
+        if (field === "who") setWho(value);
+        if (field === "what") setWhat(value);
+        if (field === "price") setPrice(value);
+      } else {
+        missing.add(row);
+      }
+      if (value) setPopped((p) => new Set(p).add(field));
+      setMissingRows(new Set(missing));
+    }
+    await sleep(500);
+    if (token !== scanToken.current) return;
+    setScanRow(SCAN_ROWS.length);
+    if (Array.isArray(data.testimonials)) setTestimonials(data.testimonials.slice(0, 10));
+    const anyFound = found.who || found.what || found.price || found.name;
+    setScanned(!!anyFound);
+    await sleep(700);
+    if (token !== scanToken.current) return;
+    setScan("idle");
+    setStep(2);
+  }
+
+  function toggleChannel(id: PlatformId) {
+    setChannels((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+  }
+
   async function finish() {
-    if (!user) return;
+    if (!user || !frequency) return;
     setSaving(true);
     setError(null);
+    const offer = {
+      name: name.trim(),
+      whatTheyGet: what.trim(),
+      audience: who.trim(),
+      price: price.trim(),
+      tone: "Friendly",
+      readingLevel: "5th grade",
+    };
     try {
       await saveBusinessProfile(user.uid, {
-        name: name.trim(),
-        whatTheyGet: whatTheyGet.trim(),
-        audience: audience.trim(),
-        price: price.trim(),
-        tone: "Friendly",
-        readingLevel: "5th grade",
+        ...offer,
+        channels,
+        frequency,
+        suggestedPlan: suggestedPlan(frequency),
+        salesPage: page.trim().slice(0, 2000) || undefined,
+        onboardedAt: new Date().toISOString(),
       });
-
-      const text = importText.trim();
-      if (text) {
-        if (importKind === "copy") {
-          await addWinningCopy(user.uid, text);
-        } else {
-          const res = await fetch("/api/analyze-call", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ transcript: text }),
-          });
-          const data = await res.json();
-          if (res.ok) {
-            await addSalesCall(user.uid, text, data.themes ?? []);
-          }
-          // A failed analysis here isn't worth blocking onboarding over —
-          // they can paste it again from /buyer-insights any time.
-        }
+      // Best-effort extras: a failure here shouldn't stop them launching.
+      try {
+        await createOffer(user.uid, offer);
+      } catch {}
+      for (const t of testimonials) {
+        try {
+          await addWinningCopy(user.uid, t);
+        } catch {}
       }
-
-      // Testimonials pulled off their own sales page (if any) go straight
-      // into the same winning-copy library the "import" step above feeds,
-      // so they're already there the first time a campaign gets built.
-      for (const testimonial of crawledTestimonials) {
-        await addWinningCopy(user.uid, testimonial);
-      }
-
-      router.push("/dashboard");
+      router.push("/builder?first=1");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that. Try again.");
       setSaving(false);
-    }
-  }
-
-  // Fires on "Continue" for the URL step: if a link was actually typed,
-  // crawl + extract first; either way, lands on the next (manual) step.
-  // ok:false from the route — unreachable page, JS-rendered shell, failed
-  // extraction — is indistinguishable here from "nothing typed", which is
-  // exactly the point: best-effort, silent fall-through to manual.
-  async function handleUrlStep() {
-    const trimmed = url.trim();
-    if (!trimmed) {
-      setStepIndex((i) => i + 1);
-      return;
-    }
-    setCrawling(true);
-    try {
-      const res = await fetch("/api/analyze-offer-page", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed }),
-      });
-      const data = await res.json();
-      if (res.ok && data.ok) {
-        const found = new Set<string>();
-        if (data.name) {
-          setName(data.name);
-          found.add("name");
-        }
-        if (data.whatTheyGet) {
-          setWhatTheyGet(data.whatTheyGet);
-          found.add("whatTheyGet");
-        }
-        if (data.audience) {
-          setAudience(data.audience);
-          found.add("audience");
-        }
-        if (data.price) {
-          setPrice(data.price);
-          found.add("price");
-        }
-        setFoundFromCrawl(found);
-        if (Array.isArray(data.testimonials) && data.testimonials.length > 0) {
-          setCrawledTestimonials(data.testimonials);
-        }
-      }
-    } catch {
-      // Couldn't even reach our own API — still best-effort, still silent.
-    } finally {
-      setCrawling(false);
-      setStepIndex((i) => i + 1);
-    }
-  }
-
-  function skipUrlStep() {
-    setStepIndex((i) => i + 1);
-  }
-
-  function handleContinue() {
-    if (saving || crawling) return;
-    if (step === "url") {
-      handleUrlStep();
-      return;
-    }
-    if (!canContinue()) return;
-    if (isLast) {
-      finish();
-    } else {
-      setStepIndex((i) => i + 1);
     }
   }
 
@@ -202,206 +286,332 @@ export default function OnboardingPage() {
     return <div className="min-h-screen bg-paper" />;
   }
 
+  // ---- preview values ----
+  const fromName = user?.displayName || user?.email?.split("@")[0] || "You";
+  const initials =
+    fromName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("") || "Y";
+  const demoTyping = step === 0 && !name;
+  const nameShow = name.trim() || (demoTyping ? typed : "Your offer");
+  const whoShow = who.trim() || "your ideal customer";
+  const whatShow = what.trim() || "What they get";
+  const priceShow = price.trim() || "your price";
+  const hl = (field: FieldKey, active: boolean) =>
+    `cob-hl ${popped.has(field) ? "pop" : active ? "on" : ""}`;
+  const ph = (empty: boolean) => (empty ? "cob-ph" : "");
+  const picked = PLATFORMS.filter((p) => channels.includes(p.id));
+
   return (
-    <div className="min-h-screen bg-paper text-slate font-body flex flex-col">
-      <div className="px-6 py-5 flex items-center justify-between">
-        <div className="flex items-center">
+    <div className="cob-root">
+      <div className="cob-left" style={{ flexBasis: 540 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
-          <img src="/logo-lockup.png" alt="Campeos" className="h-7 w-auto object-contain" />
+          <img src="/logo-lockup.png" alt="Campeos" style={{ height: 26, width: "auto" }} />
+          <button onClick={() => signOut()} className="cob-link" style={{ fontSize: 15 }}>
+            Sign out
+          </button>
         </div>
-        <button onClick={() => signOut()} className="text-xs text-muted font-medium">
-          Sign out
-        </button>
-      </div>
 
-      <div className="flex-grow flex items-start sm:items-center justify-center px-6 py-10">
-        <div className="w-full max-w-[460px] flex flex-col gap-7">
-          <div className="flex items-center gap-2">
-            {stepIndex > 0 && (
-              <button
-                onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
-                aria-label="Back"
-                className="text-muted shrink-0"
-              >
-                <BackArrow />
-              </button>
-            )}
-            <div className="flex-grow flex gap-1.5">
-              {STEPS.map((s, i) => (
-                <div
-                  key={s}
-                  className={`h-1 flex-grow rounded-full transition-colors duration-300 ${
-                    i <= stepIndex ? "bg-slate" : "bg-line"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Remounting under `key={stepIndex}` is what triggers the
-              step-in animation on every change, forward or back — a
-              fresh element, not a style update on the same one. */}
-          <div key={stepIndex} className="flex flex-col gap-4 animate-step-in">
-            {step === "url" && (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <h1 className="font-display text-[26px] font-extrabold tracking-tight">
-                    Do you have a sales page live?
-                  </h1>
-                  <p className="text-sm text-muted">
-                    Drop the link and Campeos will pull in your offer details automatically.
-                    Optional — skip if you don&apos;t have one yet.
-                  </p>
-                </div>
-                <input
-                  autoFocus
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleContinue();
-                    }
-                  }}
-                  disabled={crawling}
-                  placeholder="https://yoursite.com/offer"
-                  className="h-12 px-3.5 rounded-xl border border-line bg-paper text-base transition-shadow duration-150 focus-visible:outline-clay disabled:opacity-60"
-                />
-              </>
-            )}
-
-            {step === "name" && (
-              <QuestionStep
-                title="What's your offer called?"
-                hint="You can change it later."
-                value={name}
-                onChange={setName}
-                placeholder="Fall Reset Program"
-                multiline={false}
-                onEnter={handleContinue}
-                foundNote={foundFromCrawl.has("name")}
-              />
-            )}
-
-            {step === "whatTheyGet" && (
-              <QuestionStep
-                title="What do they get?"
-                hint="What's actually included — the thing you're selling."
-                value={whatTheyGet}
-                onChange={setWhatTheyGet}
-                placeholder="A guided 3-step plan and weekly coaching calls"
-                multiline
-                onEnter={handleContinue}
-                foundNote={foundFromCrawl.has("whatTheyGet")}
-              />
-            )}
-
-            {step === "audience" && (
-              <QuestionStep
-                title="Who's it for?"
-                hint="Who you're writing to — be specific."
-                value={audience}
-                onChange={setAudience}
-                placeholder="People who want a fresh start this fall"
-                multiline
-                onEnter={handleContinue}
-                foundNote={foundFromCrawl.has("audience")}
-              />
-            )}
-
-            {step === "price" && (
-              <QuestionStep
-                title="What's the price?"
-                hint="Campeos writes the offer the way you'll actually sell it."
-                value={price}
-                onChange={setPrice}
-                placeholder="$3,000"
-                multiline={false}
-                onEnter={handleContinue}
-                foundNote={foundFromCrawl.has("price")}
-              />
-            )}
-
-            {step === "import" && (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <h1 className="font-display text-[26px] font-extrabold tracking-tight">
-                    Have anything that already works?
-                  </h1>
-                  <p className="text-sm text-muted">
-                    A headline, ad, or email that converted, or a sales call transcript. Optional —
-                    every campaign draws on this automatically once it's in your library.
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setImportKind("copy")}
-                    className={`flex-1 text-sm font-semibold py-2.5 rounded-xl border transition-colors duration-150 ${
-                      importKind === "copy" ? "border-clay bg-agentWash" : "border-line bg-paper"
-                    }`}
-                  >
-                    Winning copy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImportKind("call")}
-                    className={`flex-1 text-sm font-semibold py-2.5 rounded-xl border transition-colors duration-150 ${
-                      importKind === "call" ? "border-clay bg-agentWash" : "border-line bg-paper"
-                    }`}
-                  >
-                    Sales call
-                  </button>
-                </div>
-                <textarea
-                  autoFocus
-                  value={importText}
-                  onChange={(e) => setImportText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      handleContinue();
-                    }
-                  }}
-                  rows={6}
-                  placeholder={
-                    importKind === "copy"
-                      ? "Paste a headline, subject line, or ad line that already worked..."
-                      : "Paste the call transcript here..."
-                  }
-                  className="px-3.5 py-3 rounded-xl border border-line bg-paper text-sm resize-none transition-shadow duration-150 focus-visible:outline-clay"
-                />
-              </>
-            )}
-
-            {error && (
-              <div className="px-4 py-3 rounded-xl bg-warnBg text-warnFg text-sm leading-snug">{error}</div>
-            )}
-
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleContinue}
-                disabled={!canContinue() || saving || crawling}
-                className="inline-flex items-center gap-2 min-h-12 px-6 rounded-xl bg-gradient-to-r from-clay to-pink text-white text-sm font-bold transition-opacity duration-150 disabled:opacity-50"
-              >
-                {(saving || crawling) && <Spinner />}
-                {saving
-                  ? "Setting up..."
-                  : crawling
-                  ? "Reading your page..."
-                  : isLast
-                  ? "Go to dashboard"
-                  : "Continue"}
-              </button>
-              {step === "url" && !crawling && (
-                <button type="button" onClick={skipUrlStep} className="text-sm text-muted font-medium">
-                  Skip
+        <div className="cob-center">
+          <div style={{ width: "100%", maxWidth: 480 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, height: 28 }}>
+              {step > 0 && (
+                <button
+                  onClick={back}
+                  aria-label="Back"
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, marginLeft: -6, border: 0, background: "none", color: "#6B6577", cursor: "pointer" }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M19 12H5M11 18l-6-6 6-6" />
+                  </svg>
                 </button>
               )}
-              {isLast && !importText.trim() && (
-                <span className="text-sm text-muted">Nothing to add — that&apos;s fine, skip ahead.</span>
-              )}
+              <div style={{ flex: 1, display: "flex", gap: 8 }} aria-label={`Step ${step + 1} of ${STEP_COUNT}`}>
+                {Array.from({ length: STEP_COUNT }).map((_, i) => (
+                  <span key={i} className={`cob-seg ${i <= step ? "on" : ""}`}>
+                    <i />
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {step === 0 && (
+              <div key="s0" className="cob-rise" style={{ marginTop: 36 }}>
+                <h1 className="cob-h1">What do you sell?</h1>
+                <p className="cob-sub">A course, coaching, a product or a service. Just give it a name. You can change it later.</p>
+                <label htmlFor="f-name" className="cob-label">What it&apos;s called</label>
+                <input
+                  id="f-name"
+                  autoFocus
+                  className="cob-field"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={onEnter}
+                  placeholder={typed || " "}
+                  style={{ minHeight: 56, fontSize: 17 }}
+                />
+                <p className="cob-hint">For example: &ldquo;Beginner Yoga Course&rdquo;, &ldquo;Business Coaching&rdquo; or &ldquo;Summer Candle Sale&rdquo;.</p>
+                <button className="cob-btn" onClick={next} disabled={!canContinue()} style={{ marginTop: 24 }}>
+                  Continue
+                  <Arrow />
+                </button>
+              </div>
+            )}
+
+            {step === 1 && (
+              <div key="s1" className="cob-rise" style={{ marginTop: 36 }}>
+                <h1 className="cob-h1">Do you have a sales page?</h1>
+                <p className="cob-sub">Or a website, or even your link in bio. Paste the link, or copy and paste the words. We&apos;ll fill in the rest.</p>
+                <label htmlFor="f-page" className="cob-label">Link, or words from the page</label>
+                <textarea
+                  id="f-page"
+                  autoFocus
+                  className="cob-area"
+                  value={page}
+                  disabled={scan === "scanning"}
+                  onChange={(e) => {
+                    setPage(e.target.value);
+                    if (scan === "failed") setScan("idle");
+                  }}
+                  onKeyDown={(e) => {
+                    // A single line (a link) submits on Enter; pasted words
+                    // need Enter for new lines, so use Cmd/Ctrl+Enter.
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey || (!e.shiftKey && page.trim() && !/\s/.test(page.trim())))) {
+                      e.preventDefault();
+                      runScan();
+                    }
+                  }}
+                  placeholder="yoursite.com/your-offer"
+                />
+
+                {scan === "failed" && (
+                  <div className="cob-rise" role="status" style={{ display: "flex", gap: 12, marginTop: 14, padding: "14px 16px", borderRadius: 14, background: "#FFF7ED", border: "1px solid #FED7AA" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C2410C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }}>
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 8v5M12 16.5v.5" />
+                    </svg>
+                    <div style={{ fontSize: 15, lineHeight: 1.5, color: "#7C2D12" }}>
+                      <b>We couldn&apos;t open that link.</b> Some page builders block us. No problem: copy the words from your page and paste them above.
+                    </div>
+                  </div>
+                )}
+
+                {scan !== "scanning" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 24, flexWrap: "wrap" }}>
+                    <button className="cob-btn" onClick={runScan} disabled={!page.trim()}>
+                      Fill it in for me
+                      <Arrow />
+                    </button>
+                    <button className="cob-link" onClick={() => setStep(2)}>
+                      I don&apos;t have one
+                    </button>
+                  </div>
+                )}
+
+                {scan === "scanning" && (
+                  <div className="cob-rise" role="status" aria-live="polite" style={{ marginTop: 22, padding: "16px 18px", borderRadius: 16, border: "1px solid #ECEAF0", background: "#FAF9FC", display: "grid", gap: 10 }}>
+                    {SCAN_ROWS.map((r, i) => {
+                      const done = i < scanRow || (i === scanRow && scanRow === SCAN_ROWS.length);
+                      const active = i === scanRow;
+                      const miss = missingRows.has(i);
+                      return (
+                        <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 15, color: done || active ? (miss ? "#6B6577" : "#17131F") : "#A39DAD" }}>
+                          {done || (active && miss) ? (
+                            miss ? (
+                              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", border: "1.5px solid #D4D1DB", color: "#A39DAD", fontSize: 12, fontWeight: 700 }}>–</span>
+                            ) : (
+                              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)", color: "#FFFFFF" }}>
+                                <Check size={11} />
+                              </span>
+                            )
+                          ) : active ? (
+                            <SpinIcon size={20} />
+                          ) : (
+                            <span style={{ width: 20, height: 20, borderRadius: "50%", border: "1.5px solid #D4D1DB" }} />
+                          )}
+                          <span>{miss ? r.missing : r.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 2 && (
+              <div key="s2" className="cob-rise" style={{ marginTop: 36 }}>
+                <h1 className="cob-h1">Who&apos;s your ideal customer?</h1>
+                <p className="cob-sub">And what do they get from you? Plain words are perfect.</p>
+                {scanned && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 18, padding: "6px 12px", borderRadius: 999, background: "#F1EAFD", color: "#5B21B6", fontSize: 13, fontWeight: 600 }}>
+                    <Check size={13} />
+                    Found on your page. Change anything.
+                  </div>
+                )}
+                <label htmlFor="f-who" className="cob-label" style={{ marginTop: 22 }}>Your ideal customer</label>
+                <input id="f-who" autoFocus className="cob-field" value={who} onChange={(e) => setWho(e.target.value)} onKeyDown={onEnter} placeholder="Coaches stuck under $10K a month" />
+                <label htmlFor="f-what" className="cob-label" style={{ marginTop: 16 }}>What they get</label>
+                <input id="f-what" className="cob-field" value={what} onChange={(e) => setWhat(e.target.value)} onKeyDown={onEnter} placeholder="Done-for-you ads, or we keep working free" />
+                <label htmlFor="f-price" className="cob-label" style={{ marginTop: 16 }}>Price</label>
+                <input id="f-price" className="cob-field" value={price} onChange={(e) => setPrice(e.target.value)} onKeyDown={onEnter} placeholder="$997" style={{ width: 160 }} />
+                <div>
+                  <button className="cob-btn" onClick={next} disabled={!canContinue()} style={{ marginTop: 24 }}>
+                    Continue
+                    <Arrow />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div key="s3" className="cob-rise" style={{ marginTop: 36 }}>
+                <h1 className="cob-h1">Where do you reach your customers?</h1>
+                <p className="cob-sub">Pick all that apply. We&apos;ll write for each one.</p>
+                <div className="cob-tiles">
+                  {PLATFORMS.map((p) => {
+                    const on = channels.includes(p.id);
+                    return (
+                      <button key={p.id} type="button" className={`cob-tile ${on ? "on" : ""}`} onClick={() => toggleChannel(p.id)} aria-pressed={on}>
+                        <span className="cob-tick">
+                          <Check size={10} />
+                        </span>
+                        <span className="cob-ic">
+                          <PlatformIcon icon={p.icon} size={36} />
+                        </span>
+                        <span>{p.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 24, flexWrap: "wrap" }}>
+                  <button className="cob-btn" onClick={next} disabled={!canContinue()}>
+                    Continue
+                    <Arrow />
+                  </button>
+                  <span style={{ fontSize: 14, color: "#6B6577" }}>
+                    {channels.length === 0 ? "Pick at least one" : `${channels.length} picked`}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {step === 4 && (
+              <div key="s4" className="cob-rise" style={{ marginTop: 36 }}>
+                <h1 className="cob-h1">How often do you run a sale or promo?</h1>
+                <p className="cob-sub">We&apos;ll suggest the plan that fits. You can change it anytime.</p>
+                <div className="cob-opts">
+                  {FREQUENCIES.map((f) => (
+                    <button key={f.id} type="button" className={`cob-opt ${frequency === f.id ? "on" : ""}`} onClick={() => setFrequency(f.id)} aria-pressed={frequency === f.id}>
+                      <div style={{ fontSize: 16, fontWeight: 600 }}>{f.label}</div>
+                      <div style={{ fontSize: 13, color: "#6B6577", marginTop: 2 }}>{f.sub}</div>
+                    </button>
+                  ))}
+                </div>
+                {error && (
+                  <div role="alert" style={{ marginTop: 16, padding: "12px 14px", borderRadius: 12, background: "#FFF7ED", border: "1px solid #FED7AA", color: "#7C2D12", fontSize: 15 }}>
+                    {error}
+                  </div>
+                )}
+                <button className="cob-btn cob-btn-grad" onClick={next} disabled={!canContinue() || saving} style={{ marginTop: 24 }}>
+                  {saving && <SpinIcon size={18} color="#FFFFFF" />}
+                  {saving ? "Setting up..." : "Write my first campaign"}
+                  {!saving && <Arrow />}
+                </button>
+                <p className="cob-hint" style={{ marginTop: 12 }}>
+                  Takes about a minute. Your emails, texts and posts write themselves while you watch.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ---- live preview ---- */}
+      <div className="cob-right" style={{ padding: "112px 56px 56px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ width: "100%", maxWidth: 560 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <span style={{ fontSize: 16, color: "#6B6577" }}>Your first email, as your customers see it</span>
+            {scan === "scanning" && (
+              <span className="cob-rise" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "#6D28D9" }}>
+                <SpinIcon size={13} color="currentColor" />
+                Filling in
+              </span>
+            )}
+          </div>
+
+          <div style={{ marginTop: 18, background: "#FFFFFF", border: "1px solid #ECEAF0", borderRadius: 20, overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: "1px solid #F0EEF4" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, fontWeight: 500 }}>
+                <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: 7, border: "1px solid #ECEAF0" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B6577" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                    <path d="M3 7l9 6 9-6" />
+                  </svg>
+                </span>
+                Inbox
+              </div>
+              <span className="cob-bump" style={{ fontSize: 14, color: "#6B6577" }}>3</span>
+            </div>
+            <div className="cob-arrive" style={{ display: "flex", gap: 14, padding: "18px 20px", borderBottom: "1px solid #F0EEF4" }}>
+              <Avatar initials={initials} size={42} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                  <span style={{ fontWeight: 700, fontSize: 15 }}>{fromName}</span>
+                  <span style={{ fontSize: 13, color: "#6B6577" }}>9:00 AM</span>
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 600, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  You&apos;re invited: <span className={`${hl("name", step === 0)} ${ph(!name.trim())}`}>{nameShow}</span>
+                </div>
+                <div style={{ fontSize: 14, color: "#6B6577", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <span className={`${hl("who", step === 2)} ${ph(!who.trim())}`}>For {whoShow}</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 14, padding: "16px 20px", borderBottom: "1px solid #F0EEF4", opacity: 0.7 }}>
+              <span style={{ width: 42, height: 42, borderRadius: "50%", background: "#F2F1F5" }} />
+              <div style={{ flex: 1, display: "grid", gap: 8, alignContent: "center" }}>
+                <span style={{ height: 9, width: "40%", borderRadius: 5, background: "#F2F1F5" }} />
+                <span style={{ height: 9, width: "75%", borderRadius: 5, background: "#F2F1F5" }} />
+              </div>
+            </div>
+            <div style={{ height: 70 }} />
+          </div>
+
+          <div className="cob-floatin" style={{ position: "relative", margin: "-86px 0 0 48px", background: "#FFFFFF", border: "1px solid #ECEAF0", borderRadius: 20, boxShadow: "0 40px 80px -40px rgba(23,19,31,.35)", padding: "24px 28px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: "1px solid #F0EEF4" }}>
+              <Avatar initials={initials} size={36} />
+              <span style={{ fontSize: 15, fontWeight: 500 }}>{fromName}</span>
+            </div>
+            <div style={{ fontFamily: "Newsreader, serif", fontWeight: 500, fontSize: 34, letterSpacing: "-.025em", lineHeight: 1.1, marginTop: 18, minHeight: 38 }}>
+              <span className={`${hl("name", step === 0)} ${ph(!name.trim())}`}>{nameShow}</span>
+              {demoTyping && <span className="cob-caret" />}
+            </div>
+            <p style={{ fontSize: 15, lineHeight: 1.6, color: "#3D3747", margin: "12px 0 0" }}>Hey there,</p>
+            <p style={{ fontSize: 15, lineHeight: 1.6, color: "#3D3747", margin: "6px 0 0" }}>
+              <span className={`${hl("what", step === 2)} ${ph(!what.trim())}`}>{whatShow}</span>. All for{" "}
+              <span className={`${hl("price", step === 2)} ${ph(!price.trim())}`}>{priceShow}</span>.
+            </p>
+            <span style={{ display: "inline-flex", alignItems: "center", marginTop: 16, padding: "10px 16px", borderRadius: 10, background: "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)", color: "#FFFFFF", fontSize: 14, fontWeight: 700 }}>
+              Save my seat
+            </span>
+            <div style={{ display: "grid", gap: 8, marginTop: 18 }}>
+              <span style={{ height: 8, width: "100%", borderRadius: 4, background: "#F2F1F5" }} />
+              <span style={{ height: 8, width: "82%", borderRadius: 4, background: "#F2F1F5" }} />
+            </div>
+            <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid #F0EEF4" }}>
+              <div style={{ fontSize: 12, color: "#6B6577", marginBottom: 8 }}>Also going out on</div>
+              <div className={`cob-chips ${step === 3 ? "on" : ""}`} style={{ display: "flex", flexWrap: "wrap", gap: 6, minHeight: 26 }}>
+                {picked.map((p) => (
+                  <span key={p.id} className="cob-chip cob-rise">
+                    <PlatformIcon icon={p.icon} size={15} />
+                    {p.label}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -410,93 +620,51 @@ export default function OnboardingPage() {
   );
 }
 
-function QuestionStep({
-  title,
-  hint,
-  value,
-  onChange,
-  placeholder,
-  multiline,
-  onEnter,
-  foundNote,
-}: {
-  title: string;
-  hint: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  multiline: boolean;
-  onEnter: () => void;
-  foundNote?: boolean;
-}) {
-  return (
-    <>
-      <div className="flex flex-col gap-1.5">
-        <h1 className="font-display text-[26px] font-extrabold tracking-tight">{title}</h1>
-        <p className="text-sm text-muted">{hint}</p>
-        {foundNote && (
-          <span className="inline-flex self-start items-center gap-1.5 mt-0.5 text-xs font-semibold text-clay">
-            <SparkleIcon />
-            Found this on your page — check it over
-          </span>
+function PlatformIcon({ icon, size }: { icon: string | null; size: number }) {
+  if (!icon) {
+    // SMS has no brand logo, so a green message bubble.
+    return (
+      <span className="cob-sms" style={{ width: size, height: size, borderRadius: size > 20 ? 10 : 4 }}>
+        {size > 20 && (
+          <svg width={Math.round(size * 0.56)} height={Math.round(size * 0.56)} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 4C7 4 3 7.4 3 11.5c0 2.2 1.1 4.1 2.9 5.5L5 20.5l4-2c.9.3 1.9.4 3 .4 5 0 9-3.4 9-7.5S17 4 12 4z" />
+          </svg>
         )}
-      </div>
-      {multiline ? (
-        <textarea
-          autoFocus
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              onEnter();
-            }
-          }}
-          placeholder={placeholder}
-          rows={3}
-          className="px-3.5 py-3 rounded-xl border border-line bg-paper text-base resize-none transition-shadow duration-150 focus-visible:outline-clay"
-        />
-      ) : (
-        <input
-          autoFocus
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              onEnter();
-            }
-          }}
-          placeholder={placeholder}
-          className="h-12 px-3.5 rounded-xl border border-line bg-paper text-base transition-shadow duration-150 focus-visible:outline-clay"
-        />
-      )}
-    </>
+      </span>
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element -- local /public asset
+  return <img src={icon} alt="" style={{ width: size, height: size, objectFit: "contain" }} />;
+}
+
+function Avatar({ initials, size }: { initials: string; size: number }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: size, height: size, flexShrink: 0, borderRadius: "50%", background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)", color: "#FFFFFF", fontSize: Math.round(size * 0.33), fontWeight: 700 }}>
+      {initials}
+    </span>
   );
 }
 
-function Spinner() {
+function Arrow() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0 animate-spin" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" opacity="0.3" />
-      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12h14M13 6l6 6-6 6" />
     </svg>
   );
 }
 
-function SparkleIcon() {
+function Check({ size }: { size: number }) {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12l5 5 9-10" />
     </svg>
   );
 }
 
-function BackArrow() {
+function SpinIcon({ size, color = "#9B1FD6" }: { size: number; color?: string }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M19 12H5M12 19l-7-7 7-7" />
+    <svg className="cob-spin" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-6.2-8.6" />
     </svg>
   );
 }
