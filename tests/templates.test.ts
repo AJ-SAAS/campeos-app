@@ -9,7 +9,7 @@ import { templateChannelsFor } from "../lib/onboarding/answers";
 import { finishCopy, STANDARD_EULA_URL } from "../lib/ai/generateStepCopy";
 import { lintCopy } from "../lib/ai/quality";
 
-const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser", "lead-magnet", "giveaway", "ebook-low-ticket", "xmas-holidays", "valentines-day", "daily-deals", "physical-book-shipping", "social-proof", "newsletter", "mvp-launch", "post-engagement", "branding"];
+const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser", "lead-magnet", "giveaway", "ebook-low-ticket", "xmas-holidays", "valentines-day", "daily-deals", "physical-book-shipping", "social-proof", "newsletter", "mvp-launch", "post-engagement", "branding", "audience-revival"];
 const offer: OfferContext = { name: "Candle Club", price: "$40", audience: "Candle lovers", whatTheyGet: "A box of 3 candles", tone: "Friendly" };
 
 for (const id of NEW) {
@@ -252,4 +252,19 @@ test("branding: no hard sell, no competitor attacks, spans two weeks", () => {
   assert.ok(getPlay("post-brand-difference")!.avoid!.join(" ").includes("competitor"));
   const max = Math.max(...t.steps.map((s) => s.offsetHours));
   assert.ok(max >= 11 * 24 && max <= 14 * 24);
+});
+
+test("audience revival: social first, offer only after trust, clean exit last, preflight set", () => {
+  const t = templates["audience-revival"];
+  assert.ok(t.preflight && t.preflight.items.length >= 5);
+  const first = t.steps.reduce((a, b) => (b.offsetHours < a.offsetHours ? b : a));
+  assert.equal(first.channel, "social");
+  const at = (p: string) => t.steps.find((s) => s.playId === p)!.offsetHours;
+  assert.ok(at("revival-hello") < at("revival-remind"));
+  assert.ok(at("revival-hello") < at("revival-offer"));
+  assert.ok(at("revival-poll") < at("revival-offer"));
+  const last = t.steps.reduce((a, b) => (b.offsetHours > a.offsetHours ? b : a));
+  assert.equal(last.playId, "revival-stay-or-go");
+  assert.ok(getPlay("revival-hello")!.avoid!.join(" ").includes("No sales pitch"));
+  assert.ok(getPlay("revival-offer")!.avoid!.join(" ").includes("Send only to people who clicked"));
 });

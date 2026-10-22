@@ -251,6 +251,14 @@ export const catalog: CatalogEntry[] = [
     status: "available",
   },
   {
+    id: "audience-revival",
+    title: "Audience Revival",
+    length: "3 weeks",
+    description: "Wake up a list or following that went quiet, earn trust back, then make a comeback offer.",
+    category: "retention",
+    status: "available",
+  },
+  {
     id: "newsletter",
     title: "Newsletter Campaign",
     length: "3 weeks",

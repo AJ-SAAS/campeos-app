@@ -26,6 +26,7 @@ import { newsletterTemplate } from "./newsletter";
 import { mvpTemplate } from "./mvp-launch";
 import { postEngagementTemplate } from "./post-engagement";
 import { brandingTemplate } from "./branding";
+import { revivalTemplate } from "./audience-revival";
 
 // Adding a new campaign type ("pocket") means adding a file next to
 // webinar.ts and registering it here. Nothing else should need to change.
@@ -56,6 +57,7 @@ export const templates: Record<string, CampaignTemplate> = {
   "mvp-launch": mvpTemplate,
   "post-engagement": postEngagementTemplate,
   branding: brandingTemplate,
+  "audience-revival": revivalTemplate,
 };
 
 /** The "key date" text the writer sees: when it goes live and, for

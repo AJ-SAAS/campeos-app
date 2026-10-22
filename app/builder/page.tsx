@@ -10,6 +10,7 @@ import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { OfferPicker } from "@/components/builder/OfferPicker";
 import { SetupPanel } from "@/components/builder/SetupPanel";
 import { UIStep } from "@/components/builder/Timeline";
+import { Preflight } from "@/components/builder/Preflight";
 import { SequenceView } from "@/components/builder/SequenceView";
 import { channelInfo, LogoStack, PlatformLogo } from "@/components/builder/channels";
 import { needsInput } from "@/lib/dashboard";
@@ -975,6 +976,14 @@ function BuilderInner() {
 
           <div className="flex-grow min-h-0 overflow-y-auto">
             <section aria-label="Sequence" className="max-w-[880px] mx-auto px-4 sm:px-7 pt-6 pb-28">
+              {activeTemplate.preflight && (
+                <Preflight
+                  templateId={activeTemplate.id}
+                  title={activeTemplate.preflight.title}
+                  intro={activeTemplate.preflight.intro}
+                  items={activeTemplate.preflight.items}
+                />
+              )}
               <SequenceView
                 steps={steps}
                 phases={activeTemplate.phases}

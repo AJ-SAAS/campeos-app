@@ -114,6 +114,9 @@ export interface CampaignTemplate {
   /** For sales: hours after the live date when the offer ends. Tells the
    * writer the real end time so copy never leaves a blank for it. */
   closeOffsetHours?: number;
+  /** Things to do outside Campeos before sending anything, shown as a
+   * checklist above the sequence (e.g. clean the list). Optional. */
+  preflight?: { title: string; intro?: string; items: string[] };
   /** The named stages this template's steps are grouped into, in order. */
   phases: CampaignPhase[];
   steps: StepTemplate[];

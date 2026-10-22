@@ -1913,6 +1913,138 @@ export const PLAYS: Record<string, Play> = {
     avoid: ["Never name or attack a competitor."],
   }),
 
+  "post-comeback": P({
+    id: "post-comeback",
+    name: "I am back post",
+    job: "Tell followers you are back, honestly, and what is changing.",
+    beats: [
+      "First line: say it plainly. You have been quiet and you are back.",
+      "2 to 3 short lines: why you went quiet, no excuses, and what is different now.",
+      "Say what they can expect and when. Use [WHAT IS CHANGING] if not given.",
+      "End with a question or a link to join the list.",
+    ],
+    hooks: ["I have been quiet", "I am back", "It has been a while"],
+    focus: "story",
+    avoid: ["Never blame the reader or make big promises you cannot keep."],
+  }),
+
+  "revival-hello": P({
+    id: "revival-hello",
+    name: "It has been a while",
+    job: "Reintroduce yourself honestly to people who stopped hearing from you.",
+    beats: [
+      "Subject: short and human, like a note from a person. Say it has been a while.",
+      "Own the silence in one line. No long apology.",
+      "Remind them who you are and why they are on the list, in plain words.",
+      "Say what is coming: what you will send and how often.",
+      "One easy action: click to stay, or reply. Make it one link, [LINK].",
+    ],
+    hooks: ["It has been a while", "Remember me?", "I owe you a hello"],
+    focus: "story",
+    avoid: ["No sales pitch in this email.", "Never pretend you did not go quiet."],
+  }),
+
+  "revival-remind": P({
+    id: "revival-remind",
+    name: "Remember why you joined",
+    job: "Reach older contacts who may not remember you, by recalling how they joined.",
+    beats: [
+      "Open with how they joined: the thing they downloaded, bought or signed up for. Use [HOW THEY JOINED] if not given.",
+      "Say what you have been doing since, in two plain lines.",
+      "Give them one useful thing right away.",
+      "One easy action to stay: click or reply.",
+    ],
+    hooks: ["You signed up for this", "Where we left off", "A quick reminder"],
+    focus: "story",
+    avoid: ["No sales pitch in this email."],
+  }),
+
+  "revival-nudge": P({
+    id: "revival-nudge",
+    name: "Still want to hear from me?",
+    job: "Give people who did not respond one more easy chance, with no pressure.",
+    beats: [
+      "Subject: a short question.",
+      "One line: you sent a note and want to make sure it is wanted.",
+      "One easy click to stay. Say what happens if they do nothing.",
+    ],
+    hooks: ["Still want these?", "Quick check", "Should I keep sending?"],
+    focus: "offer",
+    avoid: ["No sales pitch in this email."],
+  }),
+
+  "revival-poll": P({
+    id: "revival-poll",
+    name: "What do you want?",
+    job: "Get readers to answer, and learn what to make.",
+    beats: [
+      "Say you want to make things they actually want.",
+      "Ask one question with 3 to 4 simple choices, each a link or a reply word.",
+      "Say you read every answer and will share what you learn.",
+    ],
+    hooks: ["One quick question", "Help me choose", "What should I make?"],
+    focus: "story",
+  }),
+
+  "ad-revival": P({
+    id: "ad-revival",
+    name: "Revival ad",
+    job: "Reach the list on social, where they may still scroll even if they stopped opening email.",
+    beats: [
+      "Headline: the comeback, in plain words.",
+      "Primary text: who you are, what you are doing now and one useful thing they can get.",
+      "Button: learn more.",
+    ],
+    hooks: ["We are back", "Still here", "Here is what is new"],
+    focus: "story",
+    avoid: ["No hard sell in this ad."],
+  }),
+
+  "revival-you-told-me": P({
+    id: "revival-you-told-me",
+    name: "You told me",
+    job: "Show people their answers shaped what happens next.",
+    beats: [
+      "Thank them for answering.",
+      "Share what you heard: the top two answers, using only real answers. Use [TOP ANSWER] if not given.",
+      "Say what you will do about it, and when.",
+      "Invite them to the next step.",
+    ],
+    hooks: ["You told me", "Here is what I heard", "Thank you for answering"],
+    focus: "proof",
+    avoid: ["Never invent poll results."],
+  }),
+
+  "revival-offer": P({
+    id: "revival-offer",
+    name: "The comeback offer",
+    job: "Offer something special to people who raised their hand, with a real deadline.",
+    beats: [
+      "Thank them for coming back.",
+      "Name the comeback offer, what it includes and the price. Use [COMEBACK OFFER] if not given.",
+      "Say why it is only for people who stayed.",
+      "State the real end date and one call to action with [LINK].",
+    ],
+    hooks: ["Welcome back offer", "For people who stayed", "A thank you for coming back"],
+    focus: "offer",
+    avoid: ["Never invent a discount or a bonus.", "Send only to people who clicked or replied."],
+  }),
+
+  "revival-stay-or-go": P({
+    id: "revival-stay-or-go",
+    name: "Stay or go",
+    job: "Clean the list kindly and protect your sending.",
+    beats: [
+      "Subject: a clear, friendly question.",
+      "Say you only want to write to people who want it.",
+      "Say what to do to stay: one click. Say what happens if they do nothing: they will be removed.",
+      "Thank them either way.",
+    ],
+    hooks: ["Stay or go?", "Last chance to stay", "Before I say goodbye"],
+    focus: "urgency",
+    avoid: ["Never hide that they will be removed."],
+  }),
+
   /* ------------------------------------------------------------ */
   /* Short channels: texts, posts, ads                              */
   /* ------------------------------------------------------------ */
