@@ -8,9 +8,9 @@ import {
 } from "react";
 import {
   GoogleAuthProvider,
-  createUserWithEmailAndPassword,
   onAuthStateChanged,
   sendEmailVerification,
+  signInWithCustomToken,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -23,7 +23,10 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   signIn: () => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  /** Emails a 6-digit code. Returns the seconds before another can be asked for. */
+  sendEmailCode: (email: string) => Promise<number>;
+  /** Checks the code and signs in. Creates the account the first time. */
+  verifyEmailCode: (email: string, code: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** Signed up with email + password and hasn't clicked the link we emailed. */
@@ -64,18 +67,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithPopup(auth, provider);
   }
 
-  async function signUpWithEmail(email: string, password: string) {
-    // The cheapest fake sign-ups use throwaway inboxes. The server checks
-    // again before any AI call (lib/serverAuth.ts).
+  async function sendEmailCode(email: string): Promise<number> {
     if (isDisposableEmail(email)) throw new Error("auth/disposable-email");
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    // Proves the person owns the inbox. If sending fails they can tap
-    // "Send it again" on the next screen.
-    try {
-      await sendEmailVerification(cred.user);
-    } catch {
-      // handled by the resend button
-    }
+    const res = await fetch("/api/auth/send-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { error?: string; cooldown?: number };
+    if (!res.ok) throw new Error(data.error || "We couldn't send the code. Try again.");
+    return data.cooldown ?? 30;
+  }
+
+  async function verifyEmailCode(email: string, code: string) {
+    const res = await fetch("/api/auth/verify-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { error?: string; token?: string };
+    if (!res.ok || !data.token) throw new Error(data.error || "That code didn't work. Try again.");
+    await signInWithCustomToken(auth, data.token);
   }
 
   const needsVerification =
@@ -108,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, signIn, signUpWithEmail, signInWithEmail, signOut, needsVerification, resendVerification, refreshVerification }}
+      value={{ user, loading, signIn, sendEmailCode, verifyEmailCode, signInWithEmail, signOut, needsVerification, resendVerification, refreshVerification }}
     >
       {children}
     </AuthContext.Provider>
