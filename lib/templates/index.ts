@@ -14,6 +14,9 @@ import { productLaunchTemplate } from "./product-launch";
 import { winBackTemplate } from "./win-back";
 import { bookACallTemplate } from "./book-a-call";
 import { handRaiserTemplate } from "./hand-raiser";
+import { leadMagnetTemplate } from "./lead-magnet";
+import { giveawayTemplate } from "./giveaway";
+import { ebookTemplate } from "./ebook-low-ticket";
 
 // Adding a new campaign type ("pocket") means adding a file next to
 // webinar.ts and registering it here. Nothing else should need to change.
@@ -32,6 +35,9 @@ export const templates: Record<string, CampaignTemplate> = {
   "win-back": winBackTemplate,
   "book-a-call": bookACallTemplate,
   "hand-raiser": handRaiserTemplate,
+  "lead-magnet": leadMagnetTemplate,
+  giveaway: giveawayTemplate,
+  "ebook-low-ticket": ebookTemplate,
 };
 
 /** The "key date" text the writer sees: when it goes live and, for

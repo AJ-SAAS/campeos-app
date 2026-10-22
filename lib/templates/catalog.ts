@@ -185,10 +185,10 @@ export const catalog: CatalogEntry[] = [
   {
     id: "lead-magnet",
     title: "Lead Magnet Campaign",
-    length: "Ongoing",
+    length: "2 weeks",
     description: "Turn a free resource into a steady stream of leads.",
     category: "leadgen",
-    status: "soon",
+    status: "available",
   },
   {
     id: "giveaway",
@@ -196,7 +196,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 week",
     description: "Grow your list fast with a giveaway or contest.",
     category: "leadgen",
-    status: "soon",
+    status: "available",
   },
   {
     id: "post-engagement",
@@ -212,7 +212,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 week",
     description: "Sell a low-ticket ebook or guide straight through.",
     category: "leadgen",
-    status: "soon",
+    status: "available",
   },
   {
     id: "physical-book-shipping",

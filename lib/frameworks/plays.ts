@@ -1210,6 +1210,197 @@ export const PLAYS: Record<string, Play> = {
     avoid: ["Under 160 characters. No link."],
   }),
 
+  "post-lead-magnet": P({
+    id: "post-lead-magnet",
+    name: "Free resource post",
+    job: "Get a follower to tap the link and take the free resource.",
+    beats: [
+      "First line: the one small result the resource gives, as a promise a real person would say.",
+      "2 to 3 short lines: what is inside and who it is for.",
+      "One call to action: the link, and say it is free.",
+    ],
+    hooks: ["Free: <the resource>", "I made this for <audience>", "Steal my <resource>"],
+    focus: "desire",
+    avoid: ["Never invent a number of downloads or a result."],
+  }),
+
+  "ad-lead-magnet": P({
+    id: "ad-lead-magnet",
+    name: "Free resource ad",
+    job: "Turn a cold scroller into an email address by offering one quick win.",
+    beats: [
+      "Headline: the quick win, under 40 characters.",
+      "Primary text: the moment of the problem, what is inside the free resource, and how long it takes to use.",
+      "One call to action: get it free.",
+      "Visual idea: one line on what to show, such as the resource itself.",
+    ],
+    hooks: ["Free <resource>", "Fix <problem> in <minutes>", "The <resource> for <audience>"],
+    focus: "pain",
+  }),
+
+  "magnet-delivery": P({
+    id: "magnet-delivery",
+    name: "Here is your download",
+    job: "Deliver the resource right away and get them to open it now.",
+    beats: [
+      "Subject: say it is here, plainly, like 'Your <resource> is here'.",
+      "One line of thanks. The link to the resource with [LINK] in the first lines.",
+      "The one quick win to try first, in one or two short lines.",
+      "One line asking them to reply with what they hope to fix.",
+    ],
+    hooks: ["Your <resource> is here", "Here it is", "Here is your download"],
+    focus: "desire",
+    avoid: ["No pitch in this email. Deliver first."],
+  }),
+
+  "magnet-first-win": P({
+    id: "magnet-first-win",
+    name: "Did you try it?",
+    job: "Get them to use the resource and feel a first win.",
+    beats: [
+      "Open with a simple check: did you get a chance to open it?",
+      "The one step to do first and what they will notice when it works.",
+      "A small, true tip that is not in the resource.",
+      "One line inviting a reply with a question.",
+    ],
+    hooks: ["Did you try it?", "The first thing to do", "A quick tip"],
+    focus: "desire",
+    avoid: ["No pitch in this email."],
+  }),
+
+  "magnet-bridge": P({
+    id: "magnet-bridge",
+    name: "The next step",
+    job: "Move someone who got value from the free thing toward the paid offer, softly.",
+    beats: [
+      "Open on what the resource helped them do, so they feel the win.",
+      "Name the next problem people hit after that, in the reader's words from the brief.",
+      "Show the offer as the natural next step: what it is and the result, one plain sentence.",
+      "One honest line on who it is for. One call to action with [LINK].",
+    ],
+    hooks: ["What comes after <resource>", "The next step", "If you liked <resource>"],
+    focus: "offer",
+  }),
+
+  "post-giveaway": P({
+    id: "post-giveaway",
+    name: "Giveaway post",
+    job: "Get real entries from the right people, with clear rules.",
+    beats: [
+      "First line: the prize and why it is worth wanting.",
+      "How to enter in 1 to 3 simple steps.",
+      "The real end date and when the winner is picked (use the dates given, otherwise [END DATE]).",
+      "One line of rules: [OFFICIAL RULES LINK]. On Instagram or Facebook, say the giveaway is not sponsored or run by them.",
+    ],
+    hooks: ["Win <prize>", "Giveaway: <prize>", "Want <prize> for free?"],
+    focus: "desire",
+    avoid: ["Never invent a prize value or a number of entries."],
+  }),
+
+  "post-giveaway-winner": P({
+    id: "post-giveaway-winner",
+    name: "Winner announcement",
+    job: "Announce the winner and thank everyone who entered.",
+    beats: [
+      "First line: the winner, using [WINNER NAME] if no name is given.",
+      "One line of thanks to everyone who entered.",
+      "One line on what is next for people who did not win.",
+    ],
+    hooks: ["The winner is...", "We have a winner", "Congrats, <name>"],
+    focus: "story",
+    avoid: ["Never name or invent a winner. Use [WINNER NAME]."],
+  }),
+
+  "email-giveaway-winner": P({
+    id: "email-giveaway-winner",
+    name: "Winner and thank you",
+    job: "Close the giveaway warmly and keep entrants on your side.",
+    beats: [
+      "Subject: say the giveaway is over and thank them.",
+      "Announce the winner using [WINNER NAME] if no name is given. Thank everyone who entered.",
+      "One line on what you learned or enjoyed. Keep it human.",
+      "Tell them what comes next, in one line.",
+    ],
+    hooks: ["We have a winner", "Thank you for entering", "That's a wrap"],
+    focus: "story",
+    avoid: ["Never name or invent a winner. Use [WINNER NAME]."],
+  }),
+
+  "giveaway-offer": P({
+    id: "giveaway-offer",
+    name: "For everyone who entered",
+    job: "Turn the people who did not win into buyers, kindly.",
+    beats: [
+      "Open on the prize or result they entered for, and say you know not everyone can win.",
+      "Offer a real way to still get it: a welcome price, a bonus or an easy first step. Use only what the brief gives, otherwise [ENTRANT OFFER].",
+      "What they get and who it is for, in two short lines.",
+      "The real end time of the offer. One call to action with [LINK].",
+    ],
+    hooks: ["Did not win? This is for you", "For everyone who entered", "A thank you for entering"],
+    focus: "offer",
+    avoid: ["Never invent a discount. Use [ENTRANT OFFER]."],
+  }),
+
+  "ebook-announce": P({
+    id: "ebook-announce",
+    name: "The guide is out",
+    job: "Make the right person buy a low-priced guide in one read.",
+    beats: [
+      "Lead with the problem the guide solves, in one specific moment.",
+      "What the guide is, one plain sentence, and who it is for.",
+      "3 to 5 short bullets of what is inside. Each is a specific outcome or insight, never a chapter label.",
+      "The price, said plainly. Compare it honestly to the cost of the problem.",
+      "One call to action with [LINK]. Say what format it comes in and that it is instant.",
+    ],
+    hooks: ["The guide for <audience>", "<Result> in <pages> pages", "It's out"],
+    focus: "offer",
+    avoid: ["Never invent page counts, a rating or a number of readers."],
+  }),
+
+  "ebook-sample": P({
+    id: "ebook-sample",
+    name: "A free sample",
+    job: "Prove the quality by giving one useful idea from the guide for free.",
+    beats: [
+      "Open on the problem the idea fixes, in the reader's words.",
+      "Give one real idea or step from the guide in full, so they can use it today. Only use content from the offer; otherwise [SAMPLE IDEA].",
+      "Say there is more where that came from, in one line.",
+      "One call to action with [LINK] to get the full guide.",
+    ],
+    hooks: ["One idea from the guide", "Try this today", "A free page from the guide"],
+    focus: "desire",
+    avoid: ["Never invent content that is not in the offer."],
+  }),
+
+  "post-ebook-peek": P({
+    id: "post-ebook-peek",
+    name: "A peek inside",
+    job: "Show one real insight from the guide so followers want the rest.",
+    beats: [
+      "First line: one insight from the guide, as a bold statement that works alone.",
+      "2 to 3 short lines that explain it simply.",
+      "One call to action: the rest is in the guide, with the link.",
+    ],
+    hooks: ["A page from the guide", "One thing nobody tells you about <topic>", "Inside the guide: <insight>"],
+    focus: "curiosity",
+    avoid: ["Never invent content that is not in the offer."],
+  }),
+
+  "ebook-next-step": P({
+    id: "ebook-next-step",
+    name: "For readers: your next step",
+    job: "Offer people who bought the guide a bigger next step, kindly.",
+    beats: [
+      "Thank them for getting the guide, in one line, like a person.",
+      "Ask whether they have tried the first step and how it went.",
+      "Say what most readers want next and show the bigger offer as that step, in one plain sentence.",
+      "One call to action with [LINK]. Say it is only for people who got the guide.",
+    ],
+    hooks: ["Thanks for getting the guide", "How is it going?", "What most readers do next"],
+    focus: "offer",
+    avoid: ["This email is only for people who bought. Write it that way.", "Never invent a number of readers."],
+  }),
+
   /* ------------------------------------------------------------ */
   /* Short channels: texts, posts, ads                              */
   /* ------------------------------------------------------------ */

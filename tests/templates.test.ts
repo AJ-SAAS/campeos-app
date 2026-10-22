@@ -9,7 +9,7 @@ import { templateChannelsFor } from "../lib/onboarding/answers";
 import { finishCopy, STANDARD_EULA_URL } from "../lib/ai/generateStepCopy";
 import { lintCopy } from "../lib/ai/quality";
 
-const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser"];
+const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser", "lead-magnet", "giveaway", "ebook-low-ticket"];
 const offer: OfferContext = { name: "Candle Club", price: "$40", audience: "Candle lovers", whatTheyGet: "A box of 3 candles", tone: "Friendly" };
 
 for (const id of NEW) {
@@ -153,4 +153,30 @@ test("book a call and hand-raiser steps use call and ask plays, and hand-raiser 
   assert.ok(templates["book-a-call"].steps.some((s) => s.playId === "call-fit"));
   const next = templates["hand-raiser"].steps.find((s) => s.playId === "handraiser-next")!;
   assert.ok(next.purpose.includes("only to the people who replied"));
+});
+
+test("giveaway never invents a winner and ends with an offer to entrants", () => {
+  const t = templates.giveaway;
+  assert.ok(getPlay("post-giveaway-winner")!.avoid!.join(" ").includes("[WINNER NAME]"));
+  assert.ok(getPlay("post-giveaway")!.beats.join(" ").includes("[OFFICIAL RULES LINK]"));
+  const steps = buildTimeline(t, { event: new Date(2026, 10, 9, 9, 0) });
+  assert.equal(steps[steps.length - 1].templateStepId, "email-offer");
+  const win = steps.findIndex((s) => s.templateStepId === "post-winner");
+  assert.ok(win > steps.findIndex((s) => s.templateStepId === "email-final"));
+});
+
+test("lead magnet delivers before it pitches, and has no fake deadline", () => {
+  const t = templates["lead-magnet"];
+  assert.equal(t.closeOffsetHours, undefined);
+  const idx = (id: string) => t.steps.find((s) => s.id === id)!.offsetHours;
+  assert.ok(idx("email-delivery") <= idx("email-first-win") && idx("email-first-win") < idx("email-bridge"));
+  assert.ok(getPlay("magnet-delivery")!.avoid!.join(" ").includes("No pitch"));
+});
+
+test("ebook: sample and proof come before any deadline, and the buyers-only email says so", () => {
+  const t = templates["ebook-low-ticket"];
+  const next = t.steps.find((s) => s.playId === "ebook-next-step")!;
+  assert.ok(next.purpose.includes("only to the people who bought"));
+  const idx = (id: string) => t.steps.find((s) => s.id === id)!.offsetHours;
+  assert.ok(idx("email-sample") < idx("email-countdown"));
 });
