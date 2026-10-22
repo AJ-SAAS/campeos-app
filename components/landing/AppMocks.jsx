@@ -130,10 +130,10 @@ export function SalesDates({ now }) {
 /* ------------------------------------------------------------------ */
 
 const HERO_TODAY = [
-  { time: '9:00 AM', logos: ['email'], title: "You're invited: free class", sub: 'Email · Webinar Launch', status: 'Sent' },
-  { time: '12:00 PM', logos: ['sms'], title: 'Quick reminder', sub: 'Text message · Webinar Launch', status: 'Ready' },
-  { time: '5:00 PM', logos: ['instagram', 'facebook', 'tiktok'], title: 'We go live soon', sub: 'Social post · Webinar Launch', swap: true },
-  { time: '7:00 PM', logos: ['facebook'], title: 'Last seats ad', sub: 'Facebook ad · Webinar Launch', status: 'Needs input' },
+  { time: '9:00 AM', logos: ['email'], title: "Black Friday starts Friday", sub: 'Email · Black Friday campaign', status: 'Sent' },
+  { time: '12:00 PM', logos: ['sms'], title: 'Sale starts tomorrow', sub: 'Text message · Black Friday campaign', status: 'Ready' },
+  { time: '5:00 PM', logos: ['instagram', 'facebook', 'tiktok'], title: 'Sale is live', sub: 'Social post · Black Friday campaign', swap: true },
+  { time: '7:00 PM', logos: ['facebook'], title: 'Last chance ad', sub: 'Facebook ad · Black Friday campaign', status: 'Needs input' },
 ];
 
 const NAV_ICON = {
@@ -146,7 +146,7 @@ const NAV_ICON = {
 
 function NavItem({ label, on }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: on ? '#F2F1F5' : 'transparent', fontSize: '14px', fontWeight: on ? 600 : 400, color: on ? INK : MUTED }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', background: on ? '#F4F3F6' : 'transparent', fontSize: '14px', fontWeight: 500, color: on ? INK : '#6B6577' }}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{NAV_ICON[label]}</svg>
       {label}
     </div>
@@ -590,12 +590,12 @@ export function CheckList({ items }) {
 /* ------------------------------------------------------------------ */
 
 const WINNERS = [
-  ['Ad hooks', 'that stop the scroll', 'Posting every day and still no clients?'],
-  ['Subject lines', 'that get opened', 'Your next 10 clients start Monday'],
-  ['Headlines', 'that get clicks', 'Book 10 calls a week without cold DMs'],
-  ['Buyer words', 'your audience uses', '\u201cI was posting for nothing.\u201d'],
-  ['Angles', 'your buyers care about', 'No time to run ads myself'],
-  ['Deadlines', 'that make people act', 'Seats close Friday at midnight'],
+  ['Ad hooks', 'that stop the scroll', 'Our biggest sale of the year is here'],
+  ['Subject lines', 'that get opened', 'Black Friday starts in 3 hours'],
+  ['Headlines', 'that get clicks', '40% off everything. 4 days only.'],
+  ['Buyer words', 'your audience uses', '\u201cI wish I had bought more.\u201d'],
+  ['Angles', 'your buyers care about', 'Free shipping on every order'],
+  ['Deadlines', 'that make people act', 'Sale ends Monday at midnight'],
 ];
 
 export function WinnersLibrary({ fast }) {
@@ -655,34 +655,10 @@ export function WinnersLibrary({ fast }) {
 /* ------------------------------------------------------------------ */
 
 const JOURNEY = [
-  {
-    id: 'tell',
-    ms: 10500,
-    label: 'Tell it',
-    title: 'Tell it what you sell. That\'s all you do.',
-    text: 'Paste your page link. Campeos finds your hook, offer, price and testimonials. No blank page.',
-  },
-  {
-    id: 'write',
-    ms: 7500,
-    label: 'Write',
-    title: 'Your whole launch, written for you',
-    text: 'Every email, text, ad and post in your voice, done before you finish your coffee.',
-  },
-  {
-    id: 'schedule',
-    ms: 7500,
-    label: 'Schedule',
-    title: 'Every message gets a day and a time',
-    text: 'From the first invite to the last call, on one calendar. Turn any message on or off.',
-  },
-  {
-    id: 'improve',
-    ms: 9500,
-    label: 'Improve',
-    title: 'Your next launch starts ahead',
-    text: 'Save what your buyers respond to. Campeos builds your next launch from your winners.',
-  },
+  { id: 'tell', ms: 10500, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
+  { id: 'write', ms: 7500, label: 'Write', lead: 'Your whole launch, written.', text: 'Every email, text, ad and post, in your voice, before you finish your coffee.' },
+  { id: 'schedule', ms: 7500, label: 'Schedule', lead: 'Every message gets a day and a time.', text: 'One calendar from the first invite to the last call.' },
+  { id: 'improve', ms: 9500, label: 'Improve', lead: 'Your next launch starts ahead.', text: 'Save what your buyers respond to and build the next launch from it.' },
 ];
 
 function JourneyIcon({ id, active, size = 34 }) {
@@ -767,38 +743,88 @@ function Tick({ size = 22, pop }) {
   );
 }
 
+const FONT = "Inter, -apple-system, 'Segoe UI', sans-serif";
+
 function AppWindow({ url, children }) {
   return (
-    <Window style={{ borderRadius: '22px', boxShadow: '0 60px 120px -60px rgba(59,31,209,.45), 0 24px 48px -34px rgba(23,19,31,.35)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 16px', borderBottom: `1px solid ${LINE}`, background: '#FCFCFD' }}>
-        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E9E6EE' }} />
-        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E9E6EE' }} />
-        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E9E6EE' }} />
-        <span style={{ flex: 1, textAlign: 'center', fontFamily: MONO, fontSize: '12px', color: '#8A8494' }}>{url}</span>
+    <Window style={{ borderRadius: '24px', border: '1px solid #ECEAF0', boxShadow: '0 50px 100px -50px rgba(23,19,31,.22), 0 20px 40px -32px rgba(23,19,31,.14)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '12px 18px', background: '#FFFFFF' }}>
+        <span style={{ display: 'flex', gap: '7px' }}>
+          {[0, 1, 2].map((i) => <span key={i} style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EDEBF1' }} />)}
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '6px 16px', borderRadius: '999px', background: '#F6F5F8', fontFamily: MONO, fontSize: '12px', color: '#6B6577' }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+          {url}
+        </span>
+        <span />
       </div>
-      <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', minHeight: '470px' }}>{children}</div>
+      <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', minHeight: '520px', borderTop: `1px solid ${LINE}`, fontFamily: FONT }}>{children}</div>
     </Window>
   );
 }
 
 function Side({ on }) {
   return (
-    <div className="cps-hx-side" style={{ width: '190px', flexShrink: 0, borderRight: `1px solid ${LINE}`, padding: '18px 12px', flexDirection: 'column', gap: '2px' }}>
-      <img src="/campeos-logo-full.png" alt="" style={{ height: '18px', width: 'auto', margin: '0 8px 18px', alignSelf: 'flex-start' }} />
+    <div className="cps-hx-side" style={{ width: '210px', flexShrink: 0, borderRight: `1px solid ${LINE}`, padding: '20px 14px', flexDirection: 'column', gap: '3px' }}>
+      <img src="/campeos-logo-full.png" alt="" style={{ height: '18px', width: 'auto', margin: '2px 10px 22px', alignSelf: 'flex-start' }} />
       {['Home', 'Campaigns', 'Offers', 'Winning copy', 'Buyer insights'].map((l) => <NavItem key={l} label={l} on={l === on} />)}
+      <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 10px 2px', fontSize: '14px', fontWeight: 500 }}>
+        <span style={{ width: '26px', height: '26px', borderRadius: '50%', background: GRAD_ICON, color: '#FFFFFF', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>S</span>
+        Sarah
+      </div>
     </div>
   );
 }
 
+function Btn({ children, dark, icon }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 14px', borderRadius: '10px', border: dark ? '1px solid #17131F' : '1px solid #E6E3EC', background: dark ? INK : '#FFFFFF', color: dark ? '#FFFFFF' : INK, fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap' }}>{icon}{children}</span>
+  );
+}
+
+/** The app's top bar: where you are, its status, and the main buttons. */
+function AppHeader({ crumb, current, status, actions }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px clamp(16px, 2.2vw, 24px)', borderBottom: `1px solid ${LINE}`, flexWrap: 'wrap' }}>
+      <span style={{ width: '24px', height: '24px', borderRadius: '8px', background: GRAD_ICON, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Spark size={12} /></span>
+      <span style={{ fontSize: '14px', color: '#8A8494' }}>{crumb}</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B5B0BF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+      <span style={{ fontSize: '14px', fontWeight: 500 }}>{current}</span>
+      <span className="cps-hx-pill" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {status && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 11px', borderRadius: '999px', border: '1px solid #ECEAF0', fontSize: '12px', color: MUTED }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: status.color }} />{status.text}
+          </span>
+        )}
+        {actions}
+      </span>
+    </div>
+  );
+}
+
+function Main({ children }) {
+  return <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column' }}>{children}</div>;
+}
+
+const Pad = ({ children, style }) => <div style={{ padding: 'clamp(16px, 2.2vw, 24px)', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px', ...style }}>{children}</div>;
+
+const TOOL = [
+  <path key="b" d="M7 5h6a3 3 0 0 1 0 6H7zM7 11h7a3 3 0 0 1 0 6H7z" />,
+  <path key="i" d="M10 5h8M6 19h8M14 5l-4 14" />,
+  <path key="h" d="M5 5v14M5 12h9M14 5v14" />,
+  <path key="l" d="M9 7h11M9 12h11M9 17h11M4 7h.01M4 12h.01M4 17h.01" />,
+  <g key="p"><rect x="4" y="5" width="16" height="14" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="M20 16l-5-5-8 8" /></g>,
+];
+
 /* 1. Tell it: the onboarding screen. A link types in, the page is scanned, the finds tick in. */
-const SCAN_URL = 'yourpage.com/class';
+const SCAN_URL = 'yourstore.com/black-friday';
 const SCAN_FOUND = [
-  ['Hook', 'Posting every day and still no clients?'],
-  ['Offer', 'A free 60-minute class'],
-  ['Price', '$97'],
-  ['Audience', 'Coaches who want more clients'],
-  ['Testimonials', '3 found'],
-  ['Extras', 'Deadline, bonus, guarantee'],
+  ['Hook', 'Our biggest sale of the year'],
+  ['Offer', '40% off everything, 4 days only'],
+  ['Deal', 'Code BF40 at checkout'],
+  ['Audience', 'Past buyers and new fans'],
+  ['Reviews', '3 found'],
+  ['Extras', 'Deadline, free gift, free shipping'],
 ];
 
 function ScreenTell() {
@@ -809,44 +835,43 @@ function ScreenTell() {
   const shown = Math.max(0, n - 2);
   return (
     <AppWindow url="campeos.com/onboarding">
-      <div style={{ flex: '1 1 320px', minWidth: 0, padding: 'clamp(20px, 3vw, 36px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: MUTED }}>STEP 2 OF 6</div>
-        <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: 'clamp(26px, 3vw, 36px)', letterSpacing: '-.025em', lineHeight: 1.08, marginTop: '10px' }}>Do you have a sales page?</div>
-        <div style={{ fontSize: '15px', color: MUTED, marginTop: '8px', lineHeight: 1.5 }}>Paste the link. We&apos;ll fill in the rest.</div>
-        <div style={{ fontSize: '13px', fontWeight: 600, marginTop: '22px' }}>Link, or words from the page</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', padding: '13px 14px', borderRadius: '12px', border: `1.5px solid ${typing || n === 0 ? '#9B1FD6' : LINE}`, boxShadow: typing ? '0 0 0 4px rgba(155,31,214,.12)' : 'none', background: '#FFFFFF', fontFamily: MONO, fontSize: '14px', minHeight: '24px', transition: 'box-shadow .2s, border-color .2s' }}>
+      <div style={{ flex: '1 1 320px', minWidth: 0, padding: 'clamp(24px, 4vw, 48px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: '#8A8494' }}>STEP 2 OF 6</div>
+        <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: 'clamp(28px, 3.2vw, 40px)', letterSpacing: '-.025em', lineHeight: 1.06, marginTop: '10px' }}>Do you have a sales page?</div>
+        <div style={{ fontSize: '15px', color: MUTED, marginTop: '10px', lineHeight: 1.5 }}>Paste the link. We&apos;ll fill in the rest.</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '26px', padding: '14px 16px', borderRadius: '12px', border: `1px solid ${typing ? '#17131F' : '#E6E3EC'}`, background: '#FFFFFF', fontFamily: MONO, fontSize: '14px', minHeight: '24px', transition: 'border-color .2s' }}>
           <span>{typed}</span>
           {typing && <span className="cps-caret" aria-hidden="true" />}
         </div>
-        <div style={{ marginTop: '14px', display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: '8px', padding: '12px 18px', borderRadius: '12px', background: INK, color: '#FFFFFF', fontSize: '14px', fontWeight: 700, transform: !typing && n === 0 && typed.length === SCAN_URL.length ? 'scale(.95)' : 'none', transition: 'transform .2s', opacity: typed.length === 0 ? 0.55 : 1 }}>
+        <div style={{ marginTop: '12px', display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', padding: '12px 20px', borderRadius: '12px', background: INK, color: '#FFFFFF', fontSize: '14px', fontWeight: 500, transform: !typing && n === 0 && typed.length === SCAN_URL.length ? 'scale(.95)' : 'none', transition: 'transform .2s', opacity: typed.length === 0 ? 0.5 : 1 }}>
           Fill it in for me
         </div>
-        <div style={{ marginTop: '22px', height: '6px', borderRadius: '999px', background: '#EFECF5', overflow: 'hidden', opacity: n === 0 ? 0 : 1, transition: 'opacity .3s' }}>
-          <div style={{ height: '100%', borderRadius: '999px', background: GRAD, width: found ? '100%' : scanning ? '92%' : '0%', transition: scanning ? 'width 2.3s ease-out' : 'width .4s' }} />
+        <div style={{ marginTop: '24px', height: '4px', borderRadius: '999px', background: '#F0EEF4', overflow: 'hidden', opacity: n === 0 ? 0 : 1, transition: 'opacity .3s' }}>
+          <div style={{ height: '100%', borderRadius: '999px', background: INK, width: found ? '100%' : scanning ? '92%' : '0%', transition: scanning ? 'width 2.3s ease-out' : 'width .4s' }} />
         </div>
-        <div style={{ fontSize: '13px', color: MUTED, marginTop: '8px', minHeight: '18px' }}>{found ? 'Done. Found 6 things.' : scanning ? 'Reading your page...' : ''}</div>
+        <div style={{ fontSize: '13px', color: '#8A8494', marginTop: '10px', minHeight: '18px' }}>{found ? 'Done. Found 6 things.' : scanning ? 'Reading your page...' : ''}</div>
       </div>
 
-      <div style={{ flex: '1 1 300px', minWidth: 0, padding: 'clamp(20px, 3vw, 32px)', background: '#F8F8F8', borderLeft: `1px solid ${LINE}`, borderTop: `1px solid ${LINE}`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ position: 'relative', minHeight: '330px', borderRadius: '16px', border: `1px solid ${LINE}`, background: '#FFFFFF', padding: '18px', overflow: 'hidden' }}>
-          <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: MUTED }}>{found ? 'FOUND ON YOUR PAGE' : 'YOUR PAGE'}</div>
+      <div style={{ flex: '1 1 300px', minWidth: 0, padding: 'clamp(20px, 3vw, 36px)', background: '#FAFAFB', borderLeft: `1px solid ${LINE}`, borderTop: `1px solid ${LINE}`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ position: 'relative', minHeight: '340px', borderRadius: '16px', border: `1px solid ${LINE}`, background: '#FFFFFF', padding: '20px', overflow: 'hidden' }}>
+          <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: '#8A8494' }}>{found ? 'FOUND ON YOUR PAGE' : 'YOUR PAGE'}</div>
           {!found && (
-            <div aria-hidden="true" style={{ marginTop: '14px', opacity: n === 0 ? 0.5 : 1, transition: 'opacity .3s' }}>
+            <div aria-hidden="true" style={{ marginTop: '16px', opacity: n === 0 ? 0.5 : 1, transition: 'opacity .3s' }}>
               {[['62%', 14], ['94%', 8], ['88%', 8], ['40%', 8], ['100%', 56], ['76%', 8], ['90%', 8], ['55%', 8], ['82%', 8]].map(([w, h], i) => (
-                <div key={i} className="cps-skel" style={{ width: w, height: `${h}px`, borderRadius: '6px', background: '#EFECF5', marginTop: i === 0 ? 0 : i === 4 ? 16 : 10 }} />
+                <div key={i} className="cps-skel" style={{ width: w, height: `${h}px`, borderRadius: '6px', background: '#F0EEF4', marginTop: i === 0 ? 0 : i === 4 ? 16 : 10 }} />
               ))}
               {scanning && <span className="cps-scanline" />}
             </div>
           )}
           {found && (
-            <div style={{ display: 'grid', gap: '2px', marginTop: '8px' }}>
+            <div style={{ display: 'grid', marginTop: '8px' }}>
               {SCAN_FOUND.map(([label, value], i) => {
                 const on = i < shown;
                 return (
-                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 2px', borderTop: i ? '1px solid #F5F4F7' : '0', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .35s, transform .35s' }}>
-                    <Tick pop={on} />
-                    <span style={{ width: '88px', flexShrink: 0, fontSize: '12px', color: MUTED }}>{label}</span>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 600, lineHeight: 1.35 }}>{value}</span>
+                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 2px', borderTop: i ? '1px solid #F5F4F7' : '0', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .35s, transform .35s' }}>
+                    <Tick size={20} pop={on} />
+                    <span style={{ width: '84px', flexShrink: 0, fontSize: '13px', color: '#8A8494' }}>{label}</span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 500, lineHeight: 1.35 }}>{value}</span>
                   </div>
                 );
               })}
@@ -861,67 +886,72 @@ function ScreenTell() {
 /* 2. Write: the builder. Messages write themselves, one after another. */
 const WRITE_LINES = [
   'Hey Sarah,',
-  'My free class is Thursday at 7 PM. I\'ll show you the 3 steps that fill your calendar.',
-  'Seats are limited, so grab yours now.',
+  'Our Black Friday sale starts Friday at 9 AM. Everything is 40% off with code BF40.',
+  'Stock is limited, so shop early.',
 ];
 
 function ScreenWrite() {
-  const [subject, typing] = useTyped('You\'re invited: free class', 400, 45);
+  const [subject, typing] = useTyped('Black Friday starts Friday', 400, 45);
   const n = useStage([1700, 2500, 3300, 4000, 4300, 5600]);
   const written = 1 + (n >= 4 ? 1 : 0) + (n >= 6 ? 1 : 0);
   const rows = [
-    { logos: ['email'], title: 'You\'re invited: free class', meta: 'Email · Day 1', status: n >= 4 ? 'Ready' : 'Writing...' },
-    { logos: ['sms'], title: 'Quick reminder', meta: 'Text · Day 3', status: n >= 6 ? 'Ready' : n >= 5 ? 'Writing...' : 'Not written' },
-    { logos: ['instagram', 'facebook'], title: 'We go live soon', meta: 'Social post · Day 4', status: n >= 6 ? 'Writing...' : 'Not written' },
-    { logos: ['facebook'], title: 'Last seats ad', meta: 'Facebook ad · Day 4', status: 'Not written' },
+    { logos: ['email'], title: 'Black Friday is coming', meta: 'Email · Day 1', status: n >= 4 ? 'Ready' : 'Writing...' },
+    { logos: ['sms'], title: 'Sale starts tomorrow', meta: 'Text · Day 3', status: n >= 6 ? 'Ready' : n >= 5 ? 'Writing...' : 'Not written' },
+    { logos: ['instagram', 'facebook'], title: 'Sale is live', meta: 'Social · Day 4', status: n >= 6 ? 'Writing...' : 'Not written' },
+    { logos: ['facebook'], title: 'Last chance ad', meta: 'Ad · Day 4', status: 'Not written' },
   ];
+  const fieldRow = { display: 'flex', alignItems: 'center', gap: '16px', padding: '13px 18px', borderBottom: `1px solid ${LINE}`, fontSize: '14px' };
   return (
     <AppWindow url="campeos.com/builder">
       <Side on="Campaigns" />
-      <div style={{ flex: 1, minWidth: 0, padding: 'clamp(16px, 2.4vw, 24px)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '26px', letterSpacing: '-.02em' }}>Webinar Launch</span>
-          <span style={{ marginLeft: 'auto', fontSize: '13px', fontWeight: 600, padding: '5px 12px', borderRadius: '999px', background: '#F3EEFF', color: '#5B21B6' }}>{written} of 9 written</span>
-        </div>
-        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', flex: 1 }}>
-          <div style={{ flex: '1 1 250px', minWidth: 0, border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', alignSelf: 'flex-start', width: '100%' }}>
+      <Main>
+        <AppHeader crumb="Campaigns" current="Black Friday campaign" status={{ color: '#9B1FD6', text: `${written} of 9 written` }} actions={<><Btn>Preview</Btn><Btn dark>Launch</Btn></>} />
+        <Pad style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div style={{ flex: '1 1 230px', minWidth: 0, border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden' }}>
             {rows.map((r, i) => (
-              <div key={r.title} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderTop: i ? '1px solid #F5F4F7' : '0', background: i === 0 ? '#FBF8FF' : '#FFFFFF' }}>
+              <div key={r.title} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', borderTop: i ? `1px solid ${LINE}` : '0', background: i === 0 ? '#FAFAFB' : '#FFFFFF' }}>
                 <Logos list={r.logos} size={15} />
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: '14px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
-                  <span style={{ display: 'block', fontSize: '12px', color: MUTED }}>{r.meta}</span>
+                  <span style={{ display: 'block', fontSize: '14px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
+                  <span style={{ display: 'block', fontSize: '12px', color: '#8A8494' }}>{r.meta}</span>
                 </span>
                 <Pill status={r.status} />
               </div>
             ))}
           </div>
-          <div style={{ flex: '1.3 1 300px', minWidth: 0, border: `1px solid ${LINE}`, borderRadius: '16px', padding: '18px 20px', background: '#FFFFFF' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: MUTED }}><Logos list={['email']} size={15} /> Email · Day 1</div>
-            <div style={{ fontSize: '12px', color: MUTED, marginTop: '14px' }}>Subject</div>
-            <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '24px', letterSpacing: '-.02em', minHeight: '30px' }}>
-              {subject}{typing && <span className="cps-caret" aria-hidden="true" />}
+          <div style={{ flex: '2 1 330px', minWidth: 0, border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', background: '#FFFFFF' }}>
+            <div style={fieldRow}><span style={{ width: '58px', color: '#8A8494' }}>Subject</span><span style={{ fontWeight: 500, minHeight: '20px' }}>{subject}{typing && <span className="cps-caret" aria-hidden="true" />}</span></div>
+            <div style={fieldRow}><span style={{ width: '58px', color: '#8A8494' }}>Preview</span><span style={{ color: MUTED, opacity: n >= 1 ? 1 : 0, transition: 'opacity .4s' }}>40% off everything. 4 days only.</span></div>
+            <div style={{ display: 'flex', gap: '20px', padding: '11px 18px', borderBottom: `1px solid ${LINE}`, color: '#8A8494' }}>
+              {TOOL.map((t, i) => <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{t}</svg>)}
             </div>
-            <div style={{ borderTop: `1px solid ${LINE}`, marginTop: '12px', paddingTop: '4px' }}>
+            <div style={{ padding: '20px 22px 22px' }}>
+              <div style={{ fontSize: '20px', fontWeight: 600, letterSpacing: '-.01em', opacity: n >= 1 ? 1 : 0, transition: 'opacity .4s' }}>Black Friday starts Friday</div>
               {WRITE_LINES.map((l, i) => (
-                <div key={l} style={{ fontSize: '15px', lineHeight: 1.6, color: '#3D3747', marginTop: '10px', opacity: n > i ? 1 : 0, transform: n > i ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>{l}</div>
+                <div key={l} style={{ fontSize: '14.5px', lineHeight: 1.6, color: '#3D3747', marginTop: '10px', opacity: n > i ? 1 : 0, transform: n > i ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>{l}</div>
               ))}
-              <div style={{ display: 'inline-block', marginTop: '16px', padding: '10px 18px', borderRadius: '10px', background: GRAD, color: '#FFFFFF', fontSize: '14px', fontWeight: 700, opacity: n >= 4 ? 1 : 0, transform: n >= 4 ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>Save my seat</div>
+              <div style={{ position: 'relative', marginTop: '16px', height: '118px', borderRadius: '14px', overflow: 'hidden', background: 'linear-gradient(120deg,#1E1458,#5B21B6 55%,#C026D3)', color: '#FFFFFF', padding: '18px 20px', opacity: n >= 4 ? 1 : 0, transform: n >= 4 ? 'none' : 'translateY(8px)', transition: 'opacity .5s, transform .5s' }}>
+                <span aria-hidden="true" style={{ position: 'absolute', right: '-40px', top: '-50px', width: '180px', height: '180px', borderRadius: '50%', background: 'rgba(255,255,255,.12)' }} />
+                <span aria-hidden="true" style={{ position: 'absolute', right: '60px', bottom: '-60px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,.09)' }} />
+                <div style={{ position: 'relative', fontFamily: MONO, fontSize: '11px', letterSpacing: '.12em', opacity: 0.85 }}>BLACK FRIDAY</div>
+                <div style={{ position: 'relative', fontSize: '24px', fontWeight: 600, letterSpacing: '-.02em', marginTop: '6px' }}>40% off everything</div>
+                <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px', padding: '6px 14px', borderRadius: '8px', background: '#FFFFFF', color: INK, fontSize: '13px', fontWeight: 600 }}>Shop the sale</div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </Pad>
+      </Main>
     </AppWindow>
   );
 }
 
 /* 3. Schedule: the whole launch on one calendar. */
 const CAL = [
-  { day: 'Mon', logos: ['email'], title: 'You\'re invited: free class', time: '9:00 AM' },
-  { day: 'Tue', logos: ['sms'], title: 'Quick reminder', time: '12:00 PM' },
-  { day: 'Wed', logos: ['instagram', 'facebook'], title: 'We go live soon', time: '5:00 PM' },
-  { day: 'Thu', logos: ['email'], title: 'Webinar goes live', time: '7:00 PM', live: true },
-  { day: 'Fri', logos: ['facebook'], title: 'Last seats ad', time: '8:00 AM' },
+  { day: 'Mon', logos: ['email'], title: 'Black Friday is coming', time: '9:00 AM' },
+  { day: 'Wed', logos: ['instagram', 'facebook'], title: 'Sneak peek of the deals', time: '5:00 PM' },
+  { day: 'Thu', logos: ['sms'], title: 'Sale starts tomorrow', time: '12:00 PM' },
+  { day: 'Fri', logos: ['email'], title: 'Sale is live', time: '9:00 AM', live: true },
+  { day: 'Mon', logos: ['facebook'], title: 'Last chance ad', time: '8:00 AM' },
 ];
 
 function ScreenSchedule() {
@@ -929,30 +959,29 @@ function ScreenSchedule() {
   return (
     <AppWindow url="campeos.com/campaigns">
       <Side on="Campaigns" />
-      <div style={{ flex: 1, minWidth: 0, padding: 'clamp(16px, 2.4vw, 24px)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '26px', letterSpacing: '-.02em' }}>Your launch calendar</span>
-          <span style={{ marginLeft: 'auto', fontSize: '13px', fontWeight: 600, padding: '5px 12px', borderRadius: '999px', background: '#DCFCE7', color: '#166534' }}>Webinar Thu 7:00 PM</span>
-        </div>
-        <div style={{ opacity: n >= 6 ? 1 : 0, transform: n >= 6 ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '14px', background: '#F6F1FE', border: '1px solid #E9DDFB', order: 2 }}>
-          <span style={{ width: '28px', height: '28px', borderRadius: '9px', background: GRAD_ICON, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Spark size={13} /></span>
-          <span style={{ fontSize: '14px', lineHeight: 1.45 }}><b>Best time to send.</b> Your buyers open most around 7 PM, so the big messages land then.</span>
-        </div>
-        <div style={{ border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden' }}>
-          {CAL.map((r, i) => {
-            const on = n > i;
-            return (
-              <div key={r.day} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderTop: i ? '1px solid #F5F4F7' : '0', background: r.live ? '#F6F1FE' : '#FFFFFF', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>
-                <span style={{ width: '38px', fontFamily: MONO, fontSize: '12px', fontWeight: 700, color: r.live ? '#6D28D9' : MUTED }}>{r.day}</span>
-                <span style={{ width: '40px', flexShrink: 0, display: 'flex' }}><Logos list={r.logos} size={16} /></span>
-                <span style={{ flex: 1, minWidth: 0, fontSize: '15px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
-                <span className="cps-hx-time" style={{ fontFamily: MONO, fontSize: '12px', color: MUTED }}>{r.time}</span>
-                <Toggle on />
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <Main>
+        <AppHeader crumb="Campaigns" current="Launch calendar" status={{ color: '#22C55E', text: 'Scheduled' }} actions={<><Btn>Edit times</Btn><Btn dark>Launch</Btn></>} />
+        <Pad>
+          <div style={{ border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden' }}>
+            {CAL.map((r, i) => {
+              const on = n > i;
+              return (
+                <div key={r.day} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 18px', borderTop: i ? `1px solid ${LINE}` : '0', background: r.live ? '#FAFAFB' : '#FFFFFF', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>
+                  <span style={{ width: '36px', fontFamily: MONO, fontSize: '12px', color: r.live ? INK : '#8A8494', fontWeight: r.live ? 700 : 400 }}>{r.day}</span>
+                  <span style={{ width: '40px', flexShrink: 0, display: 'flex' }}><Logos list={r.logos} size={16} /></span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: '14.5px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
+                  <span className="cps-hx-time" style={{ fontFamily: MONO, fontSize: '12px', color: '#8A8494' }}>{r.time}</span>
+                  <Toggle on />
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ opacity: n >= 6 ? 1 : 0, transform: n >= 6 ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', background: '#F8F8F9', border: `1px solid ${LINE}` }}>
+            <span style={{ width: '26px', height: '26px', borderRadius: '8px', background: GRAD_ICON, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Spark size={12} /></span>
+            <span style={{ fontSize: '14px', lineHeight: 1.45, color: MUTED }}><b style={{ color: INK, fontWeight: 600 }}>Best time to send.</b> Your buyers open most around 7 PM, so the big messages land then.</span>
+          </div>
+        </Pad>
+      </Main>
     </AppWindow>
   );
 }
@@ -963,19 +992,19 @@ function ScreenImprove() {
   return (
     <AppWindow url="campeos.com/winning-copy">
       <Side on="Winning copy" />
-      <div style={{ flex: 1, minWidth: 0, padding: 'clamp(16px, 2.4vw, 24px)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '26px', letterSpacing: '-.02em' }}>Winning copy</span>
-        </div>
-        <WinnersLibrary fast />
-        <div style={{ opacity: n >= 2 ? 1 : 0, transform: n >= 2 ? 'none' : 'translateY(8px)', transition: 'opacity .5s, transform .5s', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '14px', background: '#F6F1FE', border: '1px solid #E9DDFB' }}>
-          <span style={{ width: '28px', height: '28px', borderRadius: '9px', background: GRAD_ICON, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Spark size={13} /></span>
-          <span style={{ fontSize: '14px', lineHeight: 1.45 }}><b>Your next launch starts here.</b> Campeos builds it from these winners.</span>
-        </div>
-      </div>
-      <div role="status" style={{ position: 'absolute', right: '18px', top: '18px', maxWidth: '300px', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '14px', background: '#17131F', color: '#FFFFFF', boxShadow: '0 20px 40px -20px rgba(23,19,31,.6)', opacity: n >= 1 ? 1 : 0, transform: n >= 1 ? 'none' : 'translateY(12px)', transition: 'opacity .4s, transform .4s' }}>
+      <Main>
+        <AppHeader crumb="Campeos" current="Winning copy" status={{ color: '#22C55E', text: 'Training your agent' }} actions={<Btn dark>Add a winner</Btn>} />
+        <Pad>
+          <WinnersLibrary fast />
+          <div style={{ opacity: n >= 2 ? 1 : 0, transform: n >= 2 ? 'none' : 'translateY(8px)', transition: 'opacity .5s, transform .5s', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', background: '#F8F8F9', border: `1px solid ${LINE}` }}>
+            <span style={{ width: '26px', height: '26px', borderRadius: '8px', background: GRAD_ICON, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Spark size={12} /></span>
+            <span style={{ fontSize: '14px', lineHeight: 1.45, color: MUTED }}><b style={{ color: INK, fontWeight: 600 }}>Your next launch starts here.</b> Campeos builds it from these winners.</span>
+          </div>
+        </Pad>
+      </Main>
+      <div role="status" style={{ position: 'absolute', right: '22px', top: '70px', maxWidth: '300px', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '14px', background: '#17131F', color: '#FFFFFF', boxShadow: '0 20px 40px -20px rgba(23,19,31,.6)', opacity: n >= 1 ? 1 : 0, transform: n >= 1 ? 'none' : 'translateY(12px)', transition: 'opacity .4s, transform .4s' }}>
         <Tick pop={n >= 1} />
-        <span style={{ fontSize: '13px', lineHeight: 1.4 }}><b>Saved as a winner</b><br />&ldquo;Seats close Friday at midnight&rdquo;</span>
+        <span style={{ fontSize: '13px', lineHeight: 1.4 }}><b style={{ fontWeight: 600 }}>Saved as a winner</b><br />&ldquo;Sale ends Monday at midnight&rdquo;</span>
       </div>
     </AppWindow>
   );
@@ -999,7 +1028,7 @@ export function JourneyTabs() {
   const cur = JOURNEY[tab];
   const Screen = SCREENS[cur.id];
   return (
-    <div ref={ref} style={{ marginTop: '44px' }}>
+    <div ref={ref} style={{ marginTop: '40px' }}>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <div role="tablist" aria-label="How Campeos works" className="cps-jpill">
           {JOURNEY.map((j, i) => {
@@ -1012,7 +1041,7 @@ export function JourneyTabs() {
                 onClick={() => { setTab(i); setPaused(true); }}
                 className={on ? 'cps-jt cps-jt-on' : 'cps-jt'}
               >
-                <JourneyIcon id={j.id} active={on} size={22} />
+                <JourneyIcon id={j.id} active={on} size={19} />
                 <span>{j.label}</span>
                 {on && !paused && seen && <span className="cps-jprog" key={`p${tab}`} aria-hidden="true" style={{ animationDuration: `${j.ms || 7500}ms` }} />}
               </button>
@@ -1020,15 +1049,14 @@ export function JourneyTabs() {
           })}
         </div>
       </div>
-      <div className="cps-tilt" style={{ maxWidth: '1080px', margin: '28px auto 0', animationDelay: '.35s' }}>
+      <div className="cps-tilt" style={{ maxWidth: '1080px', margin: '24px auto 0', animationDelay: '.35s' }}>
         <div key={cur.id} className="cps-fu">
           <Screen />
         </div>
       </div>
-      <div key={`c${cur.id}`} className="cps-fu" style={{ maxWidth: '560px', margin: '26px auto 0', textAlign: 'center' }}>
-        <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: 'clamp(24px, 3vw, 32px)', letterSpacing: '-.025em', lineHeight: 1.12 }}>{cur.title}</div>
-        <p style={{ margin: '10px 0 0', fontSize: '17px', lineHeight: 1.55, color: MUTED }}>{cur.text}</p>
-      </div>
+      <p key={`c${cur.id}`} className="cps-fu" style={{ maxWidth: '640px', margin: '28px auto 0', textAlign: 'center', fontSize: '18px', lineHeight: 1.55, color: '#8A8494' }}>
+        <b style={{ color: INK, fontWeight: 500 }}>{cur.lead}</b> {cur.text}
+      </p>
     </div>
   );
 }
