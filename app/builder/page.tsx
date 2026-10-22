@@ -131,12 +131,12 @@ function useWritingLine(generating: boolean, channels: string[]): string {
   const lines = [
     "Reading your offer...",
     "Working out who you're writing to...",
-    "Planning the order of your messages...",
+    "Planning the order of your posts...",
     ...(has("ad") ? ["Writing your ad..."] : []),
     ...(has("email") ? ["Writing your emails..."] : []),
     ...(has("sms") ? ["Writing your texts..."] : []),
     ...(has("social") ? ["Writing your posts..."] : []),
-    "Checking every message sounds like you...",
+    "Checking every post sounds like you...",
     "Almost done...",
   ];
   return lines[Math.min(n, lines.length - 1)];
@@ -453,7 +453,7 @@ function BuilderInner() {
       return;
     }
     if (!campaignId && !dateChosen) {
-      setError("Pick the day this goes live first. Every message is timed around it.");
+      setError("Pick the day this goes live first. Every post is timed around it.");
       return;
     }
     setGenerating(true);
@@ -867,7 +867,7 @@ function BuilderInner() {
                   className="h-11 px-4 rounded-xl text-white text-[15px] font-bold disabled:opacity-60 inline-flex items-center gap-2"
                   style={{ background: "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)" }}
                 >
-                  {generating ? "Writing..." : `Write ${writableCount} ${writableCount === 1 ? "message" : "messages"}`}
+                  {generating ? "Writing..." : `Write ${writableCount} ${writableCount === 1 ? "post" : "posts"}`}
                 </button>
               )}
               {unwrittenCount > 0 && writableCount === 0 && lockedIds && lockedIds.size > 0 && !(showFirstRun && !generating) && (
@@ -909,7 +909,7 @@ function BuilderInner() {
               </svg>
               <span className="font-semibold">{writingLine}</span>
               <span className="text-muted">
-                {writtenCount > 0 ? `${writtenCount} of ${onSteps.length} written so far.` : "This takes about a minute. You can watch the messages appear."}
+                {writtenCount > 0 ? `${writtenCount} of ${onSteps.length} written so far.` : "This takes about a minute. You can watch the posts appear."}
               </span>
             </div>
           )}
@@ -917,10 +917,10 @@ function BuilderInner() {
           {showFirstRun && !generating && writtenCount > 0 && (
             <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 sm:px-7 py-2.5 bg-agentWash border-b border-[#F0F0F0] text-sm">
               <span className="font-semibold">
-                {writtenCount} of {onSteps.length} messages written.
+                {writtenCount} of {onSteps.length} posts written.
               </span>
               <span className="text-muted">
-                {lockedIds && lockedIds.size > 0 ? "Tap one to read or edit it." : "Tap any message to read or edit it."}
+                {lockedIds && lockedIds.size > 0 ? "Tap one to read or edit it." : "Tap any post to read or edit it."}
               </span>
               <span className="ml-auto flex items-center gap-2">
                 {lockedIds && lockedIds.size > 0 && (
@@ -1035,7 +1035,7 @@ function BuilderInner() {
               <div className="shrink-0 flex items-start justify-between gap-4 px-6 sm:px-8 pt-6 sm:pt-7 pb-4 border-b border-[#F0F0F0]">
                 <div>
                   <h2 className="font-serif text-[30px] leading-tight font-medium tracking-tight">Campaign setup</h2>
-                  <p className="text-[15px] text-muted mt-1">Every message is written from these details.</p>
+                  <p className="text-[15px] text-muted mt-1">Every post is written from these details.</p>
                 </div>
                 <button
                   onClick={closeSetup}

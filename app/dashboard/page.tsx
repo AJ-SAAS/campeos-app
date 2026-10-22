@@ -196,7 +196,7 @@ function PaidView({
         : "Nothing goes out today."
       : todayLeft.length === 0
         ? "Everything for today has gone out."
-        : `${todayLeft.length} ${todayLeft.length === 1 ? "message goes" : "messages go"} out today.${
+        : `${todayLeft.length} ${todayLeft.length === 1 ? "post goes" : "posts go"} out today.${
             needs > 0 ? ` ${needs} ${needs === 1 ? "needs" : "need"} something from you.` : ""
           }`;
 
@@ -247,7 +247,7 @@ function PaidView({
             <div className="px-5 py-8 text-center">
               <div className="text-[15px] font-semibold">Nothing goes out today</div>
               <div className="text-sm text-muted mt-1">
-                {laterDays.length ? "Your next messages are below." : "Start a campaign, or ask the agent to build one."}
+                {laterDays.length ? "Your next posts are below." : "Start a campaign, or ask the agent to build one."}
               </div>
             </div>
           ) : (
@@ -396,7 +396,7 @@ function DayRow({ day, userPlatforms }: { day: WeekDay; userPlatforms: string[] 
         </span>
         <Logos platforms={platforms} />
         <span className="flex-grow min-w-0 text-[14px] text-muted truncate">
-          {day.items.length} {day.items.length === 1 ? "message" : "messages"}
+          {day.items.length} {day.items.length === 1 ? "post" : "posts"}
           {needs > 0 && <span className="text-[#9A3412] font-semibold"> · {needs} need input</span>}
         </span>
         <svg
@@ -612,7 +612,7 @@ function WelcomeView({
         </h1>
         <p className="text-[16px] text-muted mt-2">
           {first
-            ? `${written} of ${total} messages written. Here's what goes out first.`
+            ? `${written} of ${total} posts written. Here's what goes out first.`
             : "Let's write your first launch. It takes about a minute."}
         </p>
       </div>
@@ -750,7 +750,7 @@ function FirstLaunch({
                   <LockIcon />
                 </span>
                 <span className="text-[15px]">
-                  <b>{locked} more messages</b> are written once you pick a plan.
+                  <b>{locked} more posts</b> are written once you pick a plan.
                 </span>
                 <button onClick={onUnlock} className="text-[15px] font-semibold text-[#5B21B6] underline underline-offset-4">
                   See plans

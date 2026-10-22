@@ -177,7 +177,7 @@ function DayRow(
           <span className="flex-grow min-w-0">
             <span className="flex items-center gap-2">
               <span className="text-[15px] font-semibold">
-                {live.length === items.length ? `${items.length} messages` : `${live.length} of ${items.length} messages`}
+                {live.length === items.length ? `${items.length} posts` : `${live.length} of ${items.length} posts`}
               </span>
               {needs > 0 && (
                 <span className="text-[11px] font-bold px-[7px] py-px rounded-full bg-[#FFEDD5] text-[#9A3412]">{needs} need input</span>
@@ -261,7 +261,7 @@ function StepCard(props: SequenceProps & { step: UIStep; status: StepStatus }) {
           )}
         </span>
       </button>
-      <Toggle on={on} onClick={() => onToggleStep(s.templateStepId)} label={on ? "Leave this message out" : "Put this message back"} />
+      <Toggle on={on} onClick={() => onToggleStep(s.templateStepId)} label={on ? "Leave this post out" : "Put this post back"} />
     </div>
   );
 }
@@ -284,7 +284,7 @@ function CompactRow(props: SequenceProps & { step: UIStep; status: StepStatus })
         </span>
         <StatusPill status={status} />
       </button>
-      <Toggle small on={on} onClick={() => onToggleStep(s.templateStepId)} label={on ? "Leave this message out" : "Put this message back"} />
+      <Toggle small on={on} onClick={() => onToggleStep(s.templateStepId)} label={on ? "Leave this post out" : "Put this post back"} />
     </div>
   );
 }

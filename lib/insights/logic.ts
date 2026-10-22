@@ -345,7 +345,7 @@ export function strength(
       count: proofN || resultsN ? `${plural(proofN, "testimonial")}, ${plural(resultsN, "result")}` : "None yet",
       tip:
         blanks.testimonial > 0
-          ? `${plural(blanks.testimonial, "message")} still ${blanks.testimonial === 1 ? "says" : "say"} [TESTIMONIAL]`
+          ? `${plural(blanks.testimonial, "post")} still ${blanks.testimonial === 1 ? "says" : "say"} [TESTIMONIAL]`
           : proofN < 3
             ? "Real results make your emails and ads believable"
             : "",

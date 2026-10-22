@@ -153,7 +153,7 @@ test("strength: empty profile is 0 and points at the biggest gap", () => {
 test("strength: blanks in campaigns become the headline", () => {
   const p = buildProfile("o1", "u1", [ins("i1", "call", { pains: ["a b c"], objections: [{ objection: "x y z", answer: "" }] })]);
   const s = strength(p, { testimonial: 4, story: 0, number: 0 });
-  assert.equal(s.headline, "4 messages still say [TESTIMONIAL]");
+  assert.equal(s.headline, "4 posts still say [TESTIMONIAL]");
   assert.ok(s.score > 0 && s.score < 100);
 });
 

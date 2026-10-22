@@ -768,7 +768,7 @@ export default function OnboardingPage() {
                     {dateGuess ? "We'll plan for " : "Goes live "}
                     <b>{launchDateToEvent(launchDate)!.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}, 7:00 PM</b>
                     {dateGuess ? ". You can change it any time." : "."}
-                    {daysUntil(launchDate) < 7 && " That's soon. The first messages would be dated in the past, so a date a week or more away works best."}
+                    {daysUntil(launchDate) < 7 && " That's soon. The first posts would be dated in the past, so a date a week or more away works best."}
                   </p>
                 )}
 

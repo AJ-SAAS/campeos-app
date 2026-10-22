@@ -18,7 +18,7 @@ const STEPS = [
   {
     target: "open-campaign",
     title: "Start here",
-    body: "Open your campaign to watch the messages write themselves. Tap any message to read it, change it, or copy it.",
+    body: "Open your campaign to watch the posts write themselves. Tap any post to read it, change it, or copy it.",
   },
   {
     target: "side-nav",

@@ -197,7 +197,7 @@ export function HeroApp({ now }) {
             <div>
               <div style={{ fontFamily: MONO, fontSize: '10px', letterSpacing: '.08em', color: MUTED, minHeight: '13px' }}>{day}</div>
               <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '28px', letterSpacing: '-.02em', lineHeight: 1.1, marginTop: '2px' }}>{hello}, Sarah</div>
-              <div style={{ fontSize: '13px', color: MUTED, marginTop: '4px' }}>3 messages go out today. 1 needs something from you.</div>
+              <div style={{ fontSize: '13px', color: MUTED, marginTop: '4px' }}>3 posts go out today. 1 needs something from you.</div>
             </div>
             <div className="cps-hx-dates" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               {(dates.length ? dates : [null, null]).map((sd, i) => [sd ? sd.name : '', sd ? String(sd.days) : '', i === 0 ? 'Continue' : 'Plan it', i !== 0, i]).map(([n, d, cta, dark, k]) => (
@@ -311,7 +311,7 @@ export function TimelineMock({ tick }) {
             <span style={{ fontFamily: MONO, fontSize: '11px', color: MUTED, whiteSpace: 'nowrap' }}>{Math.max(0, readyCount)} of {total} ready</span>
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', height: '34px', padding: '0 14px', borderRadius: '10px', background: ready >= 7 ? INK : GRAD, color: '#FFFFFF', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-            {ready >= 7 ? 'Copy all' : writing ? 'Writing...' : 'Write 7 messages'}
+            {ready >= 7 ? 'Copy all' : writing ? 'Writing...' : 'Write 7 posts'}
           </span>
         </div>
         <div style={{ display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' }}>
@@ -335,7 +335,7 @@ export function TimelineMock({ tick }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px' }}>
               <span className="cps-hx-logos" style={{ display: 'flex', flexShrink: 0 }}><Logos list={['instagram', 'sms', 'email']} size={15} /></span>
               <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                3 messages
+                3 posts
                 {ready >= 3 && <span className="cps-hx-pill" style={{ fontWeight: 600, color: '#9A3412', fontSize: '13px' }}> · 1 needs input</span>}
               </span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A39DAD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }}><path d="M6 9l6 6 6-6" /></svg>
@@ -657,7 +657,7 @@ export function WinnersLibrary({ fast }) {
 const JOURNEY = [
   { id: 'tell', ms: 8400, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
   { id: 'write', ms: 5200, label: 'Write', lead: 'Your whole launch, written.', text: 'Every email, text, ad and post, in your voice, before you finish your coffee.' },
-  { id: 'schedule', ms: 11500, label: 'Schedule', lead: 'Every message gets a day and a time.', text: 'One plan from the first teaser to the last call.' },
+  { id: 'schedule', ms: 11500, label: 'Schedule', lead: 'Every post gets a day and a time.', text: 'One plan from the first teaser to the last call.' },
   { id: 'improve', ms: 6200, label: 'Improve', lead: 'Your next launch starts ahead.', text: 'Save what your buyers respond to and build the next launch from it.' },
 ];
 
@@ -1170,7 +1170,7 @@ function ScreenSchedule() {
 
           <div style={{ position: 'relative', height: '42px' }}>
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '12px', background: 'linear-gradient(135deg,#1E1458,#5B21B6 55%,#C026D3)', color: '#FFFFFF', fontSize: '14px', fontWeight: 600, textAlign: 'center', padding: '0 12px', opacity: st.done ? 1 : 0, transform: st.done ? 'none' : 'translateY(8px) scale(.97)', transition: 'opacity .4s, transform .4s' }}>
-              <Spark size={14} /> 24 messages scheduled. Each one has a day, a time and a hook.
+              <Spark size={14} /> 24 posts scheduled. Each one has a day, a time and a hook.
             </div>
             {st.done && (
               <span aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '50%' }}>
