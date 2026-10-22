@@ -9,7 +9,7 @@ import { templateChannelsFor } from "../lib/onboarding/answers";
 import { finishCopy, STANDARD_EULA_URL } from "../lib/ai/generateStepCopy";
 import { lintCopy } from "../lib/ai/quality";
 
-const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser", "lead-magnet", "giveaway", "ebook-low-ticket", "xmas-holidays", "valentines-day", "daily-deals", "physical-book-shipping", "social-proof", "newsletter"];
+const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser", "lead-magnet", "giveaway", "ebook-low-ticket", "xmas-holidays", "valentines-day", "daily-deals", "physical-book-shipping", "social-proof", "newsletter", "mvp-launch", "post-engagement", "branding"];
 const offer: OfferContext = { name: "Candle Club", price: "$40", audience: "Candle lovers", whatTheyGet: "A box of 3 candles", tone: "Friendly" };
 
 for (const id of NEW) {
@@ -226,4 +226,30 @@ test("newsletter: welcome first, weekly issues a week apart", () => {
   assert.equal(first.playId, "newsletter-welcome");
   const issues = t.steps.filter((s) => s.id.startsWith("email-issue-")).map((s) => s.offsetHours);
   assert.deepEqual(issues, [0, 168, 336]);
+});
+
+test("mvp launch: honest about what is built, asks for feedback, shows what changed", () => {
+  const t = templates["mvp-launch"];
+  for (const id of ["email-beta-invite", "mvp-founder-note", "mvp-feedback-ask", "mvp-you-said"]) {
+    assert.ok(t.steps.some((s) => s.playId === id), id);
+  }
+  assert.ok(getPlay("mvp-founder-note")!.avoid!.join(" ").includes("not built yet"));
+  assert.ok(getPlay("mvp-you-said")!.avoid!.join(" ").includes("not made"));
+});
+
+test("post engagement: replies first, delivery before the bridge, never invents reach", () => {
+  const t = templates["post-engagement"];
+  const first = t.steps.reduce((a, b) => (b.offsetHours < a.offsetHours ? b : a));
+  assert.equal(first.playId, "post-reply-link");
+  const at = (p: string) => t.steps.find((s) => s.playId === p)!.offsetHours;
+  assert.ok(at("magnet-delivery") < at("magnet-bridge"));
+  assert.ok(getPlay("post-viral-followup")!.avoid!.join(" ").includes("Never invent reach"));
+});
+
+test("branding: no hard sell, no competitor attacks, spans two weeks", () => {
+  const t = templates.branding;
+  assert.ok(!t.steps.some((s) => s.playId === "sale-announce" || s.playId === "countdown"));
+  assert.ok(getPlay("post-brand-difference")!.avoid!.join(" ").includes("competitor"));
+  const max = Math.max(...t.steps.map((s) => s.offsetHours));
+  assert.ok(max >= 11 * 24 && max <= 14 * 24);
 });

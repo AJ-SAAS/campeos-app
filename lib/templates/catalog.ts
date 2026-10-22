@@ -170,7 +170,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 week",
     description: "Get early users onto a brand-new product.",
     category: "launches",
-    status: "soon",
+    status: "available",
   },
   {
     id: "mini-launch",
@@ -204,7 +204,7 @@ export const catalog: CatalogEntry[] = [
     length: "3 days",
     description: "Turn a viral or high-reach post into leads.",
     category: "leadgen",
-    status: "soon",
+    status: "available",
   },
   {
     id: "ebook-low-ticket",
@@ -272,6 +272,6 @@ export const catalog: CatalogEntry[] = [
     length: "2 weeks",
     description: "Build awareness and recognition, not an immediate sale.",
     category: "retention",
-    status: "soon",
+    status: "available",
   },
 ];

@@ -1730,6 +1730,189 @@ export const PLAYS: Record<string, Play> = {
     avoid: ["Never invent a reader count."],
   }),
 
+  "mvp-founder-note": P({
+    id: "mvp-founder-note",
+    name: "Why I built this",
+    job: "Show a real person behind a rough new product, so early users forgive the rough edges.",
+    beats: [
+      "Open on the problem you had yourself, in plain words.",
+      "Say what the product does today, honestly, and what it does not do yet.",
+      "Say who you want as early users and why they matter.",
+      "One call to action with [LINK].",
+    ],
+    hooks: ["Why I built this", "I made this for myself first", "An early look"],
+    focus: "story",
+    avoid: ["Never claim features that are not built yet."],
+  }),
+
+  "mvp-feedback-ask": P({
+    id: "mvp-feedback-ask",
+    name: "Tell me what is broken",
+    job: "Make early users feel like partners and give them an easy way to speak.",
+    beats: [
+      "Thank them for trying something unfinished.",
+      "Ask two easy questions: what was confusing and what is missing.",
+      "Say how to answer: reply to this email.",
+      "Say you read every reply and what happens to them.",
+    ],
+    hooks: ["What is broken?", "Two quick questions", "Help me fix this"],
+    focus: "story",
+  }),
+
+  "mvp-spots-left": P({
+    id: "mvp-spots-left",
+    name: "Spots are limited",
+    job: "Use a real cap on early users as a reason to join now.",
+    beats: [
+      "Say how many early spots are left. Use [SPOTS LEFT] if not given.",
+      "Say why the number is small: you want to talk to every user.",
+      "Say what early users get that later users will not, only if given, otherwise [EARLY PERK].",
+      "One call to action with [LINK].",
+    ],
+    hooks: ["Spots are filling", "[SPOTS LEFT] spots left", "Early access is closing"],
+    focus: "urgency",
+    avoid: ["Never invent a spot count or a perk."],
+  }),
+
+  "post-mvp-spots": P({
+    id: "post-mvp-spots",
+    name: "Early access post",
+    job: "Tell followers early access is open and spots are few.",
+    beats: [
+      "First line: the product and the problem it solves.",
+      "2 short lines: it is early and rough, and you want honest users.",
+      "Spots left and one link. Use [SPOTS LEFT] if not given.",
+    ],
+    hooks: ["Early access", "Be one of the first", "Help me build this"],
+    focus: "urgency",
+    avoid: ["Never invent a spot count."],
+  }),
+
+  "mvp-you-said": P({
+    id: "mvp-you-said",
+    name: "You said, we did",
+    job: "Show early users their feedback changed the product.",
+    beats: [
+      "Open by thanking them for the replies.",
+      "Three short lines: what you heard and what you changed. Use only changes that were really made, otherwise [CHANGE].",
+      "Invite them to try it again.",
+      "One call to action with [LINK].",
+    ],
+    hooks: ["You said, we did", "Here is what changed", "Thanks for the feedback"],
+    focus: "proof",
+    avoid: ["Never list a change that was not made."],
+  }),
+
+  "post-viral-followup": P({
+    id: "post-viral-followup",
+    name: "The post that took off",
+    job: "Turn a post that got reach into leads.",
+    beats: [
+      "First line: say the post got a lot of attention, without bragging. Use [REACH] only if given.",
+      "2 short lines: what people kept asking.",
+      "Offer the free next thing and tell them what to comment or click.",
+    ],
+    hooks: ["You asked, here it is", "This post blew up", "So many of you asked"],
+    focus: "desire",
+    avoid: ["Never invent reach numbers."],
+  }),
+
+  "post-reply-link": P({
+    id: "post-reply-link",
+    name: "Reply to comments",
+    job: "Answer comments in a way that moves people to the link.",
+    beats: [
+      "One short, human reply to the comment.",
+      "One line that gives them the free thing.",
+      "The link or the word to type.",
+    ],
+    hooks: ["Here you go", "Sent it your way", "Thanks for asking"],
+    focus: "offer",
+  }),
+
+  "ad-boost-post": P({
+    id: "ad-boost-post",
+    name: "Boost the post ad",
+    job: "Put money behind a post that already works.",
+    beats: [
+      "Headline: the same hook as the post.",
+      "Primary text: the post's promise and the free next step.",
+      "Button: get it free.",
+    ],
+    hooks: ["The post everyone is sharing", "Get what they asked for", "Free for the next 48 hours"],
+    focus: "desire",
+    avoid: ["Never invent reach numbers."],
+  }),
+
+  "email-viral-recap": P({
+    id: "email-viral-recap",
+    name: "Why this post took off",
+    job: "Tell the list what is getting attention, and give them the free thing too.",
+    beats: [
+      "Open on what the post said and why people reacted.",
+      "Three short lines: what people asked.",
+      "Give them the free thing, with [LINK].",
+      "Invite a reply.",
+    ],
+    hooks: ["What everyone is talking about", "The post that took off", "You might have missed this"],
+    focus: "story",
+  }),
+
+  "post-brand-belief": P({
+    id: "post-brand-belief",
+    name: "What we believe",
+    job: "Say one thing the brand stands for, plainly.",
+    beats: [
+      "First line: the belief, short.",
+      "2 to 3 lines: why it matters and how it shows up in your work.",
+      "End with a question to invite agreement.",
+    ],
+    hooks: ["We believe", "This is what we stand for", "Here is where we stand"],
+    focus: "story",
+  }),
+
+  "email-brand-values": P({
+    id: "email-brand-values",
+    name: "What we stand for",
+    job: "Let readers know what to expect from you, so they choose you for the right reasons.",
+    beats: [
+      "Open with one belief in your own words.",
+      "Three values, one line each, each with a real example. Use [EXAMPLE] if not given.",
+      "Say what you will never do.",
+      "Invite a reply.",
+    ],
+    hooks: ["What we stand for", "What you can expect from us", "Three promises"],
+    focus: "story",
+    avoid: ["Never invent examples or awards."],
+  }),
+
+  "ad-brand": P({
+    id: "ad-brand",
+    name: "Brand awareness ad",
+    job: "Introduce the brand and the feeling, with no hard sell.",
+    beats: [
+      "Headline: the belief or the promise.",
+      "Primary text: who you are for and what makes you different, in plain words.",
+      "Button: learn more.",
+    ],
+    hooks: ["Meet <brand>", "Made for people who...", "Here is what we are about"],
+    focus: "story",
+  }),
+
+  "post-brand-difference": P({
+    id: "post-brand-difference",
+    name: "What makes us different",
+    job: "Say one real difference between you and others.",
+    beats: [
+      "First line: the common way everyone does it.",
+      "2 lines: how you do it differently.",
+      "One line on why that matters to them.",
+    ],
+    hooks: ["Most people do it this way", "We do it differently", "Here is the difference"],
+    focus: "story",
+    avoid: ["Never name or attack a competitor."],
+  }),
+
   /* ------------------------------------------------------------ */
   /* Short channels: texts, posts, ads                              */
   /* ------------------------------------------------------------ */
