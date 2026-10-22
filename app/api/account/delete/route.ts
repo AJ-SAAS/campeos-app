@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { deleteAuthUser } from "@/lib/emailCode";
 
 // Permanently deletes a signed-in user's account: every Firestore
 // document that belongs to them, then the Firebase Auth user itself.
@@ -74,6 +75,15 @@ export async function POST(req: Request) {
   try {
     const db = getAdminDb();
 
+    // Sign-in account first. The caller's token proved who they are, and
+    // deleting with the server's own access works however long ago they
+    // signed in (their own token fails with CREDENTIAL_TOO_OLD_LOGIN_AGAIN).
+    // Doing it first also means a failure here leaves their data untouched,
+    // instead of wiping it and leaving a login with nothing behind it.
+    // freeTrials and dailyUsage are kept on purpose: deleting and signing up
+    // again must not hand out a fresh set of free messages.
+    await deleteAuthUser(uid);
+
     for (const collectionName of COLLECTIONS_BY_UID_FIELD) {
       const snap = await db.collection(collectionName).where("uid", "==", uid).get();
       for (const docSnap of snap.docs) {
@@ -92,19 +102,6 @@ export async function POST(req: Request) {
 
     for (const collectionName of DOCS_KEYED_BY_UID) {
       await db.collection(collectionName).doc(uid).delete();
-    }
-
-    // accounts:delete with the caller's own idToken deletes exactly that
-    // account — no elevated/admin privilege needed, since Google is
-    // deleting the account the token itself belongs to.
-    const deleteRes = await fetch(`${IDENTITY_TOOLKIT_BASE}:delete?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken }),
-    });
-    if (!deleteRes.ok) {
-      const deleteData = await deleteRes.json().catch(() => ({}));
-      throw new Error(deleteData.error?.message ?? "Couldn't delete the sign-in account.");
     }
 
     return NextResponse.json({ ok: true });

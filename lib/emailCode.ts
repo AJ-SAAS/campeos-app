@@ -200,3 +200,20 @@ export async function findOrCreateUser(email: string): Promise<{ uid: string; cr
   if (again) return { uid: again.localId, created: false };
   throw new Error(`create ${res.status}`);
 }
+
+/**
+ * Deletes a Firebase Auth user with the server's own access. Used by account
+ * deletion: deleting with the person's own token fails with
+ * CREDENTIAL_TOO_OLD_LOGIN_AGAIN unless they signed in a few minutes ago.
+ * Callers must already have proven who the uid belongs to.
+ */
+export async function deleteAuthUser(uid: string): Promise<void> {
+  const sa = serviceAccount();
+  const res = await itk(sa, "accounts:delete", { localId: uid });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+    // Already gone is fine.
+    if (data.error?.message?.includes("USER_NOT_FOUND")) return;
+    throw new Error(data.error?.message ?? `delete ${res.status}`);
+  }
+}
