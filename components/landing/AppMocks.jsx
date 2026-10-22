@@ -823,12 +823,12 @@ const SCAN_URL = 'campeos.com';
 const SITE_H = 1650; // css px height of public/landing/scan-site.jpg when it is 1000px wide
 // Where each find sits on the page picture: [left, top, width, height] as fractions.
 const FINDS = [
-  { label: 'Hook', value: 'Run a sold-out launch', box: [0.024, 0.0903, 0.952, 0.0781] },
-  { label: 'Offer', value: 'Your whole launch, written for you', box: [0.2, 0.1842, 0.6, 0.0388] },
-  { label: 'Proof', value: 'Olivia Alexa, 434K on YouTube', box: [0.2914, 0.286, 0.4173, 0.0279] },
-  { label: 'Urgency', value: 'Live countdown to launch day', box: [0.1, 0.4697, 0.8, 0.0758] },
-  { label: 'Pain', value: 'A blank page and a long night', box: [0.024, 0.7424, 0.466, 0.2297] },
-  { label: 'Promise', value: 'Done in one evening', box: [0.51, 0.7424, 0.466, 0.2297] },
+  { label: 'Hook', value: 'Run a sold-out launch', box: [0.024, 0.0758, 0.952, 0.0781] },
+  { label: 'Offer', value: 'Your whole launch, written for you', box: [0.2, 0.1648, 0.6, 0.0388] },
+  { label: 'Testimonial', value: '\u201cYou over-delivered.\u201d', box: [0.3595, 0.2618, 0.2811, 0.027] },
+  { label: 'Urgency', value: 'Live countdown to launch day', box: [0.1, 0.4448, 0.8, 0.0758] },
+  { label: 'Pain', value: 'A blank page and a long night', box: [0.024, 0.7176, 0.466, 0.2297] },
+  { label: 'Promise', value: 'Done in one evening', box: [0.51, 0.7176, 0.466, 0.2297] },
 ];
 const BURST = [[-120, -46], [-84, -78], [-40, -92], [0, -100], [40, -92], [84, -78], [120, -46], [-62, -30], [62, -30], [0, -60]];
 
@@ -910,7 +910,7 @@ function ScreenTell() {
                     {on ? (
                       <div key="on" className="cps-flash" style={{ position: 'absolute', inset: '2px -4px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px', padding: '0 8px' }}>
                         <Tick size={20} pop />
-                        <span style={{ width: '70px', flexShrink: 0, fontSize: '13px', color: '#8A8494' }}>{label}</span>
+                        <span style={{ width: '86px', flexShrink: 0, fontSize: '13px', color: '#8A8494' }}>{label}</span>
                         <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 600, lineHeight: 1.3 }}>{value}</span>
                       </div>
                     ) : (
