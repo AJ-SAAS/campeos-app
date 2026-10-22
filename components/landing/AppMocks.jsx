@@ -591,7 +591,7 @@ export function CheckList({ items }) {
 
 const WINNERS = [
   ['Ad hooks', 'that stop the scroll', 'Writing launch emails at midnight? Stop.'],
-  ['Subject lines', 'that get opened', 'Is your Black Friday ready?'],
+  ['Subject lines', 'that get opened', 'Ready to break your Black Friday sales record?'],
   ['Headlines', 'that get clicks', 'Your whole launch, written in one evening'],
   ['Buyer words', 'your audience uses', '\u201cI was staring at a blank page.\u201d'],
   ['Angles', 'your buyers care about', 'No more blank pages'],
@@ -946,16 +946,16 @@ function ScreenTell() {
 /* 2. Write: the builder. Messages write themselves, one after another. */
 const WRITE_LINES = [
   'Hey there,',
-  'Black Friday is on the 27th. Most people write their emails the night before.',
-  "You don't have to. Campeos writes your whole launch in one evening, every email, text and ad.",
+  'Black Friday is the biggest sales day of your year. Most people spend it stuck writing emails.',
+  "Not you. Campeos writes your whole Black Friday campaign in one evening. Every email, text and ad, timed and ready.",
 ];
 
 function ScreenWrite() {
-  const [subject, typing] = useTyped('Is your Black Friday ready?', 400, 45);
+  const [subject, typing] = useTyped('Ready to break your Black Friday sales record?', 400, 45);
   const n = useStage([1700, 2500, 3300, 4000, 4300, 5600]);
   const written = 1 + (n >= 4 ? 1 : 0) + (n >= 6 ? 1 : 0);
   const rows = [
-    { logos: ['email'], title: 'Is your Black Friday ready?', meta: 'Email · Day 1', status: n >= 4 ? 'Ready' : 'Writing...' },
+    { logos: ['email'], title: 'Ready to break your Black Friday sales record?', meta: 'Email · Day 1', status: n >= 4 ? 'Ready' : 'Writing...' },
     { logos: ['sms'], title: 'Early access is open', meta: 'Text · Day 3', status: n >= 6 ? 'Ready' : n >= 5 ? 'Writing...' : 'Not written' },
     { logos: ['instagram', 'facebook'], title: 'Watch a launch get written', meta: 'Social · Day 4', status: n >= 6 ? 'Writing...' : 'Not written' },
     { logos: ['facebook'], title: 'Black Friday is 8 days away', meta: 'Ad · Day 4', status: 'Not written' },
@@ -981,21 +981,21 @@ function ScreenWrite() {
           </div>
           <div style={{ flex: '2 1 330px', minWidth: 0, border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', background: '#FFFFFF' }}>
             <div style={fieldRow}><span style={{ width: '58px', color: '#8A8494' }}>Subject</span><span style={{ fontWeight: 500, minHeight: '20px' }}>{subject}{typing && <span className="cps-caret" aria-hidden="true" />}</span></div>
-            <div style={fieldRow}><span style={{ width: '58px', color: '#8A8494' }}>Preview</span><span style={{ color: MUTED, opacity: n >= 1 ? 1 : 0, transition: 'opacity .4s' }}>One evening. Every email, text and ad.</span></div>
+            <div style={fieldRow}><span style={{ width: '58px', color: '#8A8494' }}>Preview</span><span style={{ color: MUTED, opacity: n >= 1 ? 1 : 0, transition: 'opacity .4s' }}>Our Black Friday deal is live. See your first 3 posts free.</span></div>
             <div style={{ display: 'flex', gap: '20px', padding: '11px 18px', borderBottom: `1px solid ${LINE}`, color: '#8A8494' }}>
               {TOOL.map((t, i) => <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{t}</svg>)}
             </div>
             <div style={{ padding: '20px 22px 22px' }}>
-              <div style={{ fontSize: '20px', fontWeight: 600, letterSpacing: '-.01em', opacity: n >= 1 ? 1 : 0, transition: 'opacity .4s' }}>Is your Black Friday ready?</div>
+              <div style={{ fontSize: '20px', fontWeight: 600, letterSpacing: '-.01em', opacity: n >= 1 ? 1 : 0, transition: 'opacity .4s' }}>Ready to break your Black Friday sales record?</div>
               {WRITE_LINES.map((l, i) => (
                 <div key={l} style={{ fontSize: '14.5px', lineHeight: 1.6, color: '#3D3747', marginTop: '10px', opacity: n > i ? 1 : 0, transform: n > i ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>{l}</div>
               ))}
               <div style={{ position: 'relative', marginTop: '16px', height: '118px', borderRadius: '14px', overflow: 'hidden', background: 'linear-gradient(120deg,#1E1458,#5B21B6 55%,#C026D3)', color: '#FFFFFF', padding: '18px 20px', opacity: n >= 4 ? 1 : 0, transform: n >= 4 ? 'none' : 'translateY(8px)', transition: 'opacity .5s, transform .5s' }}>
                 <span aria-hidden="true" style={{ position: 'absolute', right: '-40px', top: '-50px', width: '180px', height: '180px', borderRadius: '50%', background: 'rgba(255,255,255,.12)' }} />
                 <span aria-hidden="true" style={{ position: 'absolute', right: '60px', bottom: '-60px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,.09)' }} />
-                <div style={{ position: 'relative', fontFamily: MONO, fontSize: '11px', letterSpacing: '.12em', opacity: 0.85 }}>BLACK FRIDAY LAUNCH</div>
-                <div style={{ position: 'relative', fontSize: '24px', fontWeight: 600, letterSpacing: '-.02em', marginTop: '6px' }}>Done in one evening</div>
-                <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px', padding: '6px 14px', borderRadius: '8px', background: '#FFFFFF', color: INK, fontSize: '13px', fontWeight: 600 }}>Plan my launch</div>
+                <div style={{ position: 'relative', fontFamily: MONO, fontSize: '11px', letterSpacing: '.12em', opacity: 0.85 }}>BLACK FRIDAY DEAL</div>
+                <div style={{ position: 'relative', fontSize: '24px', fontWeight: 600, letterSpacing: '-.02em', marginTop: '6px' }}>Break your record</div>
+                <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px', padding: '6px 14px', borderRadius: '8px', background: '#FFFFFF', color: INK, fontSize: '13px', fontWeight: 600 }}>Get my campaign</div>
               </div>
             </div>
           </div>
