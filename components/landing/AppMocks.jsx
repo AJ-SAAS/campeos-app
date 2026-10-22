@@ -655,7 +655,7 @@ export function WinnersLibrary({ fast }) {
 /* ------------------------------------------------------------------ */
 
 const JOURNEY = [
-  { id: 'tell', ms: 8400, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
+  { id: 'tell', ms: 5600, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
   { id: 'write', ms: 5200, label: 'Write', lead: 'Your whole launch, written.', text: 'Every email, text, ad and post, in your voice, before you finish your coffee.' },
   { id: 'schedule', ms: 11500, label: 'Schedule', lead: 'Every post gets a day and a time.', text: 'One plan from the first teaser to the last call.' },
   { id: 'improve', ms: 6200, label: 'Improve', lead: 'Your next launch starts ahead.', text: 'Save what your buyers respond to and build the next launch from it.' },
@@ -864,9 +864,9 @@ function ScanSite({ f }) {
 }
 
 function ScreenTell() {
-  const [typed] = useTyped(SCAN_URL, 1500, 70);
+  const [typed] = useTyped(SCAN_URL, 500, 45);
   // 1 cursor glides in, 2 click, 3 scan starts, 4 to 9 finds 1 to 6, 10 brief ready
-  const n = useStage([2700, 3700, 4100, 4800, 5400, 6000, 6600, 7200, 7800, 8600]);
+  const n = useStage([1500, 2150, 2450, 3050, 3550, 4050, 4550, 5050, 5550, 6150]);
   const moved = n >= 1;
   const clicked = n === 2;
   const f = Math.max(0, Math.min(6, n - 3));
