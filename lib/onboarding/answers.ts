@@ -246,6 +246,7 @@ export function templateChannelsFor(platforms: string[] | undefined): Set<Channe
   if (platforms.includes("email")) set.add("email");
   if (platforms.includes("sms")) set.add("sms");
   if (platforms.some((p) => SOCIAL.includes(p as PlatformId))) set.add("social");
+  if (platforms.some((p) => SOCIAL.includes(p as PlatformId))) set.add("video");
   if (platforms.some((p) => AD_PLATFORMS.includes(p as PlatformId))) set.add("ad");
   return set.size > 0 ? set : null;
 }
@@ -256,5 +257,6 @@ export const CHANNEL_LABELS: Record<Channel, string> = {
   email: "Email",
   sms: "SMS",
   social: "Social posts",
+  video: "Videos",
   ad: "Ads",
 };

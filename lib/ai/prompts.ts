@@ -77,7 +77,7 @@ export interface StepContext {
    * placeholder it didn't need to.
    */
   scheduledAt?: string;
-  /** When the webinar itself goes live, same formatting as scheduledAt —
+  /** When the campaign goes live (a webinar start, a sale opening), same formatting as scheduledAt —
    * distinct from scheduledAt because most steps need to reference the
    * EVENT's time ("set your alarm for 7 PM"), not their own send time. */
   eventAt?: string;
@@ -233,6 +233,11 @@ export function buildStepCopyPrompt(
       if (step.channel === "email" && f.key === "body") {
         return `- "${f.key}": ${f.label} (formatted as real email copy, NOT a solid block paragraph — see the formatting rule below. Where a picture would help the reader, put it on a line of its own as [IMAGE: what to show], e.g. [IMAGE: you on stage holding the workbook]. Use 0 to 2 of these, only where they help, never inside a sentence. A suggestion only, never a claim about a real photo.)`;
       }
+      if (step.channel === "video") {
+        if (f.key === "titles") return `- "${f.key}": ${f.label} (exactly 3 title ideas, one per line, each a different angle, each under 70 characters, plain words, no clickbait the video can't pay off)`;
+        if (f.key === "summary") return `- "${f.key}": ${f.label} (2 to 3 plain sentences: what this video is about and what the viewer gets from it)`;
+        return `- "${f.key}": ${f.label} (4 to 6 short bullets, one per line, each starting with "- ", in the order they'd say them: hook, problem, the offer in one line, the deadline, call to action. Not a word-for-word script, and never invent a story or a number)`;
+      }
       if (step.channel === "sms") {
         return `- "${f.key}": ${f.label} (a real text message: 1-2 short sentences, under 300 characters, no subject line feel to it)`;
       }
@@ -266,7 +271,7 @@ export function buildStepCopyPrompt(
     : "";
 
   const timingParts: string[] = [];
-  if (step.eventAt) timingParts.push(`The webinar itself goes live: ${step.eventAt}.`);
+  if (step.eventAt) timingParts.push(`The campaign goes live (the webinar starts, or the sale or final push begins): ${step.eventAt}.`);
   if (step.scheduledAt) timingParts.push(`This step is scheduled to send: ${step.scheduledAt}.`);
   const timingBlock = timingParts.length
     ? `${timingParts.join(" ")} Use these real values whenever the copy needs to reference a specific day or time (e.g. "set your alarm for 7 PM" or "tomorrow at 7 PM") instead of a [TIME] or [DATE] placeholder — that information isn't actually missing.`

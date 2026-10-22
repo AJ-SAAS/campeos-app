@@ -153,6 +153,7 @@ const CHANNEL_BAR: Record<string, string> = {
   sms: "This is a text message. Judge it as a text from a person they know: one clear point, one reason to act, under 300 characters. Short is right; don't ask for story or proof.",
   ad: "This is a paid ad. Judge the first line as a scroll-stopper for THIS reader, one promise, one call to action. The headline must name their situation or the result, not the product.",
   social: "This is an organic social post. Judge the first line (it's all most people see), short lines, and one call to action. It should read like the seller posting, not a brand.",
+  video: "This is a plan for a short video, not a script. Judge the three title ideas (different angles, honest, under 70 characters), a clear summary, and bullets someone could film from in order. Don't ask for a word-for-word script.",
   email: "This is an email. Judge the subject line and first two lines hardest: they decide if it's read at all.",
 };
 

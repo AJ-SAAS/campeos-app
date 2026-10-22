@@ -575,6 +575,24 @@ export const PLAYS: Record<string, Play> = {
   }),
 
   /* ------------------------------------------------------------ */
+  /* Video: title angles plus a plan, never a word-for-word script  */
+  /* ------------------------------------------------------------ */
+
+  "video-pitch": P({
+    id: "video-pitch",
+    name: "Video: why now",
+    job: "A short video from the seller that gives one honest reason to act before the deadline.",
+    beats: [
+      "titles: 3 title ideas, each a different angle (for example the reader's problem, the deadline, a question they are asking). Each under 70 characters, plain words, no clickbait the video cannot pay off.",
+      "summary: 2 to 3 plain sentences on what the video is about and what the viewer will know or feel by the end.",
+      "bullets: 4 to 6 short bullets of what to say, in order: the hook, the problem, the proof or story only if one was given, the offer in one line, the deadline, and the call to action.",
+    ],
+    hooks: ["The real reason this ends <day>", "Before this closes: 3 things to know", "Should you get <offer>? An honest answer"],
+    focus: "urgency",
+    avoid: ["Do not write a word-for-word script.", "Never invent a story, a customer or a number. Use [YOUR STORY] for details only the seller knows."],
+  }),
+
+  /* ------------------------------------------------------------ */
   /* Short channels: texts, posts, ads                              */
   /* ------------------------------------------------------------ */
 
@@ -684,6 +702,7 @@ export function getPlay(id: string | undefined): Play | undefined {
 /** Fallback when a step has no play: pick one from its channel and angle. */
 export function guessPlay(channel: string, angle: string, title: string): Play | undefined {
   const t = `${angle} ${title}`.toLowerCase();
+  if (channel === "video") return PLAYS["video-pitch"];
   if (channel === "sms") return /offer|deal|sale|close|deadline/.test(t) ? PLAYS["sms-offer"] : PLAYS["sms-reminder"];
   if (channel === "ad") return /retarget|objection/.test(t) ? PLAYS["ad-retarget"] : /offer|warm/.test(t) ? PLAYS["ad-offer"] : PLAYS["ad-hook"];
   if (channel === "social") return /proof|story|customer/.test(t) ? PLAYS["post-proof"] : /deadline|close|last/.test(t) ? PLAYS["post-deadline"] : PLAYS["post-teaser"];

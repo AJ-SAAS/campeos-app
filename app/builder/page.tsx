@@ -21,7 +21,7 @@ import { StepEditor } from "@/components/builder/StepEditor";
 import { AgentLauncher } from "@/components/agent/AgentLauncher";
 import { AgentPanelCampaignStep } from "@/components/agent/AgentPanel";
 import { buildTimeline, ScheduledStep } from "@/lib/engine/buildTimeline";
-import { getTemplate } from "@/lib/templates";
+import { getTemplate, keyDatesFor } from "@/lib/templates";
 import { OfferContext, formatForPrompt } from "@/lib/ai/prompts";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
@@ -136,6 +136,7 @@ function useWritingLine(generating: boolean, channels: string[]): string {
     ...(has("email") ? ["Writing your emails..."] : []),
     ...(has("sms") ? ["Writing your texts..."] : []),
     ...(has("social") ? ["Writing your posts..."] : []),
+    ...(has("video") ? ["Planning your videos..."] : []),
     "Checking every post sounds like you...",
     "Almost done...",
   ];
@@ -157,6 +158,7 @@ function BuilderInner() {
   const isFirst = searchParams.get("first") === "1" && !existingId;
 
   const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [profileTemplate, setProfileTemplate] = useState<string | null>(null);
   const [offer, setOffer] = useState<OfferContext>(EMPTY_OFFER);
   const [eventDate, setEventDate] = useState<Date>(
     () => eventDateFromParam(searchParams.get("date")) ?? defaultEventDate()
@@ -217,6 +219,8 @@ function BuilderInner() {
           router.replace(`/builder?id=${profile.firstCampaignId}`);
           return;
         }
+        // The first campaign follows what they picked in onboarding.
+        if (isFirst && !templateParam && profile.campaignType) setProfileTemplate(profile.campaignType);
         if (isFirst && profile.launchDate) {
           const d = launchDateToEvent(profile.launchDate);
           if (d && d.getTime() > Date.now()) {
@@ -266,13 +270,13 @@ function BuilderInner() {
   // Unknown/missing template id (bad link, old bookmark) falls back to
   // webinar rather than throwing and blanking the page.
   const activeTemplate = useMemo(() => {
-    const id = loadedTemplateId ?? templateParam ?? "webinar";
+    const id = loadedTemplateId ?? templateParam ?? profileTemplate ?? "webinar";
     try {
       return getTemplate(id);
     } catch {
       return getTemplate("webinar");
     }
-  }, [loadedTemplateId, templateParam]);
+  }, [loadedTemplateId, templateParam, profileTemplate]);
 
   // A brand-new campaign's schedule comes from the engine; a loaded one
   // uses the dates already saved on each step.
@@ -489,7 +493,7 @@ function BuilderInner() {
         return;
       }
 
-      const eventAt = formatForPrompt(eventDate);
+      const eventAt = keyDatesFor(activeTemplate, eventDate);
       const briefKey = JSON.stringify([
         offer.name, offer.price, offer.audience, offer.whatTheyGet, offer.tone,
         winningCopy.length, callThemes.length, salesPage.length, activeTemplate.id,
@@ -633,7 +637,7 @@ function BuilderInner() {
             phaseName: selected.phaseName,
             phaseObjective: selected.phaseObjective,
             scheduledAt: formatForPrompt(selected.scheduledAt),
-            eventAt: formatForPrompt(eventDate),
+            eventAt: keyDatesFor(activeTemplate, eventDate),
             fields: selected.fields,
           },
           currentCopy: selected.copy ?? {},
@@ -1092,7 +1096,7 @@ function BuilderInner() {
                       phaseName: st.phaseName,
                       phaseObjective: st.phaseObjective,
                       scheduledAt: formatForPrompt(st.scheduledAt),
-                      eventAt: formatForPrompt(eventDate),
+                      eventAt: keyDatesFor(activeTemplate, eventDate),
                       fields: st.fields,
                       copy: st.copy ?? null,
                     })

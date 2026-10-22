@@ -4,7 +4,7 @@
 // sales angle it's playing). Adding a new campaign type means writing a
 // new array of these — never touching the engine or the UI.
 
-export type Channel = "email" | "sms" | "social" | "ad";
+export type Channel = "email" | "sms" | "social" | "ad" | "video";
 
 // Anchors are the fixed dates a campaign is built around. "event" is the
 // webinar/launch/sale-start date the user picks; "end" is when the offer
@@ -108,6 +108,12 @@ export interface CampaignTemplate {
   description: string;
   /** e.g. "webinar" — used to pick sample copy and default field labels. */
   kind: string;
+  /** What the "goes live" date means for this campaign, in plain words,
+   * e.g. "the sale opens". Defaults to "the webinar goes live". */
+  liveLabel?: string;
+  /** For sales: hours after the live date when the offer ends. Tells the
+   * writer the real end time so copy never leaves a blank for it. */
+  closeOffsetHours?: number;
   /** The named stages this template's steps are grouped into, in order. */
   phases: CampaignPhase[];
   steps: StepTemplate[];

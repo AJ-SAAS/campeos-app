@@ -52,7 +52,7 @@ import {
 // campaign; the newest this many are plenty for "this week".
 const MAX_CAMPAIGNS_FOR_WEEK = 15;
 
-const CHANNEL_NAME: Record<string, string> = { ad: "Facebook ad", email: "Email", sms: "Text", social: "Post" };
+const CHANNEL_NAME: Record<string, string> = { ad: "Facebook ad", email: "Email", sms: "Text", social: "Post", video: "Video" };
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -767,7 +767,7 @@ function FirstLaunch({
 /* ------------------------------------------------------------------ */
 
 function ChannelIcon({ channel }: { channel: string }) {
-  const src = channel === "email" ? "/brand/email.png" : channel === "ad" ? "/brand/facebook.png" : channel === "social" ? "/brand/instagram.png" : null;
+  const src = channel === "email" ? "/brand/email.png" : channel === "ad" ? "/brand/facebook.png" : channel === "social" ? "/brand/instagram.png" : channel === "video" ? "/brand/youtube.png" : null;
   if (!src) return <span title="Text" className="inline-block w-4 h-4 rounded-[4px] bg-[#34C759]" />;
   // eslint-disable-next-line @next/next/no-img-element -- local /public asset
   return <img src={src} alt={CHANNEL_NAME[channel] ?? channel} className="w-4 h-4 object-contain" />;

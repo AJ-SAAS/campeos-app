@@ -38,6 +38,7 @@ export function channelInfo(channel: string, userPlatforms: string[]): ChannelIn
       ? { key: channel, name: "Instagram ad", short: "Ads", platforms: ["instagram"] }
       : { key: channel, name: "Facebook ad", short: "Ads", platforms: ["facebook"] };
   }
+  if (channel === "video") return { key: channel, name: "Video", short: "Videos", platforms: ["youtube"] };
   if (channel === "social") {
     const social = SOCIAL.filter((p) => picked.includes(p));
     return {

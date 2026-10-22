@@ -95,6 +95,8 @@ export default function OnboardingPage() {
   const [billing, setBilling] = useState<BillingId | null>(null);
   // What they're launching and when it goes live (yyyy-mm-dd).
   const [launchType, setLaunchType] = useState<string>(LIVE_LAUNCH_TYPE);
+  // Live once its real template exists (catalog status "available").
+  const launchIsLive = catalog.find((c) => c.id === launchType)?.status === "available";
   const [notifyMe, setNotifyMe] = useState(true);
   const [launchDate, setLaunchDate] = useState("");
   const [dateGuess, setDateGuess] = useState(false);
@@ -331,9 +333,9 @@ export default function OnboardingPage() {
         channels,
         frequency,
         suggestedPlan: suggestedPlan(frequency),
-        campaignType: LIVE_LAUNCH_TYPE,
-        wantedType: launchType !== LIVE_LAUNCH_TYPE ? launchType : undefined,
-        notifyWhenLive: launchType !== LIVE_LAUNCH_TYPE ? notifyMe : undefined,
+        campaignType: launchIsLive ? launchType : LIVE_LAUNCH_TYPE,
+        wantedType: !launchIsLive ? launchType : undefined,
+        notifyWhenLive: !launchIsLive ? notifyMe : undefined,
         launchDate,
         launchDateGuess: dateGuess || undefined,
         currency,
@@ -692,22 +694,22 @@ export default function OnboardingPage() {
                   {LAUNCH_TYPE_IDS.map((id) => {
                     const entry = catalog.find((c) => c.id === id);
                     if (!entry) return null;
-                    const live = id === LIVE_LAUNCH_TYPE;
+                    const live = entry.status === "available";
                     return (
                       <button key={id} type="button" className={`cob-opt ${launchType === id ? "on" : ""}`} onClick={() => setLaunchType(id)} aria-pressed={launchType === id}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 16, fontWeight: 600 }}>{live ? "Webinar or live training" : entry.title}</span>
+                          <span style={{ fontSize: 16, fontWeight: 600 }}>{id === LIVE_LAUNCH_TYPE ? "Webinar or live training" : entry.title}</span>
                           <span className={live ? "cob-badge live" : "cob-badge"}>{live ? "Live now" : "Coming soon"}</span>
                         </div>
                         <div style={{ fontSize: 13, color: "#6B6577", marginTop: 2 }}>
-                          {live ? "A free training, call or live demo that leads to a sale. Works for courses, coaching and services." : entry.description}
+                          {id === LIVE_LAUNCH_TYPE ? "A free training, call or live demo that leads to a sale. Works for courses, coaching and services." : entry.description}
                         </div>
                       </button>
                     );
                   })}
                 </div>
 
-                {launchType !== LIVE_LAUNCH_TYPE && (
+                {!launchIsLive && (
                   <div className="cob-rise" role="status" style={{ marginTop: 14, padding: "14px 16px", borderRadius: 14, background: "#F6F1FE", border: "1px solid #E4D6FA", fontSize: 15, lineHeight: 1.5, color: "#3D2A66" }}>
                     <b>We&apos;re still building this one.</b> To get you started today, we&apos;ll set you up with a webinar launch. It works for any offer you sell with a free training or call.
                     <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, fontSize: 14, cursor: "pointer" }}>

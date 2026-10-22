@@ -104,7 +104,7 @@ export const catalog: CatalogEntry[] = [
     length: "2 days",
     description: "Warm up, open the sale, then a last chance push.",
     category: "flash",
-    status: "soon",
+    status: "available",
   },
   {
     id: "cart-close",
@@ -112,7 +112,7 @@ export const catalog: CatalogEntry[] = [
     length: "3 days",
     description: "The final push before your cart shuts for good.",
     category: "flash",
-    status: "soon",
+    status: "available",
   },
   {
     id: "cash-injection",
@@ -120,7 +120,7 @@ export const catalog: CatalogEntry[] = [
     length: "2 days",
     description: "A fast, short sale for when you need revenue now.",
     category: "flash",
-    status: "soon",
+    status: "available",
   },
   {
     id: "daily-deals",
