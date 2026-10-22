@@ -159,10 +159,10 @@ export const catalog: CatalogEntry[] = [
   {
     id: "product-launch",
     title: "Product Launch",
-    length: "2 weeks",
+    length: "3 weeks",
     description: "Build interest, open the cart, close it with a deadline.",
     category: "launches",
-    status: "soon",
+    status: "available",
   },
   {
     id: "mvp-launch",
@@ -178,7 +178,7 @@ export const catalog: CatalogEntry[] = [
     length: "3 days",
     description: "A quick, low-lift launch for a small offer.",
     category: "launches",
-    status: "soon",
+    status: "available",
   },
 
   // Lead generation

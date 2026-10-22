@@ -9,7 +9,7 @@ import { templateChannelsFor } from "../lib/onboarding/answers";
 import { finishCopy, STANDARD_EULA_URL } from "../lib/ai/generateStepCopy";
 import { lintCopy } from "../lib/ai/quality";
 
-const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30"];
+const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch"];
 const offer: OfferContext = { name: "Candle Club", price: "$40", audience: "Candle lovers", whatTheyGet: "A box of 3 candles", tone: "Friendly" };
 
 for (const id of NEW) {
@@ -114,4 +114,28 @@ test("store listing limits are checked", () => {
 
 test("the store listing is always kept, even with only email and sms picked", () => {
   assert.ok(templateChannelsFor(["email", "sms"])!.has("store"));
+});
+
+test("product launch: three free videos before the cart opens, then a hard close", () => {
+  const t = templates["product-launch"];
+  const steps = buildTimeline(t, { event: new Date(2026, 10, 2, 9, 0) });
+  const videos = steps.filter((s) => ["video-1", "video-2", "video-3"].includes(s.templateStepId));
+  assert.equal(videos.length, 3);
+  const open = new Date(2026, 10, 2, 9, 0).getTime();
+  assert.ok(videos.every((v) => v.scheduledAt.getTime() < open), "all three come before the cart opens");
+  assert.ok(videos[0].scheduledAt < videos[1].scheduledAt && videos[1].scheduledAt < videos[2].scheduledAt);
+  const drops = t.steps.filter((s) => s.playId === "email-content-drop");
+  assert.equal(drops.length, 3);
+  assert.ok(drops.every((s) => s.phaseId === "content" && s.channel === "email"));
+  const last = steps[steps.length - 1].scheduledAt.getTime() - open;
+  assert.ok(last <= 135 * 3600_000, "nothing after the close");
+});
+
+test("mini-launch runs three days after a one-day tease", () => {
+  const t = templates["mini-launch"];
+  const open = new Date(2026, 10, 2, 9, 0);
+  const steps = buildTimeline(t, { event: open });
+  assert.ok(steps[0].scheduledAt < open);
+  assert.ok(steps[steps.length - 1].scheduledAt.getTime() - open.getTime() <= 63 * 3600_000);
+  assert.equal(new Set(steps.map((s) => s.scheduledAt.toDateString())).size, 4);
 });

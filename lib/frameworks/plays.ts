@@ -969,6 +969,64 @@ export const PLAYS: Record<string, Play> = {
     focus: "urgency",
   }),
 
+  "video-opportunity": P({
+    id: "video-opportunity",
+    name: "Video 1: the opportunity",
+    job: "Show the reader a result they want is possible for them, and why now is the time.",
+    beats: [
+      "titles: 3 title ideas, each a different angle (the result, the surprising shift, a question). Each under 70 characters, honest.",
+      "summary: 2 to 3 plain sentences: the opportunity this video shows and what the viewer will believe by the end.",
+      "bullets: 5 to 6 beats in order: the hook (the result they want), why it is possible now, a short real story or proof only if one was given (otherwise [YOUR STORY]), one small thing they can try today, what video 2 covers and the real date.",
+    ],
+    hooks: ["What's now possible for <audience>", "The shift nobody is talking about", "Could you <result> in <time>?"],
+    focus: "desire",
+    avoid: ["Do not write a word-for-word script.", "Never invent a story, a customer or a number. Use [YOUR STORY] for details only the seller knows.", "No pitch and no price in this video."],
+  }),
+
+  "video-transformation": P({
+    id: "video-transformation",
+    name: "Video 2: the method",
+    job: "Show how the result happens, so the offer feels like the obvious next step.",
+    beats: [
+      "titles: 3 title ideas, each a different angle (the method, the mistake, the 3 steps). Each under 70 characters.",
+      "summary: 2 to 3 plain sentences: the method the video teaches and what the viewer can do differently after.",
+      "bullets: 5 to 6 beats in order: a one line recap of video 1, the belief that holds people back (the enemy from the brief), the new way in 2 or 3 steps using the mechanism from the brief, one worked example that is real or clearly general, the biggest doubt answered, what video 3 covers and the real date.",
+    ],
+    hooks: ["The 3 steps to <result>", "Why <enemy> keeps you stuck", "How <result> actually happens"],
+    focus: "enemy",
+    avoid: ["Do not write a word-for-word script.", "Never invent a statistic, study or customer.", "No pitch and no price in this video."],
+  }),
+
+  "video-ownership": P({
+    id: "video-ownership",
+    name: "Video 3: picture it",
+    job: "Help the viewer picture their life with the result and decide to take the next step.",
+    beats: [
+      "titles: 3 title ideas, each a different angle (what changes, the choice, the next step). Each under 70 characters.",
+      "summary: 2 to 3 plain sentences: what the video helps the viewer see and decide.",
+      "bullets: 5 to 6 beats in order: a one line recap, a picture of life after the result in the viewer's words, the real choice between staying where they are and moving, what it takes (honest effort, not hype), that the doors open on the real date and who they are for, how to get ready.",
+    ],
+    hooks: ["What your day looks like after <result>", "The choice in front of you", "Ready for what is next?"],
+    focus: "desire",
+    avoid: ["Do not write a word-for-word script.", "Never invent a customer or a number.", "Only mention the offer in the last beats, and only the real date."],
+  }),
+
+  "email-content-drop": P({
+    id: "email-content-drop",
+    name: "Today's video is live",
+    job: "Get the list to watch today's video, and want the next one.",
+    beats: [
+      "Subject: the one thing they will know after watching, not 'video 1 is live'.",
+      "Open with one line that picks up where the last touch left off.",
+      "3 short bullets of what is in today's video. Each is a specific curiosity gap or outcome, never a topic label.",
+      "One call to action: watch with [LINK]. Say how long it takes only if you were told.",
+      "One line on what comes next and the real date. No offer, no price.",
+    ],
+    hooks: ["The 3 steps to <result>", "Did you see this?", "This is why <enemy> fails"],
+    focus: "curiosity",
+    avoid: ["No offer and no price in this email."],
+  }),
+
   /* ------------------------------------------------------------ */
   /* Short channels: texts, posts, ads                              */
   /* ------------------------------------------------------------ */
