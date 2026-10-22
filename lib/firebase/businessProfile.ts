@@ -25,6 +25,18 @@ export interface OnboardingAnswers {
   checklistHidden?: boolean;
   /** Default "Sign emails as" name for new offers (Settings). */
   signOffName?: string;
+  /** Which campaign they're launching first (a catalog id). */
+  campaignType?: string;
+  /** A campaign type that isn't built yet which they picked, and whether
+   * they want to hear when it is. */
+  wantedType?: string;
+  notifyWhenLive?: boolean;
+  /** When the first campaign goes live, yyyy-mm-dd. */
+  launchDate?: string;
+  /** True when they weren't sure and we picked a date for them. */
+  launchDateGuess?: boolean;
+  /** Currency symbol picked next to the price. */
+  currency?: string;
 }
 
 export interface BusinessProfile extends OfferContext, OnboardingAnswers {

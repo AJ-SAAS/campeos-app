@@ -34,13 +34,14 @@ export function GetStartedWidget() {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    // Starts minimized on phones, where the open list would cover the
-    // page. After that it remembers what they last chose.
+    // Starts minimized for everyone: the open list covered buttons on the
+    // first screens (it hid "Unlock my launch"). They can open it with one
+    // tap, and after that it remembers what they last chose.
     let saved: string | null = null;
     try {
       saved = localStorage.getItem(COLLAPSE_KEY);
     } catch {}
-    setCollapsed(saved ? saved === "1" : window.innerWidth < 640);
+    setCollapsed(saved ? saved === "1" : true);
   }, []);
 
   // Re-checked on every page change, so ticking a step off (saving a

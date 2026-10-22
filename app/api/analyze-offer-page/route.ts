@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
+import { requireVerifiedUser } from "@/lib/serverAuth";
+import { isAdminUid, claimDaily, DAILY_LIMIT_MESSAGE } from "@/lib/access";
 import { z } from "zod";
 import { analyzeOfferPage, MIN_READABLE_LENGTH } from "@/lib/ai/analyzeOfferPage";
+import { asUrl, fetchPageHtml, pageSignals, stripHtmlToText, urlVariants } from "@/lib/web";
 
 // Takes a sales-page URL from the new first onboarding step, fetches it
 // server-side, strips it down to visible text, and runs that through
@@ -35,42 +37,22 @@ const requestSchema = z
 
 // One "word" with a dot in it and no spaces reads as a link:
 // "coachmachine.com/10-clients", "https://x.com", "linktr.ee/me".
-function asUrl(raw: string): string | null {
-  const t = raw.trim();
-  if (/\s/.test(t) || !t.includes(".")) return null;
-  const withProto = /^https?:\/\//i.test(t) ? t : `https://${t}`;
-  try {
-    const u = new URL(withProto);
-    return u.hostname.includes(".") ? u.toString() : null;
-  } catch {
-    return null;
-  }
-}
+// (asUrl and stripHtmlToText live in lib/web.ts, shared with Buyer insights.)
 
 const FETCH_TIMEOUT_MS = 8000;
+// Enough for a title plus a description or a few headings.
+const MIN_SIGNAL_LENGTH = 80;
 // Roughly enough to cover a long landing page without blowing past a
 // reasonable prompt-length budget for UTILITY_MODEL.
 const MAX_TEXT_LENGTH = 12000;
 
-function stripHtmlToText(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 export async function POST(req: NextRequest) {
-  if (!(await getVerifiedUser(req))) {
-    return NextResponse.json({ error: SIGN_IN_AGAIN }, { status: 401 });
+  const gate = await requireVerifiedUser(req, isAdminUid);
+  if (gate.error) return gate.error;
+  const caller = gate.user;
+  if (!(await claimDaily(caller.uid, "scan", 40))) {
+    return NextResponse.json({ error: DAILY_LIMIT_MESSAGE }, { status: 429 });
   }
   let body: unknown;
   try {
@@ -104,36 +86,35 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let html: string;
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        // Some page builders serve a stripped-down page to obvious bots.
-        "User-Agent":
-          "Mozilla/5.0 (compatible; CampeosBot/1.0; +https://campeos.com)",
-      },
-    });
-    clearTimeout(timeout);
-    if (!res.ok) {
-      return NextResponse.json({ ok: false, reason: "unreachable" });
+  // Try the address as typed, then with/without "www.". Script-built pages
+  // and bot walls don't stop us from reading the title, description and
+  // headings, which is often enough to name the offer.
+  let text = "";
+  let sawBlocked = false;
+  let sawPage = false;
+  for (const candidate of urlVariants(url)) {
+    const page = await fetchPageHtml(candidate, FETCH_TIMEOUT_MS);
+    if (page.status === "blocked") {
+      sawBlocked = true;
+      continue;
     }
-    html = await res.text();
-  } catch {
-    // Unreachable, timed out, blocked, DNS failure, etc. — this is the
-    // "best-effort" part: no error surfaced, just a clean fall-through.
-    return NextResponse.json({ ok: false, reason: "unreachable" });
+    if (page.status !== "ok") continue;
+    sawPage = true;
+    const body = stripHtmlToText(page.html);
+    const signals = pageSignals(page.html);
+    const combined = body.length >= MIN_READABLE_LENGTH ? body : `${signals}\n${body}`.trim();
+    if (combined.length > text.length) text = combined;
+    if (text.length >= MIN_READABLE_LENGTH) break;
   }
+  text = text.slice(0, MAX_TEXT_LENGTH);
 
-  const text = stripHtmlToText(html).slice(0, MAX_TEXT_LENGTH);
-
-  if (text.length < MIN_READABLE_LENGTH) {
-    // Almost certainly a JS-rendered shell with nothing a plain fetch
-    // could see. Onboarding treats this like an unreachable page and
-    // asks for the words to be pasted instead.
-    return NextResponse.json({ ok: false, reason: "unreadable" });
+  // Titles and descriptions alone can still name an offer, so the bar for
+  // "worth sending to the model" is lower than for a full page of text.
+  if (text.length < MIN_SIGNAL_LENGTH) {
+    // Tell the user WHY, so the next step is clear: blocked sites need the
+    // words pasted; script-built pages too; a bad address needs fixing.
+    const reason = sawPage ? "script_only" : sawBlocked ? "blocked" : "unreachable";
+    return NextResponse.json({ ok: false, reason });
   }
 
   try {

@@ -22,13 +22,34 @@ export interface WeekDay {
   items: WeekItem[];
 }
 
-/** Matches CLAUDE.md's [ALL CAPS] placeholders, the same test the builder's
- * Timeline uses for its "Add details" tag. */
-const PLACEHOLDER = /\[[A-Z][A-Z0-9 _'&/-]{1,}\]/;
+/** Matches CLAUDE.md's [ALL CAPS] placeholders: facts the writer didn't have
+ * and the user has to fill in ([TESTIMONIAL], [RESULT]). */
+const PLACEHOLDER_G = /\[[A-Z][A-Z0-9 _'&/-]{1,}\]/g;
+/** Merge tags are filled in per reader or by the app. They are not blanks. */
+const MERGE_TAGS = new Set(["[LINK]", "[FIRST NAME]"]);
+
+/** The blanks the user still has to fill, e.g. ["TESTIMONIAL", "RESULT"]. */
+export function missingDetails(copy: Record<string, string> | null | undefined): string[] {
+  if (!copy) return [];
+  const found = Object.entries(copy)
+    .filter(([k]) => k !== "source")
+    .map(([, v]) => v)
+    .join(" ")
+    .match(PLACEHOLDER_G) ?? [];
+  return [...new Set(found.filter((t) => !MERGE_TAGS.has(t)).map((t) => t.slice(1, -1)))];
+}
+
+/** "Add your testimonial and result" for a card that needs input. */
+export function missingDetailsLabel(copy: Record<string, string> | null | undefined): string {
+  const names = missingDetails(copy).map((n) => n.toLowerCase());
+  if (names.length === 0) return "";
+  const shown = names.slice(0, 2);
+  const more = names.length - shown.length;
+  return `Add your ${shown.join(" and ")}${more > 0 ? ` +${more} more` : ""}`;
+}
 
 export function needsInput(copy: Record<string, string> | null | undefined): boolean {
-  if (!copy) return false;
-  return PLACEHOLDER.test(Object.values(copy).join(" "));
+  return missingDetails(copy).length > 0;
 }
 
 export function startOfWeek(d: Date): Date {

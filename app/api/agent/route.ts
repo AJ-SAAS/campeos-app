@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
+import { requireVerifiedUser } from "@/lib/serverAuth";
+import { isAdminUid, claimDaily, DAILY_LIMIT_MESSAGE } from "@/lib/access";
 import { z } from "zod";
 import { runAgentTurn } from "@/lib/ai/agent";
 
@@ -50,8 +51,11 @@ const requestSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  if (!(await getVerifiedUser(req))) {
-    return NextResponse.json({ error: SIGN_IN_AGAIN }, { status: 401 });
+  const gate = await requireVerifiedUser(req, isAdminUid);
+  if (gate.error) return gate.error;
+  const caller = gate.user;
+  if (!(await claimDaily(caller.uid, "agent", 150))) {
+    return NextResponse.json({ error: DAILY_LIMIT_MESSAGE }, { status: 429 });
   }
   let body: unknown;
   try {

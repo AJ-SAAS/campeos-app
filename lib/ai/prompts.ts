@@ -1,4 +1,6 @@
 import { StepFieldSpec } from "../templates/types";
+import type { Play } from "../frameworks/plays";
+import { briefForPrompt, type CampaignBrief } from "./brief";
 
 /** The reading-level labels shown in Setup's selector. Plain strings, not
  * a strict grade number, so the prompt can hand the model something it
@@ -63,6 +65,14 @@ export interface StepContext {
    * EVENT's time ("set your alarm for 7 PM"), not their own send time. */
   eventAt?: string;
   fields: StepFieldSpec[];
+  /** Filled in on the server (app/api/generate-step), never by the
+   * client: the play this step is built from, the campaign's buyer
+   * brief, what this message leads with, and where it sits in the
+   * sequence. All optional so older callers still work. */
+  play?: Play;
+  brief?: CampaignBrief;
+  focus?: string;
+  sequence?: { position: number; total: number; before: string[]; after: string[] };
 }
 
 // Turns a Date into something the AI prompt can quote directly in copy
@@ -147,7 +157,10 @@ ${signOffRule}
   filling fast" unless the offer itself actually has a hard cap you
   were told about. Prefer a specific, slightly uncomfortable detail
   over a polite generality every time.
-- Open with one concrete, lived-in moment, not a description of the
+- If a play is given, its first beat decides how the message opens
+  (some plays open on the time, the deal or a question, and that's
+  right for them). Otherwise, and whenever a play opens on the reader:
+  open with one concrete, lived-in moment, not a description of the
   audience as a category. "Busy moms feel chaotic in the morning" is a
   category description and is banned. "6:52 and you've found one shoe"
   is a moment. Invent a small, plausible, illustrative scene like this
@@ -158,6 +171,13 @@ ${signOffRule}
   it hasn't done this yet; rewrite it until it's specific enough that
   the reader thinks "that's oddly exactly my morning," not "I guess
   that's sort of true."
+- Say what's being sold. Within the first two lines (the headline plus the
+  first line of the body) the reader must be able to tell WHAT is on offer
+  and WHO it's for, using the offer's real name or plain description. A
+  lived-in scene is good, but it has to be a scene about the problem THIS
+  offer solves, never a generic one ("your phone buzzes", "it's 3 PM and...")
+  that could open an ad for anything. Short inputs are normal: build the
+  scene from the audience and what they get, and stay concrete.
 - If winning copy or call themes are given below, use them as the raw
   material for this step's angle. Don't just repeat them word for word;
   write new copy that carries the same idea.`;
@@ -199,6 +219,12 @@ export function buildStepCopyPrompt(
       if (step.channel === "sms") {
         return `- "${f.key}": ${f.label} (a real text message: 1-2 short sentences, under 300 characters, no subject line feel to it)`;
       }
+      if (step.channel === "email" && f.key === "headline") {
+        return `- "${f.key}": ${f.label} (the email subject line: under 50 characters, sounds like it came from a person not a brand, makes them curious or names their exact situation, and the body must pay it off. No ALL CAPS words except one if it truly earns it, no emojis)`;
+      }
+      if (step.channel === "ad" && f.key === "headline") {
+        return `- "${f.key}": ${f.label} (one line, under 40 characters, a specific promise or a pattern interrupt)`;
+      }
       if (f.kind === "short") {
         return `- "${f.key}": ${f.label} (one line)`;
       }
@@ -229,13 +255,62 @@ export function buildStepCopyPrompt(
     ? `${timingParts.join(" ")} Use these real values whenever the copy needs to reference a specific day or time (e.g. "set your alarm for 7 PM" or "tomorrow at 7 PM") instead of a [TIME] or [DATE] placeholder — that information isn't actually missing.`
     : "";
 
-  return `You are writing one step of a marketing campaign for this offer:
+  const playBlock = step.play
+    ? `HOW THIS MESSAGE IS BUILT: the "${step.play.name}" play
+Its job: ${step.play.job}
+Follow these beats in order (each one is a short section, not a heading).
+The beats say what each part DOES. Never copy their wording or example
+phrases; write every line fresh, in this sender's voice:
+${step.play.beats.map((b, i) => `${i + 1}. ${b}`).join("\n")}${
+        step.play.hooks.length
+          ? `\nSubject line / headline patterns that fit (adapt one, never copy the brackets literally): ${step.play.hooks.join(" | ")}`
+          : ""
+      }${step.play.avoid?.length ? `\nFor this play: ${step.play.avoid.join(" ")}` : ""}`
+    : "";
+
+  const focusBlock = step.focus
+    ? `THIS MESSAGE'S ANGLE: ${step.focus}
+Build the message around this one. Other messages in the campaign use
+different pains, desires and objections, so this is what makes this one
+different. If the play's first beat opens on the reader, open on this
+and make it vivid; otherwise keep the play's opening and bring this in
+right after.`
+    : "";
+
+  const sequenceBlock = step.sequence
+    ? `WHERE THIS SITS: message ${step.sequence.position} of ${step.sequence.total} in the campaign.
+${step.sequence.before.length ? `Just before it: ${step.sequence.before.join("; ")}.` : "It's the first message."}
+${step.sequence.after.length ? `Right after it: ${step.sequence.after.join("; ")}.` : "It's the last message."}
+Don't repeat what the messages around it do. Each message earns its own open.`
+    : "";
+
+  const briefBlock = step.brief ? briefForPrompt(step.brief) : "";
+
+  // Order matters for cost: everything that's the same for every message
+  // in this campaign (who we are, the offer, the brief, the research, the
+  // rules) comes FIRST, and everything about this one message comes
+  // after. OpenAI caches a repeated prompt start and bills it at a 90%
+  // discount, so across a 27-message campaign most of the input is cheap.
+  return `You are a world-class direct-response copywriter writing messages for one
+campaign. You write like Gary Halbert talking to one person, with the
+specificity of Ogilvy and the reason-why of Hopkins. Every line is about
+THIS reader and THIS offer. The offer:
 
 Offer: ${offer.name}
 Price: ${offer.price}
 Audience: ${offer.audience}
 What they get: ${offer.whatTheyGet}
 Tone: ${offer.tone}
+
+${briefBlock}
+
+${winningCopyBlock}
+
+${callThemesBlock}
+
+${buildCopyRules(readingLevel, offer.fromName)}
+
+=== THE MESSAGE TO WRITE NOW ===
 
 ${phaseBlock}
 
@@ -247,7 +322,7 @@ Title: ${step.title}
 Why this step exists: ${step.purpose}
 
 Named copywriting technique this step must actually execute: "${step.angle}"
-Don't just set a mood that matches this name — write copy that DOES what
+Don't just set a mood that matches this name: write copy that DOES what
 the technique describes, starting with the headline or subject line, not
 just the body. If the technique is "Kill the sacred cow," the headline
 itself should name the belief being overturned, and the body must flip it.
@@ -255,22 +330,21 @@ If it's "Takeaway selling," the headline should signal that this isn't
 for everyone, and the body must explicitly tell some readers they
 shouldn't buy, not just ask "is this right for you?" A reader who has seen
 real copywriting should recognize the specific technique from the
-headline alone, not just notice the body reads differently from the last
-email.
+headline alone.
 
 ${goalsBlock}
 
 ${persuasionBlock}
 
-${winningCopyBlock}
+${playBlock}
 
-${callThemesBlock}
+${focusBlock}
 
-${buildCopyRules(readingLevel, offer.fromName)}
+${sequenceBlock}
 
 Return ONLY a JSON object with these exact keys and nothing else:
 ${fieldsBlock}
-- "source": one short phrase saying what this copy was built from — e.g.
+- "source": one short phrase saying what this copy was built from, e.g.
   "your winning headline", "call theme: <theme>", or "campaign template"
   if neither applied.`;
 }

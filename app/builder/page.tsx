@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,8 +13,10 @@ import { UIStep } from "@/components/builder/Timeline";
 import { SequenceView } from "@/components/builder/SequenceView";
 import { channelInfo, LogoStack, PlatformLogo } from "@/components/builder/channels";
 import { needsInput } from "@/lib/dashboard";
+import { launchDateToEvent } from "@/lib/onboarding/answers";
 import { resolveSignOff } from "@/lib/signOff";
 import { StepImage } from "@/lib/images";
+import type { CampaignBrief } from "@/lib/ai/brief";
 import { StepEditor } from "@/components/builder/StepEditor";
 import { AgentLauncher } from "@/components/agent/AgentLauncher";
 import { AgentPanelCampaignStep } from "@/components/agent/AgentPanel";
@@ -30,6 +33,7 @@ import {
   saveCampaignSkips,
   saveCampaignOffer,
   saveStepCopy,
+  saveCampaignBrief,
   CampaignStepDoc,
 } from "@/lib/firebase/campaigns";
 import {
@@ -110,6 +114,34 @@ export default function BuilderPage() {
 
 type MobilePanel = "setup" | "timeline";
 
+/** What we're doing while the campaign writes. There's one request, so these
+ * advance on a timer, in the order the work really happens: read the offer,
+ * plan, then write each channel. They stop on the last line rather than loop. */
+function useWritingLine(generating: boolean, channels: string[]): string {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!generating) {
+      setN(0);
+      return;
+    }
+    const t = setInterval(() => setN((x) => x + 1), 6500);
+    return () => clearInterval(t);
+  }, [generating]);
+  const has = (c: string) => channels.includes(c);
+  const lines = [
+    "Reading your offer...",
+    "Working out who you're writing to...",
+    "Planning the order of your messages...",
+    ...(has("ad") ? ["Writing your ad..."] : []),
+    ...(has("email") ? ["Writing your emails..."] : []),
+    ...(has("sms") ? ["Writing your texts..."] : []),
+    ...(has("social") ? ["Writing your posts..."] : []),
+    "Checking every message sounds like you...",
+    "Almost done...",
+  ];
+  return lines[Math.min(n, lines.length - 1)];
+}
+
 function BuilderInner() {
   const { user } = useAuth();
   const { ready } = useRequireAccess();
@@ -129,6 +161,10 @@ function BuilderInner() {
   const [eventDate, setEventDate] = useState<Date>(
     () => eventDateFromParam(searchParams.get("date")) ?? defaultEventDate()
   );
+  // False until the user (or onboarding, or a sales-date link) has set the
+  // date. Until then the header says "Pick a date" instead of showing a
+  // date nobody chose as if it were real.
+  const [dateChosen, setDateChosen] = useState(() => !!existingId || !!eventDateFromParam(searchParams.get("date")));
   const [loadedSteps, setLoadedSteps] = useState<CampaignStepDoc[] | null>(null);
   const [loadingCampaign, setLoadingCampaign] = useState(!!existingId);
   // A brand-new campaign (no ?id=) shows the OfferPicker until an offer
@@ -156,6 +192,11 @@ function BuilderInner() {
   const [userPlatforms, setUserPlatforms] = useState<string[]>([]);
   // Account default for "Sign emails as" (Settings).
   const [defaultSignOff, setDefaultSignOff] = useState<string>("");
+  // Their sales page (link or text) from onboarding: research for the brief.
+  const [salesPage, setSalesPage] = useState<string>("");
+  // The campaign's buyer brief, reused while the offer and research stay
+  // the same (see lib/ai/brief.ts).
+  const [brief, setBrief] = useState<{ brief: CampaignBrief; key: string } | null>(null);
   // Set once the first auto-generate has been kicked off, so a re-render
   // can't start a second one.
   const autoStarted = useRef(false);
@@ -167,6 +208,7 @@ function BuilderInner() {
         if (!profile) return;
         setUserPlatforms(profile.channels ?? []);
         setDefaultSignOff(profile.signOffName ?? "");
+        setSalesPage(profile.salesPage ?? "");
         if (existingId) return;
         setAllowedChannels(templateChannelsFor(profile.channels));
         // Came back to /builder?first=1 after the first campaign already
@@ -174,6 +216,13 @@ function BuilderInner() {
         if (isFirst && profile.firstCampaignId) {
           router.replace(`/builder?id=${profile.firstCampaignId}`);
           return;
+        }
+        if (isFirst && profile.launchDate) {
+          const d = launchDateToEvent(profile.launchDate);
+          if (d && d.getTime() > Date.now()) {
+            setEventDate(d);
+            setDateChosen(true);
+          }
         }
         if (isFirst && profile.name) {
           setOffer({
@@ -202,10 +251,14 @@ function BuilderInner() {
         setCampaignId(result.campaign.id);
         setOffer(result.campaign.offer);
         setEventDate(new Date(result.campaign.eventDate));
+        setDateChosen(true);
         setLoadedSteps(result.steps);
         setLoadedTemplateId(result.campaign.templateId);
         setSkippedSteps(new Set(result.campaign.skippedSteps ?? []));
         setSkippedChannels(new Set(result.campaign.skippedChannels ?? []));
+        if (result.campaign.brief && result.campaign.briefKey) {
+          setBrief({ brief: result.campaign.brief, key: result.campaign.briefKey });
+        }
       })
       .finally(() => setLoadingCampaign(false));
   }, [existingId]);
@@ -399,6 +452,10 @@ function BuilderInner() {
       setError("Sign in first. Campaigns are saved to your account.");
       return;
     }
+    if (!campaignId && !dateChosen) {
+      setError("Pick the day this goes live first. Every message is timed around it.");
+      return;
+    }
     setGenerating(true);
     setError(null);
     try {
@@ -433,6 +490,10 @@ function BuilderInner() {
       }
 
       const eventAt = formatForPrompt(eventDate);
+      const briefKey = JSON.stringify([
+        offer.name, offer.price, offer.audience, offer.whatTheyGet, offer.tone,
+        winningCopy.length, callThemes.length, salesPage.length, activeTemplate.id,
+      ]);
       const res = await authFetch("/api/generate-step", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -456,10 +517,14 @@ function BuilderInner() {
               fields: s.fields,
             },
           })),
-          source: { winningCopy, callThemes },
+          source: { winningCopy, callThemes, salesPage: salesPage || undefined },
+          templateId: activeTemplate.id,
+          brief: brief?.key === briefKey ? brief.brief : undefined,
         }),
       });
       const data = await res.json();
+      const newBrief = data.brief as CampaignBrief | undefined;
+      if (newBrief) setBrief({ brief: newBrief, key: briefKey });
       if (res.status === 402) {
         setPlanOpen(true);
         throw new Error(data.error ?? "Pick a plan to write the rest of your campaign.");
@@ -498,6 +563,7 @@ function BuilderInner() {
           stepDocs
         );
         setCampaignId(newId);
+        if (newBrief) saveCampaignBrief(newId, newBrief, briefKey).catch(() => {});
         if (isFirst) saveFirstCampaignId(user.uid, newId).catch(() => {});
         if (skippedSteps.size || skippedChannels.size) {
           saveCampaignSkips(newId, Array.from(skippedSteps), Array.from(skippedChannels)).catch(() => {});
@@ -508,6 +574,7 @@ function BuilderInner() {
         // knows to load an existing campaign from ?id= on mount).
         router.replace(`/builder?id=${newId}`);
       } else {
+        if (newBrief) saveCampaignBrief(campaignId, newBrief, briefKey).catch(() => {});
         await Promise.all(
           Object.entries(next).map(([templateStepId, copy]) =>
             saveStepCopy(campaignId, templateStepId, copy)
@@ -656,8 +723,10 @@ function BuilderInner() {
     }
   }
 
+  const writingLine = useWritingLine(generating, onSteps.map((x) => x.channel));
+
   if (!ready) {
-    return <div className="h-screen bg-paper" />;
+    return <LoadingScreen />;
   }
 
   if (loadingCampaign || (profileLoading && !offerPicked)) {
@@ -747,7 +816,7 @@ function BuilderInner() {
                     Goes live
                     <input
                       type="date"
-                      value={toDateInput(eventDate)}
+                      value={dateChosen ? toDateInput(eventDate) : ""}
                       min={toDateInput(new Date())}
                       onChange={(e) => {
                         const [y, m, d] = e.target.value.split("-").map(Number);
@@ -755,9 +824,13 @@ function BuilderInner() {
                         const next = new Date(eventDate);
                         next.setFullYear(y, m - 1, d);
                         setEventDate(next);
+                        setDateChosen(true);
                       }}
-                      className="h-7 px-1.5 rounded-lg border border-[#E3E1E8] bg-paper text-slate text-[13px]"
+                      className={`h-7 px-1.5 rounded-lg border bg-paper text-slate text-[13px] ${
+                        dateChosen ? "border-[#E3E1E8]" : "border-[#F59E0B] ring-2 ring-[#FEF3C7]"
+                      }`}
                     />
+                    {!dateChosen && <span className="font-semibold text-[#9A3412]">Pick a date</span>}
                   </label>
                 )}
                 {offer.price && (
@@ -780,10 +853,10 @@ function BuilderInner() {
               {onSteps.length > 0 && (
                 <div className="text-right">
                   <div className="text-[13px] font-semibold">
-                    {readyCount} of {onSteps.length} ready
+                    {writtenCount} of {onSteps.length} written
                   </div>
                   <div className="w-[140px] h-[5px] rounded-full bg-[#F0EEF4] mt-1.5 overflow-hidden">
-                    <div className="h-full rounded-full bg-slate transition-[width] duration-500" style={{ width: `${onSteps.length ? Math.round((readyCount / onSteps.length) * 100) : 0}%` }} />
+                    <div className="h-full rounded-full bg-slate transition-[width] duration-500" style={{ width: `${onSteps.length ? Math.round((writtenCount / onSteps.length) * 100) : 0}%` }} />
                   </div>
                 </div>
               )}
@@ -797,7 +870,7 @@ function BuilderInner() {
                   {generating ? "Writing..." : `Write ${writableCount} ${writableCount === 1 ? "message" : "messages"}`}
                 </button>
               )}
-              {unwrittenCount > 0 && writableCount === 0 && lockedIds && lockedIds.size > 0 && (
+              {unwrittenCount > 0 && writableCount === 0 && lockedIds && lockedIds.size > 0 && !(showFirstRun && !generating) && (
                 <button
                   onClick={() => setPlanOpen(true)}
                   className="h-11 px-4 rounded-xl text-white text-[15px] font-bold"
@@ -809,7 +882,7 @@ function BuilderInner() {
               <button
                 onClick={copyCampaign}
                 disabled={writtenCount === 0}
-                className="h-11 px-4 rounded-xl bg-slate text-white text-[15px] font-semibold disabled:opacity-40 inline-flex items-center gap-2"
+                className="h-11 px-4 rounded-xl border border-[#E3E1E8] bg-paper text-slate text-[15px] font-semibold disabled:opacity-40 inline-flex items-center gap-2 hover:bg-[#FAFAFA]"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="9" y="9" width="11" height="11" rx="2" />
@@ -829,28 +902,36 @@ function BuilderInner() {
             </div>
           )}
 
-          {showFirstRun && (generating || writtenCount > 0) && (
+          {generating && (
+            <div role="status" aria-live="polite" className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 sm:px-7 py-3 bg-agentWash border-b border-[#F0F0F0] text-sm">
+              <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B1FD6" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+                <path d="M21 12a9 9 0 1 1-6.2-8.6" />
+              </svg>
+              <span className="font-semibold">{writingLine}</span>
+              <span className="text-muted">
+                {writtenCount > 0 ? `${writtenCount} of ${onSteps.length} written so far.` : "This takes about a minute. You can watch the messages appear."}
+              </span>
+            </div>
+          )}
+
+          {showFirstRun && !generating && writtenCount > 0 && (
             <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 sm:px-7 py-2.5 bg-agentWash border-b border-[#F0F0F0] text-sm">
               <span className="font-semibold">
-                {generating
-                  ? "Writing your first campaign. Watch the messages fill in."
-                  : lockedIds && lockedIds.size > 0
-                    ? `Your first ${writtenCount} messages are written.`
-                    : "Your first campaign is written."}
+                {writtenCount} of {onSteps.length} messages written.
+              </span>
+              <span className="text-muted">
+                {lockedIds && lockedIds.size > 0 ? "Tap one to read or edit it." : "Tap any message to read or edit it."}
               </span>
               <span className="ml-auto flex items-center gap-2">
-                {!generating && lockedIds && lockedIds.size > 0 && (
-                  <button onClick={() => setPlanOpen(true)} className="h-8 px-3 rounded-lg bg-slate text-white text-xs font-bold">
+                {lockedIds && lockedIds.size > 0 && (
+                  <button onClick={() => setPlanOpen(true)} className="h-9 px-4 rounded-lg bg-slate text-white text-sm font-bold">
                     Unlock my launch
                   </button>
                 )}
-                {!generating && (
-                  <Link href="/dashboard" className="h-8 px-3 inline-flex items-center rounded-lg border border-[#E3E1E8] bg-paper text-xs font-semibold">
-                    Go to dashboard
-                  </Link>
-                )}
-                <button onClick={() => setShowFirstRun(false)} className="text-muted text-xs font-semibold px-1">
-                  Hide
+                <button onClick={() => setShowFirstRun(false)} aria-label="Hide this bar" className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-muted hover:bg-[#F0EEF4]">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
                 </button>
               </span>
             </div>

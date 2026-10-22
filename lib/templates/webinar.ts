@@ -79,6 +79,7 @@ export const webinarTemplate: CampaignTemplate = {
     // --- Registration: 6 days out to day before ---
     {
       id: "ad-open",
+      playId: "ad-hook",
       channel: "ad",
       anchor: "event",
       offsetHours: -144, // 6 days before
@@ -98,6 +99,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "social-teaser",
+      playId: "post-teaser",
       channel: "social",
       anchor: "event",
       offsetHours: -103, // ~4 days before, around midday for a 7 PM event
@@ -116,6 +118,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "email-invite",
+      playId: "invite",
       channel: "email",
       anchor: "event",
       offsetHours: -120, // 5 days before
@@ -133,6 +136,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "ad-retarget-registrants",
+      playId: "ad-retarget",
       channel: "ad",
       anchor: "event",
       offsetHours: -96, // 4 days before
@@ -150,6 +154,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "email-whats-inside",
+      playId: "whats-inside",
       channel: "email",
       anchor: "event",
       offsetHours: -72, // 3 days before
@@ -168,6 +173,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "sms-save-seat",
+      playId: "sms-reminder",
       channel: "sms",
       anchor: "event",
       offsetHours: -48, // 2 days before
@@ -186,6 +192,7 @@ export const webinarTemplate: CampaignTemplate = {
     // --- Live event: day before through go-live ---
     {
       id: "email-story",
+      playId: "pre-event-story",
       channel: "email",
       anchor: "event",
       offsetHours: -30,
@@ -203,6 +210,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "sms-tomorrow",
+      playId: "sms-reminder",
       channel: "sms",
       anchor: "event",
       offsetHours: -24,
@@ -217,6 +225,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "email-today",
+      playId: "starting-soon",
       channel: "email",
       anchor: "event",
       offsetHours: -3,
@@ -234,6 +243,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "social-live-today",
+      playId: "post-deadline",
       channel: "social",
       anchor: "event",
       offsetHours: -7, // midday on the day of the event
@@ -252,6 +262,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "sms-live-now",
+      playId: "live-now",
       channel: "sms",
       anchor: "event",
       offsetHours: 0,
@@ -268,6 +279,7 @@ export const webinarTemplate: CampaignTemplate = {
     // --- Consumption: funnel people back to the replay ---
     {
       id: "email-welcome",
+      playId: "welcome-replay",
       channel: "email",
       anchor: "event",
       offsetHours: 3,
@@ -286,6 +298,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "social-replay",
+      playId: "post-deadline",
       channel: "social",
       anchor: "event",
       offsetHours: 17, // midday the day after
@@ -304,6 +317,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "ad-offer-open",
+      playId: "ad-offer",
       channel: "ad",
       anchor: "event",
       offsetHours: 6,
@@ -321,6 +335,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "email-second-chance",
+      playId: "second-chance",
       channel: "email",
       anchor: "event",
       offsetHours: 27, // ~1 day after the welcome email
@@ -340,6 +355,7 @@ export const webinarTemplate: CampaignTemplate = {
     // --- Consideration & connection: rapport, credibility, social proof ---
     {
       id: "email-story-time",
+      playId: "story-time",
       channel: "email",
       anchor: "event",
       offsetHours: 51, // ~1 day after email-second-chance
@@ -359,6 +375,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "social-proof",
+      playId: "post-proof",
       channel: "social",
       anchor: "event",
       offsetHours: 65, // midday, day 3 after the event
@@ -377,6 +394,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "email-paradigm-shift",
+      playId: "paradigm-shift",
       channel: "email",
       anchor: "event",
       offsetHours: 75, // ~1 day after email-story-time
@@ -395,6 +413,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "email-social-proof",
+      playId: "social-proof",
       channel: "email",
       anchor: "event",
       offsetHours: 99, // ~1 day after email-paradigm-shift
@@ -415,6 +434,7 @@ export const webinarTemplate: CampaignTemplate = {
     // --- Conversion: the direct ask ---
     {
       id: "email-takeaway-selling",
+      playId: "takeaway",
       channel: "email",
       anchor: "event",
       offsetHours: 123, // ~1 day after email-social-proof
@@ -433,6 +453,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "social-last-chance",
+      playId: "post-deadline",
       channel: "social",
       anchor: "event",
       offsetHours: 161, // midday on the last full day of the offer
@@ -451,6 +472,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "email-faq",
+      playId: "faq",
       channel: "email",
       anchor: "event",
       offsetHours: 147, // ~1 day after email-takeaway-selling
@@ -469,6 +491,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "email-recap-offer",
+      playId: "recap-offer",
       channel: "email",
       anchor: "event",
       offsetHours: 171, // ~1 day after email-faq
@@ -487,6 +510,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "sms-reinforce-offer",
+      playId: "sms-offer",
       channel: "sms",
       anchor: "event",
       offsetHours: 180, // same day as email-recap-offer, different channel
@@ -501,6 +525,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "email-gratitude",
+      playId: "gratitude",
       channel: "email",
       anchor: "event",
       offsetHours: 195, // ~1 day after email-recap-offer
@@ -521,6 +546,7 @@ export const webinarTemplate: CampaignTemplate = {
     // --- Marketing intel: last-minute recovery + honest feedback ---
     {
       id: "email-marketing-intel",
+      playId: "why-not",
       channel: "email",
       anchor: "event",
       offsetHours: 219, // ~1 day after email-gratitude
@@ -539,6 +565,7 @@ export const webinarTemplate: CampaignTemplate = {
     },
     {
       id: "email-final-reopen",
+      playId: "last-minute",
       channel: "email",
       anchor: "event",
       offsetHours: 267, // ~2 days after email-marketing-intel

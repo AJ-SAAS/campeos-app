@@ -26,6 +26,7 @@ export function Sidebar({ active, inBuilder = false }: { active: Active; inBuild
   return (
     <>
       <aside
+        data-tour="side-nav"
         className={`${
           inBuilder ? "hidden lg:flex lg:w-[72px] xl:w-[248px] group/side" : "hidden md:flex w-[248px]"
         } shrink-0 bg-paper border-r border-[#F0F0F0] text-slate flex-col px-4 py-6 gap-5 overflow-y-auto`}
@@ -69,7 +70,7 @@ export function Sidebar({ active, inBuilder = false }: { active: Active; inBuild
               {!subLoading && (
                 <span className={`flex items-center gap-1.5 text-[13px] ${subActive ? "text-muted" : "text-clay font-semibold"}`}>
                   {subActive && <span className="w-1.5 h-1.5 rounded-full bg-lime" />}
-                  {subActive ? `${sub?.plan === "pro" ? "Pro" : "Starter"} plan` : "No plan · Pick one"}
+                  {subActive ? `${sub?.plan === "pro" ? "Pro" : "Starter"} plan` : "Free preview"}
                 </span>
               )}
             </span>

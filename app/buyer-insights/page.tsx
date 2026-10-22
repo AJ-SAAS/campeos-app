@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
@@ -69,7 +70,7 @@ export default function BuyerInsightsPage() {
   }
 
   if (!ready) {
-    return <div className="min-h-screen bg-paper" />;
+    return <LoadingScreen />;
   }
 
   return (

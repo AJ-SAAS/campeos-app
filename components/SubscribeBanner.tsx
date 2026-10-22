@@ -24,7 +24,7 @@ export function SubscribeBanner() {
     <>
       <div className="bg-slate text-white px-4 py-2.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center text-[13px]">
         <span>
-          Pick a plan to start your campaign
+          You're on the free preview. Your first 3 messages are on us
           <span className="opacity-70">&nbsp;&nbsp;·&nbsp;&nbsp;{fit}</span>
         </span>
         <button

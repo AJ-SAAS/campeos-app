@@ -1,9 +1,10 @@
 "use client";
 
+import { MergeText } from "@/components/MergeText";
 import { useMemo, useState } from "react";
 import { CampaignPhase } from "@/lib/templates/types";
 import { UIStep } from "@/components/builder/Timeline";
-import { needsInput } from "@/lib/dashboard";
+import { missingDetailsLabel, needsInput } from "@/lib/dashboard";
 import { channelInfo, LogoStack, PlatformLogo } from "@/components/builder/channels";
 
 // The campaign as a sequence (approved "Campaign builder" design): read
@@ -253,7 +254,11 @@ function StepCard(props: SequenceProps & { step: UIStep; status: StepStatus }) {
             )}
           </span>
           <span className="block text-[15px] font-semibold mt-px">{s.title}</span>
-          <span className="block text-[13px] text-muted truncate mt-px">{preview}</span>
+          {status === "Needs input" ? (
+            <span className="block text-[13px] font-medium text-[#9A3412] truncate mt-px">{missingDetailsLabel(s.copy)}</span>
+          ) : (
+            <span className="block text-[13px] text-muted truncate mt-px"><MergeText text={preview ?? ""} /></span>
+          )}
         </span>
       </button>
       <Toggle on={on} onClick={() => onToggleStep(s.templateStepId)} label={on ? "Leave this message out" : "Put this message back"} />

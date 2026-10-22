@@ -11,7 +11,7 @@
 // the tick at 17, so every demo below must look finished at tick 17.
 
 /* eslint-disable @next/next/no-img-element */
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { salesCalendar, upcomingSalesDates } from '@/lib/salesCalendar';
 
 const INK = '#17131F';
@@ -93,30 +93,34 @@ function Window({ children, style }) {
 
 /** now is undefined until the page mounts: keep the space, show nothing. */
 export function SalesDates({ now }) {
-  if (!now) return <div style={{ height: '92px', margin: '56px auto 0' }} />;
+  if (!now) return <div style={{ height: '112px', margin: '56px auto 0' }} />;
   const upcoming = upcomingSalesDates(now);
   const list = upcoming.length ? upcoming : salesCalendar(now).slice(0, 1);
   if (!list.length) return null;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${list.length > 1 ? 280 : 320}px, 1fr))`, gap: '12px', maxWidth: list.length > 1 ? '760px' : '420px', margin: '56px auto 0', textAlign: 'left' }}>
-      {list.map((d) => (
-        <a key={d.id} href="/auth?signup" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 20px', borderRadius: '18px', background: '#FFFFFF', border: '1px solid #E8E4F0', textDecoration: 'none', color: INK }}>
-          <span style={{ width: '56px', height: '56px', flexShrink: 0, borderRadius: '14px', background: '#F8F8F8', border: `1px solid ${LINE}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '24px', lineHeight: 1, color: '#6D28D9' }}>{d.days}</span>
-            <span style={{ fontFamily: MONO, fontSize: '8px', letterSpacing: '.1em', color: MUTED, marginTop: '2px' }}>{d.days === 1 ? 'DAY' : 'DAYS'}</span>
-          </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: '17px', fontWeight: 600 }}>{d.name}</span>
-            <span style={{ display: 'block', fontSize: '14px', color: MUTED, marginTop: '2px' }}>
-              {d.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${list.length > 1 ? 300 : 340}px, 1fr))`, gap: '14px', maxWidth: list.length > 1 ? '800px' : '440px', margin: '56px auto 0', textAlign: 'left' }}>
+      {list.map((d) => {
+        const hot = d.days <= 14;
+        return (
+          <a key={d.id} href="/auth?signup" className="cps-sd" style={{ display: 'flex', alignItems: 'center', gap: '18px', padding: '18px 20px', borderRadius: '20px', background: hot ? 'linear-gradient(135deg,#FFF8EF,#FFFFFF 60%)' : '#FFFFFF', border: `1.5px solid ${hot ? '#FDBA74' : '#E8E4F0'}`, boxShadow: hot ? '0 18px 36px -24px rgba(234,88,12,.45)' : 'none', textDecoration: 'none', color: INK }}>
+            <span style={{ width: '84px', height: '84px', flexShrink: 0, borderRadius: '18px', background: hot ? 'linear-gradient(160deg,#FB923C,#EA580C)' : '#F8F8F8', border: hot ? '0' : `1px solid ${LINE}`, color: hot ? '#FFFFFF' : '#6D28D9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: hot ? '0 12px 22px -12px rgba(234,88,12,.7)' : 'none' }}>
+              <span style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '40px', lineHeight: 1, letterSpacing: '-.02em' }}>{d.days}</span>
+              <span style={{ fontFamily: MONO, fontSize: '10px', fontWeight: 700, letterSpacing: '.1em', marginTop: '4px', opacity: 0.9 }}>{d.days === 1 ? 'DAY LEFT' : 'DAYS LEFT'}</span>
             </span>
-          </span>
-          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', height: '36px', padding: '0 14px', borderRadius: '10px', background: INK, color: '#FFFFFF', fontSize: '14px', fontWeight: 600 }}>
-            Plan it
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-          </span>
-        </a>
-      ))}
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: '19px', fontWeight: 700, letterSpacing: '-.01em' }}>{d.name}</span>
+              <span style={{ display: 'block', fontSize: '14px', color: hot ? '#C2410C' : MUTED, fontWeight: hot ? 600 : 400, marginTop: '3px' }}>
+                {d.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                {hot ? ' · time is running out' : ''}
+              </span>
+            </span>
+            <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', height: '38px', padding: '0 14px', borderRadius: '11px', background: INK, color: '#FFFFFF', fontSize: '14px', fontWeight: 600 }}>
+              Plan it
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </span>
+          </a>
+        );
+      })}
     </div>
   );
 }
@@ -442,12 +446,15 @@ function Typing() {
 
 export function AgentMock({ v }) {
   return (
-    <div style={{ width: '100%', display: 'flex', gap: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
-      <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+    <div style={{ width: '100%', display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+      <div style={{ flex: '1 1 280px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div style={{ fontFamily: MONO, fontSize: '12px', letterSpacing: '.08em', color: MUTED }}>TRY ASKING</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+        <div style={{ display: 'grid', gap: '10px', marginTop: '14px' }}>
           {['Make the subject lines shorter', 'Add a last chance email', 'Rewrite it for 5th grade', 'Give me 3 new ad hooks'].map((c) => (
-            <span key={c} style={{ padding: '9px 14px', borderRadius: '999px', border: '1px solid #E3E1E8', background: '#FFFFFF', fontSize: '14px', fontWeight: 500 }}>{c}</span>
+            <span key={c} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '13px 16px', borderRadius: '14px', border: '1px solid #E3E1E8', background: '#FFFFFF', fontSize: '16px', fontWeight: 600 }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: GRAD_ICON, flexShrink: 0 }} />
+              {c}
+            </span>
           ))}
         </div>
       </div>
@@ -457,7 +464,7 @@ export function AgentMock({ v }) {
           <span style={{ flex: 1, fontSize: '16px', fontWeight: 600 }}>Agent</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#15803D' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22C55E' }} />Online</span>
         </div>
-        <div style={{ height: '330px', background: '#FAFAFA', padding: '18px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '10px', overflow: 'hidden' }}>
+        <div style={{ height: '268px', background: '#FAFAFA', padding: '18px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '10px', overflow: 'hidden' }}>
           {v.a1 && <AgentBubble me>Change the hook on the last seats ad.</AgentBubble>}
           {v.aD1 && <Typing />}
           {v.a2 && !v.a3 && <AgentBubble>Updating that now.</AgentBubble>}
@@ -508,6 +515,230 @@ export function WinnerLoopList() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', color: MUTED, paddingTop: '4px' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9B1FD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
         Then again, smarter each time
+      </div>
+    </div>
+  );
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Checklist: each line types out, then its tick turns green           */
+/* ------------------------------------------------------------------ */
+
+function useInView(ref) {
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === 'undefined') { setSeen(true); return; }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { setSeen(true); io.disconnect(); }
+    }, { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ref]);
+  return seen;
+}
+
+export function CheckList({ items }) {
+  const ref = useRef(null);
+  const seen = useInView(ref);
+  const [done, setDone] = useState(0);
+  const [chars, setChars] = useState(0);
+  const reduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  useEffect(() => {
+    if (!seen || reduced) return;
+    if (done >= items.length) return;
+    const text = items[done];
+    if (chars < text.length) {
+      const t = setTimeout(() => setChars((c) => c + 1), 22);
+      return () => clearTimeout(t);
+    }
+    // Finished typing this line: a beat for the tick, then the next one.
+    const t = setTimeout(() => { setDone((d) => d + 1); setChars(0); }, 520);
+    return () => clearTimeout(t);
+  }, [seen, reduced, done, chars, items]);
+
+  const allDone = reduced || done >= items.length;
+  return (
+    <div ref={ref} style={{ display: 'grid', gap: '14px', marginTop: '24px', minHeight: `${items.length * 36}px` }}>
+      {items.map((text, i) => {
+        const ticked = allDone || i < done;
+        const typing = !allDone && i === done && seen;
+        const waiting = !allDone && i > done;
+        const shown = ticked ? text : typing ? text.slice(0, chars) : '';
+        return (
+          <div key={text} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: '17px', lineHeight: 1.4, color: INK, opacity: waiting ? 0.0 : 1, transition: 'opacity .3s' }}>
+            <span className={ticked ? 'cps-tickpop' : ''} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', flexShrink: 0, marginTop: '1px', borderRadius: '50%', background: ticked ? 'linear-gradient(135deg,#16A34A,#22C55E)' : '#EDEAF3', color: '#FFFFFF', transition: 'background .3s' }}>
+              {ticked && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>}
+            </span>
+            <span>
+              {shown}
+              {typing && <span className="cps-caret" aria-hidden="true" />}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Journey tabs: Write / Schedule / Improve, big animated icons        */
+/* ------------------------------------------------------------------ */
+
+const JOURNEY = [
+  {
+    id: 'write',
+    label: 'Write',
+    title: 'Every email, text, ad and post, written',
+    text: 'Tell Campeos what you sell. It writes the whole launch in your voice, from your offer and your buyers\' words.',
+  },
+  {
+    id: 'schedule',
+    label: 'Schedule',
+    title: 'Planned day by day, with the best time to send',
+    text: 'Each message lands on the right day, in the right order, from first invite to last call. Turn any of them on or off.',
+  },
+  {
+    id: 'improve',
+    label: 'Improve',
+    title: 'Save what worked. Start smarter next time',
+    text: 'Keep the lines your buyers responded to. Your next launch is built from them, so it gets sharper every time.',
+  },
+];
+
+function JourneyIcon({ id, active }) {
+  const c = active ? '#FFFFFF' : '#6D28D9';
+  const common = { width: 34, height: 34, viewBox: '0 0 24 24', fill: 'none', stroke: c, strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
+  if (id === 'write') {
+    return (
+      <svg {...common} className={active ? 'cps-jic cps-jic-write' : 'cps-jic'}>
+        <path className="cps-jdraw" d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19z" />
+        <path className="cps-jdraw" style={{ animationDelay: '.5s' }} d="M13.5 7.5l3 3" />
+        <path className="cps-jspark" d="M19 14v4M17 16h4" />
+      </svg>
+    );
+  }
+  if (id === 'schedule') {
+    return (
+      <svg {...common} className={active ? 'cps-jic cps-jic-sched' : 'cps-jic'}>
+        <circle cx="12" cy="12" r="8.5" />
+        <path className="cps-jhand-m" d="M12 12V6.5" />
+        <path className="cps-jhand-h" d="M12 12l3.5 2" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common} className={active ? 'cps-jic cps-jic-imp' : 'cps-jic'}>
+      <path className="cps-jbar" style={{ animationDelay: '0s' }} d="M6 20v-5" />
+      <path className="cps-jbar" style={{ animationDelay: '.15s' }} d="M12 20v-9" />
+      <path className="cps-jbar" style={{ animationDelay: '.3s' }} d="M18 20V6" />
+      <path className="cps-jdraw" style={{ animationDelay: '.6s' }} d="M4 9l5-4 4 3 6-5" />
+    </svg>
+  );
+}
+
+function JourneyPanel({ id }) {
+  const card = { background: '#FFFFFF', border: '1px solid #E8E6EE', borderRadius: '20px', boxShadow: '0 24px 48px -34px rgba(23,19,31,.4)', padding: '22px', width: '100%', maxWidth: '520px' };
+  if (id === 'write') {
+    return (
+      <div key="w" className="cps-fu" style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: MUTED }}>
+          <Logos list={['email']} size={16} /> Email · Day 1
+        </div>
+        <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '26px', letterSpacing: '-.02em', marginTop: '10px' }}>
+          <span className="cps-type" style={{ animationDuration: '1.4s' }}>You're invited: free class</span>
+        </div>
+        {['Hey Sarah,', 'You posted at lunch. Nobody booked.', 'Thursday at 7, I show you the 3 steps that fixed it.'].map((l, i) => (
+          <div key={l} className="cps-fu" style={{ animationDelay: `${0.5 + i * 0.5}s`, fontSize: '15px', lineHeight: 1.6, color: '#3D3747', marginTop: '10px' }}>{l}</div>
+        ))}
+        <div className="cps-fu" style={{ animationDelay: '2.1s', display: 'inline-block', marginTop: '14px', padding: '9px 16px', borderRadius: '10px', background: GRAD, color: '#FFFFFF', fontSize: '14px', fontWeight: 700 }}>Save my seat</div>
+      </div>
+    );
+  }
+  if (id === 'schedule') {
+    const days = [['Mon', 'Email', 'email'], ['Tue', 'Text', 'sms'], ['Wed', 'Ad', 'facebook'], ['Thu', 'Live', 'email'], ['Fri', 'Post', 'instagram']];
+    return (
+      <div key="s" className="cps-fu" style={card}>
+        <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: MUTED }}>THIS WEEK</div>
+        <div style={{ display: 'grid', gap: '8px', marginTop: '12px' }}>
+          {days.map(([d, t, logo], i) => (
+            <div key={d} className="cps-fu" style={{ animationDelay: `${i * 0.25}s`, display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', border: `1px solid ${LINE}`, background: i === 3 ? '#F6F1FE' : '#FFFFFF' }}>
+              <span style={{ width: '38px', fontFamily: MONO, fontSize: '12px', fontWeight: 700, color: i === 3 ? '#6D28D9' : MUTED }}>{d}</span>
+              <Logos list={[logo]} size={16} />
+              <span style={{ flex: 1, fontSize: '14px', fontWeight: 600 }}>{t}{i === 3 ? ': webinar goes live' : ''}</span>
+              <span style={{ fontFamily: MONO, fontSize: '11px', color: MUTED }}>{['9:00 AM', '12:00 PM', '5:00 PM', '7:00 PM', '8:00 AM'][i]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div key="i" className="cps-fu" style={card}>
+      <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: MUTED }}>WHAT WORKED</div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '96px', marginTop: '14px' }}>
+        {[34, 52, 44, 78, 92].map((h, i) => (
+          <span key={i} className="cps-grow" style={{ flex: 1, height: `${h}%`, borderRadius: '8px 8px 4px 4px', background: i === 4 ? GRAD_ICON : '#E4D7FA', animationDelay: `${i * 0.12}s` }} />
+        ))}
+      </div>
+      <div className="cps-fu" style={{ animationDelay: '.9s', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', padding: '12px 14px', borderRadius: '14px', background: '#F6FFF8', border: '1px solid #BBF7D0' }}>
+        <span style={{ display: 'inline-flex', width: '22px', height: '22px', borderRadius: '50%', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
+        </span>
+        <span style={{ fontSize: '14px', fontWeight: 600 }}>Saved as a winner: &ldquo;Nobody booked.&rdquo;</span>
+      </div>
+    </div>
+  );
+}
+
+export function JourneyTabs() {
+  const ref = useRef(null);
+  const seen = useInView(ref);
+  const [tab, setTab] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  // Rolls through the three on its own until someone taps one.
+  useEffect(() => {
+    if (!seen || paused) return;
+    const t = setInterval(() => setTab((n) => (n + 1) % JOURNEY.length), 5200);
+    return () => clearInterval(t);
+  }, [seen, paused]);
+
+  const cur = JOURNEY[tab];
+  return (
+    <div ref={ref} style={{ marginTop: '56px' }}>
+      <div role="tablist" aria-label="How Campeos works" className="cps-jtabs" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px' }}>
+        {JOURNEY.map((j, i) => {
+          const on = i === tab;
+          return (
+            <button
+              key={j.id}
+              role="tab"
+              aria-selected={on}
+              onClick={() => { setTab(i); setPaused(true); }}
+              className="cps-jtab"
+              style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', borderRadius: '20px', border: on ? '1.5px solid transparent' : '1px solid #E8E4F0', background: on ? 'linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#E0109F)' : '#FFFFFF', color: on ? '#FFFFFF' : INK, font: 'inherit', textAlign: 'left', cursor: 'pointer', boxShadow: on ? '0 22px 40px -24px rgba(155,31,214,.8)' : 'none', transition: 'transform .25s, box-shadow .25s' }}
+            >
+              <span style={{ width: '56px', height: '56px', flexShrink: 0, borderRadius: '16px', background: on ? 'rgba(255,255,255,.18)' : '#F6F1FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <JourneyIcon id={j.id} active={on} />
+              </span>
+              <span style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.01em' }}>{j.label}</span>
+              {on && !paused && seen && <span className="cps-jprog" key={`p${tab}`} aria-hidden="true" />}
+            </button>
+          );
+        })}
+      </div>
+      <div className="cps-jbody" style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'center', marginTop: '28px', padding: 'clamp(22px, 3vw, 40px)', borderRadius: '28px', background: '#F8F8F8', border: '1px solid #F0F0F0' }}>
+        <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+          <div key={cur.id} className="cps-fu" style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: 'clamp(28px, 3.4vw, 40px)', letterSpacing: '-.025em', lineHeight: 1.1 }}>{cur.title}</div>
+          <p key={`t${cur.id}`} className="cps-fu" style={{ animationDelay: '.1s', margin: '14px 0 0', fontSize: '18px', lineHeight: 1.6, color: MUTED, maxWidth: '460px' }}>{cur.text}</p>
+        </div>
+        <div style={{ flex: '1 1 340px', minWidth: 0, display: 'flex', justifyContent: 'center' }}>
+          <JourneyPanel id={cur.id} />
+        </div>
       </div>
     </div>
   );

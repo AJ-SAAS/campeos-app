@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getOpenAIClient, UTILITY_MODEL } from "./client";
+import { chat, UTILITY_MODEL } from "./client";
 
 const offerPageSchema = z.object({
   name: z.string(),
@@ -66,9 +66,9 @@ say it.
 Return ONLY a JSON object in this exact shape:
 { "name": "", "whatTheyGet": "", "audience": "", "price": "", "testimonials": [], "angles": [] }`;
 
-  const response = await getOpenAIClient().chat.completions.create({
+  const response = await chat({
     model: UTILITY_MODEL,
-    max_tokens: 1200,
+    maxTokens: 1200,
     response_format: { type: "json_object" },
     messages: [{ role: "user", content: prompt }],
   });

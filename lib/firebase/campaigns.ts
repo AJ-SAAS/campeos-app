@@ -17,6 +17,7 @@ import { db } from "./client";
 import { OfferContext } from "../ai/prompts";
 import { StepTemplate } from "../templates/types";
 import { StepImage } from "../images";
+import type { CampaignBrief } from "../ai/brief";
 
 export interface Campaign {
   id: string;
@@ -30,6 +31,11 @@ export interface Campaign {
   skippedSteps?: string[];
   /** Whole channels switched off in the builder ("email", "sms", "ad", "social"). */
   skippedChannels?: string[];
+  /** The buyer brief every message was written from (lib/ai/brief.ts),
+   * and a key of the inputs it was built from, so it's rebuilt when the
+   * offer or the research changes. */
+  brief?: CampaignBrief;
+  briefKey?: string;
 }
 
 export interface CampaignStepDoc {
@@ -102,6 +108,11 @@ export async function saveStepCopy(
 export async function saveCampaignOffer(campaignId: string, offer: OfferContext): Promise<void> {
   const clean = Object.fromEntries(Object.entries(offer).filter(([, v]) => v !== undefined));
   await updateDoc(doc(db, "campaigns", campaignId), { offer: clean, title: offer.name || "Untitled campaign" });
+}
+
+/** Saves the campaign's buyer brief and the key of what it was built from. */
+export async function saveCampaignBrief(campaignId: string, brief: CampaignBrief, briefKey: string): Promise<void> {
+  await updateDoc(doc(db, "campaigns", campaignId), { brief, briefKey });
 }
 
 /** Saves which messages and channels are switched off for a campaign. */

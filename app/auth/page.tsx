@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { getBusinessProfile } from "@/lib/firebase/businessProfile";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import "@/components/onboarding/onboarding.css";
 
 // The one sign-in / create-account page (approved "Sign in to Campeos"
@@ -32,7 +33,7 @@ export default function AuthPage() {
 const PLAN_KEY = "campeos.planIntent";
 
 function AuthInner() {
-  const { user, loading: authLoading, signIn, signUpWithEmail, signInWithEmail } = useAuth();
+  const { user, loading: authLoading, signIn, signUpWithEmail, signInWithEmail, needsVerification } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const plan = searchParams.get("plan");
@@ -58,11 +59,11 @@ function AuthInner() {
 
   // Signed in (just now, or already): profile means onboarding is done.
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading || !user || needsVerification) return;
     getBusinessProfile(user.uid)
       .then((profile) => router.replace(profile ? "/dashboard" : "/onboarding"))
       .catch(() => router.replace("/onboarding"));
-  }, [authLoading, user, router]);
+  }, [authLoading, user, needsVerification, router]);
 
   useEffect(() => {
     if (showPassword) passwordRef.current?.focus();
@@ -104,9 +105,9 @@ function AuthInner() {
     }
   }
 
-  if (authLoading || user) {
-    return <div className="min-h-screen bg-paper" />;
-  }
+  // Email sign-ups confirm their address before anything else.
+  if (user && needsVerification) return <VerifyScreen email={user.email ?? ""} />;
+  if (authLoading || user) return <LoadingScreen />;
 
   return (
     <div className="cob-root">
@@ -116,8 +117,13 @@ function AuthInner() {
         <div className="cob-center" style={{ padding: "48px 0" }}>
           <div style={{ width: "100%", maxWidth: 420 }}>
             <h1 className="cob-h1" style={{ fontSize: 52, lineHeight: 1.02 }}>
-              Sign in to Campeos
+              {mode === "signup" ? "Start your first launch" : "Welcome back"}
             </h1>
+            <p className="cob-sub" style={{ marginTop: 14 }}>
+              {mode === "signup"
+                ? "It's free to start. You'll see your first 3 messages written before you pay anything."
+                : "Pick up right where your launch left off."}
+            </p>
 
             <button
               type="button"
@@ -215,6 +221,10 @@ function AuthInner() {
               </button>
             </form>
 
+            {mode === "signup" && (
+              <p style={{ fontSize: 14, color: "#6B6577", margin: "12px 0 0" }}>No card needed. Setup takes about a minute.</p>
+            )}
+
             <p style={{ fontSize: 15, color: "#6B6577", margin: "18px 0 0" }}>
               {mode === "signup" ? "Already have an account? " : "New to Campeos? "}
               <button
@@ -238,10 +248,10 @@ function AuthInner() {
 
       <div className="cob-right" style={{ padding: "64px 0 0 64px" }}>
         <h2 style={{ fontFamily: "Newsreader, serif", fontWeight: 500, fontSize: 44, letterSpacing: "-.03em", lineHeight: 1.06, margin: 0, maxWidth: 520, paddingRight: 40 }}>
-          Run a <span style={{ fontStyle: "italic" }}>sold-out</span> launch, without the blank page.
+          Your whole launch, <span style={{ fontStyle: "italic" }}>written</span> for you.
         </h2>
         <p style={{ fontSize: 17, lineHeight: 1.6, color: "#5B5566", margin: "16px 0 0", maxWidth: 520, paddingRight: 40 }}>
-          Tell Campeos about your offer. It writes every email, text, ad and post, and plans when each one goes out.
+          Tell Campeos what you sell. It writes the emails, texts, ads and posts, and picks the best time to send each one.
         </p>
 
         <div className="cob-rise" style={{ animationDelay: ".3s", margin: "48px 56px 0 0", maxWidth: 500, background: "#FFFFFF", border: "1px solid #ECEAF0", borderRadius: 20, boxShadow: "0 40px 80px -44px rgba(23,19,31,.35)", padding: "24px 28px" }}>
@@ -279,6 +289,7 @@ function AuthInner() {
 }
 
 function friendlyAuthError(message: string): string {
+  if (message.includes("auth/disposable-email")) return "Use your real email so we can send you a confirmation. Temporary inboxes don't work.";
   if (message.includes("auth/email-already-in-use")) return "That email already has an account. Tap \"Sign in\" below.";
   if (message.includes("auth/weak-password")) return "Use at least 6 characters for your password.";
   if (message.includes("auth/invalid-email")) return "That doesn't look like a valid email address.";
@@ -320,5 +331,118 @@ function Spinner({ light }: { light?: boolean }) {
     <svg className="cob-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={light ? "#FFFFFF" : "#9B1FD6"} strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
       <path d="M21 12a9 9 0 1 1-6.2-8.6" />
     </svg>
+  );
+}
+
+// Shown after email sign-up (and to older email accounts that never
+// confirmed). The link Firebase emails opens a "verified" page; this
+// screen notices on its own and moves on, so nobody has to refresh.
+function VerifyScreen({ email }: { email: string }) {
+  const { resendVerification, refreshVerification, signOut } = useAuth();
+  const [sent, setSent] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  const [cooldown, setCooldown] = useState(30);
+  const [checking, setChecking] = useState(false);
+  const [notYet, setNotYet] = useState(false);
+
+  useEffect(() => {
+    const t = setInterval(() => setCooldown((c) => (c > 0 ? c - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Quietly check every few seconds, and the moment they come back to the tab.
+  useEffect(() => {
+    const check = () => refreshVerification().catch(() => false);
+    const t = setInterval(check, 4000);
+    const onFocus = () => check();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [refreshVerification]);
+
+  async function resend() {
+    setSent("sending");
+    try {
+      await resendVerification();
+      setSent("sent");
+      setCooldown(30);
+    } catch {
+      setSent("failed");
+    }
+  }
+
+  async function checkNow() {
+    setChecking(true);
+    setNotYet(false);
+    try {
+      const ok = await refreshVerification();
+      if (!ok) setNotYet(true);
+    } catch {
+      setNotYet(true);
+    }
+    setChecking(false);
+  }
+
+  return (
+    <div className="cob-root">
+      <div className="cob-left" style={{ flexBasis: "100%" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
+        <img src="/logo-lockup.png" alt="Campeos" style={{ height: 26, width: "auto", alignSelf: "flex-start" }} />
+        <div className="cob-center">
+          <div className="cob-rise" style={{ width: "100%", maxWidth: 460, textAlign: "center" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)", color: "#FFFFFF" }}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M3 7l9 6 9-6" />
+              </svg>
+            </span>
+            <h1 className="cob-h1" style={{ fontSize: 40, marginTop: 24 }}>Check your email</h1>
+            <p className="cob-sub">
+              We sent a link to <b style={{ color: "#17131F" }}>{email}</b>. Tap it, then come back here. This page moves on by itself.
+            </p>
+
+            <div role="status" aria-live="polite" style={{ display: "inline-flex", alignItems: "center", gap: 10, marginTop: 26, fontSize: 15, color: "#6B6577" }}>
+              <Spinner />
+              Waiting for you to confirm...
+            </div>
+
+            {notYet && (
+              <div role="alert" style={{ marginTop: 16, padding: "12px 14px", borderRadius: 12, background: "#FFF7ED", border: "1px solid #FED7AA", color: "#7C2D12", fontSize: 15 }}>
+                Not confirmed yet. Open the link in the email, then try again.
+              </div>
+            )}
+            {sent === "sent" && <p style={{ marginTop: 16, fontSize: 15, color: "#166534" }}>Sent again. It can take a minute.</p>}
+            {sent === "failed" && <p style={{ marginTop: 16, fontSize: 15, color: "#7C2D12" }}>Couldn&apos;t send that just now. Wait a minute and try again.</p>}
+
+            <div style={{ display: "grid", gap: 10, marginTop: 24 }}>
+              <button type="button" className="cob-btn" onClick={checkNow} disabled={checking} style={{ width: "100%" }}>
+                {checking && <Spinner light />}I confirmed it
+              </button>
+              <button
+                type="button"
+                className="cob-btn"
+                onClick={resend}
+                disabled={cooldown > 0 || sent === "sending"}
+                style={{ width: "100%", background: "#FFFFFF", color: "#17131F", border: "1px solid #E3E1E8" }}
+              >
+                {cooldown > 0 ? `Send it again (${cooldown}s)` : "Send it again"}
+              </button>
+            </div>
+
+            <p style={{ fontSize: 14, color: "#6B6577", margin: "22px 0 0", lineHeight: 1.6 }}>
+              Can&apos;t see it? Check spam or promotions.
+              <br />
+              Wrong email?{" "}
+              <button type="button" onClick={() => signOut()} style={{ border: 0, background: "none", padding: 0, font: "inherit", color: "#17131F", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 4, cursor: "pointer" }}>
+                Start over
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

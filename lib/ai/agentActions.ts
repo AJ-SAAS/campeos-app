@@ -3,7 +3,7 @@
 import { buildTimeline } from "@/lib/engine/buildTimeline";
 import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext, StepContext, formatForPrompt } from "@/lib/ai/prompts";
-import { createCampaign, CampaignStepDoc, saveStepCopy } from "@/lib/firebase/campaigns";
+import { createCampaign, CampaignStepDoc, saveCampaignBrief, saveStepCopy } from "@/lib/firebase/campaigns";
 import { checkAndIncrementUsage } from "@/lib/firebase/usage";
 import { saveBusinessProfile } from "@/lib/firebase/businessProfile";
 import { listWinningCopy, listCallThemes } from "@/lib/firebase/library";
@@ -109,6 +109,7 @@ export async function executeCreateCampaign(
         },
       })),
       source: { winningCopy, callThemes },
+      templateId: webinarTemplate.id,
     }),
   });
   const data = await res.json();
@@ -142,6 +143,13 @@ export async function executeCreateCampaign(
     eventDate,
     stepDocs
   );
+  if (data.brief) {
+    await saveCampaignBrief(
+      campaignId,
+      data.brief,
+      JSON.stringify([offer.name, offer.price, offer.audience, offer.whatTheyGet, offer.tone, winningCopy.length, callThemes.length, 0, webinarTemplate.id])
+    ).catch(() => {});
+  }
 
   // Remember this offer for next time — so a second campaign doesn't
   // start the conversation from zero. Best-effort: a failure here

@@ -1,5 +1,6 @@
 "use client";
 
+import { needsInput as sharedNeedsInput } from "@/lib/dashboard";
 import { useMemo, useState } from "react";
 import { ScheduledStep } from "@/lib/engine/buildTimeline";
 import { CampaignPhase } from "@/lib/templates/types";
@@ -417,9 +418,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 function needsInput(step: UIStep): boolean {
-  if (!step.copy) return false;
-  const text = Object.values(step.copy).join(" ");
-  return /\[(?!LINK\]|FIRST NAME\])[A-Z0-9 ]+\]/.test(text);
+  return sharedNeedsInput(step.copy);
 }
 
 function formatTime(date: Date): string {

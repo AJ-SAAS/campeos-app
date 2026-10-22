@@ -23,6 +23,10 @@ export interface StepTemplate {
    * e.g. -72 on anchor "event" means 3 days before the webinar.
    */
   offsetHours: number;
+  /** Which play (lib/frameworks/plays.ts) this step is built from: the
+   * beat-by-beat structure the copy follows. Optional: steps without one
+   * fall back to a play guessed from their channel and angle. */
+  playId?: string;
   /** Short label shown on the timeline card, e.g. "Doors open reminder". */
   title: string;
   /**

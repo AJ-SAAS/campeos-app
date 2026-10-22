@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -107,7 +108,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (!ready) return <div className="min-h-screen bg-paper" />;
+  if (!ready) return <LoadingScreen />;
 
   const provider = user?.providerData?.[0]?.providerId === "google.com" ? "Google" : "email and password";
   const planName = sub?.plan === "pro" ? "Pro" : "Starter";

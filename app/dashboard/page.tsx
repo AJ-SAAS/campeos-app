@@ -1,5 +1,8 @@
 "use client";
 
+import { FirstTour } from "@/components/FirstTour";
+import { MergeText } from "@/components/MergeText";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
@@ -104,7 +107,7 @@ export default function Dashboard() {
     }
   }
 
-  if (!ready) return <div className="min-h-screen bg-paper" />;
+  if (!ready) return <LoadingScreen />;
 
   const showWelcome = !subLoading && !active;
   const firstName = (user?.displayName ?? "").split(" ")[0];
@@ -594,6 +597,8 @@ function WelcomeView({
 }) {
   const first = campaigns?.find((c) => c.id === firstId) ?? campaigns?.[campaigns.length - 1] ?? null;
   const steps = first ? stepsById[first.id] : undefined;
+  const written = (steps ?? []).filter((s) => s.copy).length;
+  const total = steps?.length ?? 0;
   const sales = nextSalesDate(now);
 
   return (
@@ -606,11 +611,14 @@ function WelcomeView({
           {firstName ? `Welcome, ${firstName}` : "Welcome"}
         </h1>
         <p className="text-[16px] text-muted mt-2">
-          {first ? "Your first launch is written. Here's a look at what goes out first." : "Let's build your first launch."}
+          {first
+            ? `${written} of ${total} messages written. Here's what goes out first.`
+            : "Let's write your first launch. It takes about a minute."}
         </p>
       </div>
 
       <FirstLaunch campaign={first} steps={steps} loading={campaigns === null || (!!first && !steps)} onUnlock={onUnlock} />
+      <FirstTour enabled={campaigns !== null && !(!!first && !steps)} />
 
       {sales && (
         <section aria-label="Next launch idea" className="flex flex-wrap items-center gap-4 px-[22px] py-5 rounded-[20px] border border-[#ECEAF0]">
@@ -644,12 +652,18 @@ function FirstLaunch({
 
   if (!campaign) {
     return (
-      <section className="flex flex-col gap-3 p-7 rounded-[26px] bg-[#F8F8F8] border border-[#F0F0F0]">
+      <section data-tour="first-launch" className="flex flex-col gap-3 p-7 rounded-[26px] bg-[#F8F8F8] border border-[#F0F0F0]">
         <div className="text-sm text-muted">Your first launch</div>
-        <div className="font-serif text-[32px] leading-tight font-medium tracking-tight">Nothing built yet</div>
-        <p className="text-[15px] text-muted">Pick a campaign and Campeos writes it from your offer.</p>
-        <Link href="/campaigns" className="self-start mt-1 inline-flex items-center h-11 px-5 rounded-xl bg-slate text-white text-sm font-semibold">
-          Build my first launch
+        <div className="font-serif text-[32px] leading-tight font-medium tracking-tight">Ready to write</div>
+        <p className="text-[15px] text-muted">
+          Campeos writes your emails, texts, ads and posts from what you told it, and plans when each one goes out. You'll see the first ones appear in about a minute.
+        </p>
+        <Link
+          data-tour="open-campaign"
+          href="/builder?first=1"
+          className="self-start mt-1 inline-flex items-center h-12 px-6 rounded-xl bg-slate text-white text-[15px] font-semibold"
+        >
+          Open your first campaign
         </Link>
       </section>
     );
@@ -665,20 +679,24 @@ function FirstLaunch({
   } catch {}
 
   return (
-    <section aria-label="Your first launch" className="flex flex-col gap-4 p-5 sm:p-[26px] rounded-[26px] bg-[#F8F8F8] border border-[#F0F0F0] animate-step-in">
+    <section data-tour="first-launch" aria-label="Your first launch" className="flex flex-col gap-4 p-5 sm:p-[26px] rounded-[26px] bg-[#F8F8F8] border border-[#F0F0F0] animate-step-in">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm text-muted">Your first launch</div>
           <div className="font-serif text-[32px] leading-tight font-medium tracking-tight">{template}</div>
           <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[13px] text-muted">
-            {campaign.offer.name} · {sorted.length} steps ·
+            {campaign.offer.name} · {written.length} of {sorted.length} written ·
             {channels.map((c) => (
               <ChannelIcon key={c} channel={c} />
             ))}
           </div>
         </div>
-        <Link href={`/builder?id=${campaign.id}`} className="shrink-0 inline-flex items-center h-11 px-4 rounded-xl border border-[#E3E1E8] bg-paper text-[15px] font-semibold">
-          Open timeline
+        <Link
+          data-tour="open-campaign"
+          href={`/builder?id=${campaign.id}`}
+          className="shrink-0 inline-flex items-center h-12 px-6 rounded-xl bg-slate text-white text-[15px] font-semibold"
+        >
+          Open your first campaign
         </Link>
       </div>
 
@@ -706,7 +724,7 @@ function FirstLaunch({
                 </span>
                 <span className="min-w-0">
                   <span className="block text-[15px] font-semibold">{s.title}</span>
-                  <span className="block text-sm text-muted mt-0.5 truncate">{preview}</span>
+                  <span className="block text-sm text-muted mt-0.5 truncate"><MergeText text={preview} /></span>
                 </span>
               </Link>
             );
@@ -732,14 +750,10 @@ function FirstLaunch({
                   <LockIcon />
                 </span>
                 <span className="text-[15px]">
-                  <b>{locked} more steps.</b> Pick a plan to write and copy them all.
+                  <b>{locked} more messages</b> are written once you pick a plan.
                 </span>
-                <button
-                  onClick={onUnlock}
-                  className="h-10 px-4 rounded-[10px] text-white text-sm font-bold"
-                  style={{ background: "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)" }}
-                >
-                  Unlock my launch
+                <button onClick={onUnlock} className="text-[15px] font-semibold text-[#5B21B6] underline underline-offset-4">
+                  See plans
                 </button>
               </div>
             </div>

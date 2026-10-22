@@ -1,5 +1,7 @@
+import { createHash } from "crypto";
 import { z } from "zod";
-import { getOpenAIClient, COPY_MODEL } from "./client";
+import { chat, COPY_MODEL } from "./client";
+import { blankCount, critiqueCopy, lintCopy, PASS_SCORE } from "./quality";
 import {
   buildStepCopyPrompt,
   buildVariationPrompt,
@@ -28,18 +30,102 @@ export interface GeneratedStepCopy {
  * Generates copy for a single step. Meant to be called once per step and
  * run in parallel (Promise.all) across a whole campaign — see
  * app/api/generate-step/route.ts.
+ *
+ * Every draft goes through the quality gate (lib/ai/quality.ts): the
+ * filler check and an editor's score. A draft that fails is rewritten
+ * once with the editor's notes before anyone sees it. If the check
+ * itself errors, the first draft is used, so a campaign is never blocked
+ * by its own safety net.
  */
 export async function generateStepCopy(
   offer: OfferContext,
   step: StepContext,
-  source: SourceMaterial
+  source: SourceMaterial,
+  opts: { check?: boolean } = {}
 ): Promise<GeneratedStepCopy & { source: string }> {
+  return (await generateStepCopyScored(offer, step, source, opts)).copy;
+}
+
+/** One cache key per campaign: every message shares the same prompt start. */
+export function campaignCacheKey(offer: OfferContext, step: StepContext): string {
+  const seed = [offer.name, offer.audience, step.brief?.bigIdea ?? ""].join("|");
+  return "cmp-" + createHash("sha256").update(seed).digest("hex").slice(0, 24);
+}
+
+/** Same as generateStepCopy, plus the editor's score of the copy it kept
+ * (-1 when unchecked) and whether a rewrite won. */
+export async function generateStepCopyScored(
+  offer: OfferContext,
+  step: StepContext,
+  source: SourceMaterial,
+  opts: { check?: boolean } = {}
+): Promise<{ copy: GeneratedStepCopy & { source: string }; score: number; problems: string[]; rewritten: boolean }> {
   const prompt = buildStepCopyPrompt(offer, step, source);
   const schema = schemaForFields(step.fields);
+  const cacheKey = campaignCacheKey(offer, step);
+  let copy = await writeOnce(prompt, schema, step.title, cacheKey);
+  if (opts.check === false) return { copy, score: -1, problems: [], rewritten: false };
 
-  const response = await getOpenAIClient().chat.completions.create({
+  const allow = [offer.name, offer.audience, offer.whatTheyGet].join(" ");
+  let critic = { score: -1, problems: [] as string[] };
+  let rewritten = false;
+  try {
+    const lint = lintCopy(copy, step, allow);
+    try {
+      critic = await critiqueCopy(copy, step, offer);
+    } catch (err) {
+      console.warn("[quality] critic skipped", err instanceof Error ? err.message : err);
+    }
+    const weak = critic.score >= 0 && critic.score < PASS_SCORE;
+    if (lint.length > 0 || weak) {
+      const notes = [...lint, ...critic.problems];
+      const draft = JSON.stringify(copy, null, 2);
+      const rewritePrompt = `${prompt}
+
+YOUR FIRST DRAFT:
+${draft}
+
+A COPY CHIEF REVIEWED IT${critic.score >= 0 ? ` (score ${critic.score}/10)` : ""} AND SAID:
+${notes.map((n) => `- ${n}`).join("\n") || "- Make it more specific to this reader."}
+
+Rewrite the message to fix every note about the writing. Keep what already
+works, keep every true fact from the offer, follow the play's beats, and stay
+specific to this reader. Never add new [PLACEHOLDERS]. Return the same JSON keys.`;
+      const rewrite = await writeOnce(rewritePrompt, schema, step.title, cacheKey);
+      // Guard 1: a rewrite that adds blanks the user would have to fill is
+      // worse, whatever the notes said.
+      if (blankCount(rewrite) <= blankCount(copy)) {
+        // Guard 2: score the rewrite too and keep the better one. A tie
+        // goes to the rewrite: it fixed the notes (filler words, dashes).
+        let second = { score: -1, problems: [] as string[] };
+        try {
+          second = await critiqueCopy(rewrite, step, offer);
+        } catch {
+          /* unscored rewrite: trust it, like before */
+        }
+        if (second.score < 0 || critic.score < 0 || second.score >= critic.score) {
+          copy = rewrite;
+          critic = second.score >= 0 ? second : critic;
+          rewritten = true;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[quality] pass skipped", err instanceof Error ? err.message : err);
+  }
+  return { copy, score: critic.score, problems: critic.problems, rewritten };
+}
+
+async function writeOnce(
+  prompt: string,
+  schema: ReturnType<typeof schemaForFields>,
+  title: string,
+  cacheKey?: string
+): Promise<GeneratedStepCopy & { source: string }> {
+  const response = await chat({
     model: COPY_MODEL,
-    max_tokens: 1024,
+    cacheKey,
+    maxTokens: 1400,
     response_format: { type: "json_object" },
     messages: [{ role: "user", content: prompt }],
   });
@@ -50,7 +136,7 @@ export async function generateStepCopy(
 
   if (!result.success) {
     throw new Error(
-      `The AI's response for step "${step.title}" didn't match the expected shape: ${result.error.message}`
+      `The AI's response for step "${title}" didn't match the expected shape: ${result.error.message}`
     );
   }
 
@@ -89,9 +175,9 @@ export async function generateStepVariation(
   }
   const schema = z.object(shape);
 
-  const response = await getOpenAIClient().chat.completions.create({
+  const response = await chat({
     model: COPY_MODEL,
-    max_tokens: 1024,
+    maxTokens: 1024,
     response_format: { type: "json_object" },
     messages: [{ role: "user", content: prompt }],
   });

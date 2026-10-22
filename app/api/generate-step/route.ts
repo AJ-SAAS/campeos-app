@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { generateStepCopy, generateStepVariation } from "@/lib/ai/generateStepCopy";
-import { canGenerate, claimFreeSteps, refundFreeSteps, FREE_STEP_LIMIT } from "@/lib/access";
-import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
+import { canGenerate, claimFreeSteps, refundFreeSteps, FREE_STEP_LIMIT, isAdminUid } from "@/lib/access";
+import { requireVerifiedUser } from "@/lib/serverAuth";
+import { briefSchema, buildBrief, focusFor, type CampaignBrief } from "@/lib/ai/brief";
+import { getPlay, guessPlay } from "@/lib/frameworks/plays";
+import { templates } from "@/lib/templates";
+import type { StepContext } from "@/lib/ai/prompts";
+
+// A whole campaign is a brief plus up to ~30 messages, each written,
+// checked and sometimes rewritten. Give it room.
+export const maxDuration = 300;
 
 // This route does two jobs, picked by the "mode" field:
 //   "generate"  — write fresh copy for one or more steps (called in
@@ -44,6 +52,8 @@ const stepSchema = z.object({
 const sourceSchema = z.object({
   winningCopy: z.array(z.string()).default([]),
   callThemes: z.array(z.string()).default([]),
+  /** Their sales page link or pasted text, from onboarding. */
+  salesPage: z.string().max(6000).optional(),
 });
 
 const generateRequestSchema = z.object({
@@ -54,6 +64,12 @@ const generateRequestSchema = z.object({
   offer: offerSchema,
   steps: z.array(z.object({ templateStepId: z.string(), step: stepSchema })),
   source: sourceSchema,
+  /** Which template this campaign uses, so each step gets its play and
+   * its place in the sequence. Optional for older clients. */
+  templateId: z.string().optional(),
+  /** The campaign's saved buyer brief, if the client has one for this
+   * exact offer. Built fresh (and returned) when missing. */
+  brief: z.unknown().optional(),
 });
 
 const variationRequestSchema = z.object({
@@ -85,10 +101,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const caller = await getVerifiedUser(req);
-  if (!caller) {
-    return NextResponse.json({ error: SIGN_IN_AGAIN }, { status: 401 });
-  }
+  const gate = await requireVerifiedUser(req, isAdminUid);
+  if (gate.error) return gate.error;
+  const caller = gate.user;
   const uid = caller.uid;
 
   // The paywall. A plan (or admin) writes without limit. No plan gets
@@ -122,18 +137,86 @@ export async function POST(req: NextRequest) {
 
   try {
     if (parsed.data.mode === "generate") {
-      const { offer, steps, source } = parsed.data;
+      const { offer, steps, source, templateId } = parsed.data;
+      const template = templateId ? templates[templateId] : undefined;
 
-      // One Claude call per step, run in parallel. If one step fails, the
-      // others still come back — the client can retry just the failed one.
-      const results = await Promise.allSettled(
-        steps.map(({ templateStepId, step }) =>
-          generateStepCopy(offer, step, source).then((copy) => ({
-            templateStepId,
-            copy,
-          }))
-        )
-      );
+      // 1. The buyer brief: reuse the client's saved one, or research it
+      //    now. If research fails, the copy is still written (just from
+      //    less), so a hiccup never blocks a campaign.
+      let brief: CampaignBrief | undefined;
+      let briefIsNew = false;
+      const saved = briefSchema.safeParse(parsed.data.brief);
+      if (saved.success) {
+        brief = saved.data;
+      } else {
+        try {
+          brief = await buildBrief({
+            offer,
+            source,
+            campaignType: template ? `${template.name}: ${template.description}` : undefined,
+            eventAt: steps[0]?.step.eventAt,
+          });
+          briefIsNew = true;
+        } catch (err) {
+          console.warn("[brief] failed, writing without it", err instanceof Error ? err.message : err);
+        }
+      }
+
+      // 2. Each step's play, what it leads with, and where it sits.
+      const ordered = template
+        ? [...template.steps].sort((a, b) => a.offsetHours - b.offsetHours)
+        : null;
+      const counters: Record<string, number> = {};
+      const enriched: StepContext[] = steps.map(({ templateStepId, step }, i) => {
+        // Older clients don't say which template: step ids are unique
+        // across templates, so look it up in all of them.
+        const tStep =
+          template?.steps.find((t) => t.id === templateStepId) ??
+          Object.values(templates).flatMap((t) => t.steps).find((t) => t.id === templateStepId);
+        const play = getPlay(tStep?.playId) ?? guessPlay(step.channel, step.angle, step.title);
+        let focus: string | undefined;
+        if (brief && play) {
+          const n = counters[play.focus] ?? 0;
+          counters[play.focus] = n + 1;
+          focus = focusFor(brief, play.focus, n) || undefined;
+        }
+        const label = (t: { title: string; angle: string; channel: string }) => `${t.title} (${t.channel}, ${t.angle})`;
+        let sequence: StepContext["sequence"];
+        if (ordered) {
+          const pos = ordered.findIndex((t) => t.id === templateStepId);
+          if (pos >= 0) {
+            sequence = {
+              position: pos + 1,
+              total: ordered.length,
+              before: ordered.slice(Math.max(0, pos - 2), pos).map(label),
+              after: ordered.slice(pos + 1, pos + 3).map(label),
+            };
+          }
+        }
+        if (!sequence) {
+          sequence = {
+            position: i + 1,
+            total: steps.length,
+            before: steps.slice(Math.max(0, i - 2), i).map((x) => label(x.step)),
+            after: steps.slice(i + 1, i + 3).map((x) => label(x.step)),
+          };
+        }
+        return { ...step, play, brief, focus, sequence };
+      });
+
+      // 3. Write every step in parallel. If one fails, the others still
+      //    come back, and the client can retry just the failed one.
+      //    The first one goes alone, so OpenAI has the shared start of the
+      //    prompt (offer, brief, rules) cached before the rest start, and
+      //    bills it at a 90% discount for all of them.
+      const writeOne = (i: number) =>
+        generateStepCopy(offer, enriched[i], source).then((copy) => ({
+          templateStepId: steps[i].templateStepId,
+          copy,
+        }));
+      const head = steps.length > 2 ? await Promise.allSettled([writeOne(0)]) : [];
+      const tail = await Promise.allSettled(steps.slice(head.length).map((_, k) => writeOne(head.length + k)));
+      const results = [...head, ...tail];
 
       const succeeded: { templateStepId: string; copy: Awaited<ReturnType<typeof generateStepCopy>> }[] = [];
       const failed: { templateStepId: string; error: string }[] = [];
@@ -152,7 +235,13 @@ export async function POST(req: NextRequest) {
       if (freeClaimed > 0 && failed.length > 0) {
         await refundFreeSteps(uid, failed.length).catch(() => {});
       }
-      return NextResponse.json({ results: succeeded, failed, free: freeClaimed > 0 });
+      return NextResponse.json({
+        results: succeeded,
+        failed,
+        free: freeClaimed > 0,
+        // Sent back so the client can save it on the campaign and reuse it.
+        brief: briefIsNew ? brief : undefined,
+      });
     }
 
     // mode === "variation"

@@ -1,5 +1,6 @@
 "use client";
 
+import { missingDetailsLabel, needsInput as sharedNeedsInput } from "@/lib/dashboard";
 import { useEffect, useRef, useState } from "react";
 import { UIStep } from "./Timeline";
 import { ImageSlot } from "./ImageSlot";
@@ -264,7 +265,7 @@ export function StepEditor({
 
             {needs && (
               <span className="inline-flex px-3 py-1.5 rounded-full bg-warnBg text-warnFg text-[13px] leading-snug">
-                Fill in the parts in [CAPS] before you copy this step.
+                {missingDetailsLabel(step.copy)}. Find the parts in [CAPS] below and type over them before you copy this step.
               </span>
             )}
 
@@ -430,9 +431,7 @@ function SuggestionChip({ children, onClick }: { children: React.ReactNode; onCl
 }
 
 function needsInput(step: UIStep): boolean {
-  if (!step.copy) return false;
-  const text = Object.values(step.copy).join(" ");
-  return /\[(?!LINK\]|FIRST NAME\])[A-Z0-9 ]+\]/.test(text);
+  return sharedNeedsInput(step.copy);
 }
 
 function ClockIcon() {

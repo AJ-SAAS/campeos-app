@@ -58,3 +58,51 @@ export async function refundFreeSteps(uid: string, count: number): Promise<void>
     .doc(uid)
     .set({ stepsUsed: FieldValue.increment(-count) }, { merge: true });
 }
+
+/**
+ * Daily cap on Buyer insights reads (pasted text, screenshots, links,
+ * voice notes), so the page can't be used to run up an AI bill. Paid
+ * plans get far more than anyone would use by hand. Tracked in
+ * insightReads/{uid}, written only here (Admin SDK).
+ */
+export const INSIGHT_READS_PER_DAY = { free: 15, paid: 150 };
+
+export async function claimInsightRead(uid: string, paid: boolean): Promise<boolean> {
+  const db = getAdminDb();
+  const ref = db.collection("insightReads").doc(uid);
+  const day = new Date().toISOString().slice(0, 10);
+  const max = paid ? INSIGHT_READS_PER_DAY.paid : INSIGHT_READS_PER_DAY.free;
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.exists ? snap.data() : undefined;
+    const used = data?.day === day ? ((data?.count as number) || 0) : 0;
+    if (used + 1 > max) return false;
+    tx.set(ref, { day, count: used + 1 });
+    return true;
+  });
+}
+
+/**
+ * A per-account daily counter for any route that spends AI money
+ * (page scan, sales-call reading, the agent). Stops one account, real or
+ * fake, from running up a bill. Tracked in dailyUsage/{uid}, written only
+ * here (Admin SDK). Returns false once `max` is used up for today (UTC).
+ */
+export async function claimDaily(uid: string, bucket: string, max: number): Promise<boolean> {
+  if (isAdminUid(uid)) return true;
+  const db = getAdminDb();
+  const ref = db.collection("dailyUsage").doc(uid);
+  const day = new Date().toISOString().slice(0, 10);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.exists ? snap.data() : undefined;
+    const counts: Record<string, number> = data?.day === day ? { ...(data?.counts ?? {}) } : {};
+    const used = counts[bucket] ?? 0;
+    if (used + 1 > max) return false;
+    counts[bucket] = used + 1;
+    tx.set(ref, { day, counts });
+    return true;
+  });
+}
+
+export const DAILY_LIMIT_MESSAGE = "You've hit today's limit for this. It resets tomorrow.";

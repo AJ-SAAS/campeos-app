@@ -41,7 +41,7 @@ import { getBusinessProfile } from "./businessProfile";
 const verifiedReadyUids = new Set<string>();
 
 export function useRequireAccess(): { ready: boolean } {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, needsVerification } = useAuth();
   const router = useRouter();
   const [ready, setReady] = useState(() => !!user && verifiedReadyUids.has(user.uid));
 
@@ -49,6 +49,13 @@ export function useRequireAccess(): { ready: boolean } {
     if (authLoading) return;
 
     if (!user) {
+      router.replace("/auth");
+      return;
+    }
+
+    // Email sign-ups must confirm their address first. /auth shows the
+    // "check your email" screen for them.
+    if (needsVerification) {
       router.replace("/auth");
       return;
     }
@@ -71,7 +78,7 @@ export function useRequireAccess(): { ready: boolean } {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, user, router]);
+  }, [authLoading, user, needsVerification, router]);
 
   return { ready };
 }

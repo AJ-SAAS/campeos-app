@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
@@ -47,7 +48,7 @@ export default function CampaignsPage() {
   );
 
   if (!ready) {
-    return <div className="min-h-screen bg-paper" />;
+    return <LoadingScreen />;
   }
 
   return (

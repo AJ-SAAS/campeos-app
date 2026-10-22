@@ -13,7 +13,18 @@ import {
   PlatformId,
   FrequencyId,
   suggestedPlan,
+  LAUNCH_TYPE_IDS,
+  LIVE_LAUNCH_TYPE,
+  CURRENCIES,
+  defaultCurrency,
+  splitPrice,
+  joinPrice,
+  launchDateInDays,
+  launchDateToEvent,
+  daysUntil,
 } from "@/lib/onboarding/answers";
+import { catalog } from "@/lib/templates/catalog";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import "@/components/onboarding/onboarding.css";
 import { firstName } from "@/lib/signOff";
 import { authFetch } from "@/lib/firebase/authFetch";
@@ -27,7 +38,8 @@ import { authFetch } from "@/lib/firebase/authFetch";
 //                                                scanned to pre-fill 3
 //   3. Who's your ideal customer?             -> audience, whatTheyGet, price
 //   4. Where do you reach your customers?     -> channels
-//   5. How often do you run a sale or promo?  -> frequency -> suggested plan
+//   5. What are you launching, and when?      -> campaign type + date
+//   6. How often do you run a sale or promo?  -> frequency -> suggested plan
 //
 // Finishing writes businessProfiles/{uid} (which is what marks onboarding
 // as done for useRequireAccess), saves the offer to offers/ so it shows
@@ -37,7 +49,7 @@ import { authFetch } from "@/lib/firebase/authFetch";
 // written. Nothing is ever invented: anything the scan doesn't find is
 // left blank for the user to fill.
 
-const STEP_COUNT = 5;
+const STEP_COUNT = 6;
 
 const EXAMPLES = ["Beginner Yoga Course", "Business Coaching", "Summer Candle Sale", "10 Clients in 30 Days"];
 
@@ -55,7 +67,7 @@ const SCAN_ROWS: { label: string; missing: string; field: FieldKey | null }[] = 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function OnboardingPage() {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, needsVerification } = useAuth();
   const router = useRouter();
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [step, setStep] = useState(0);
@@ -71,11 +83,19 @@ export default function OnboardingPage() {
   const signOffTouched = useRef(false);
   const [channels, setChannels] = useState<PlatformId[]>(DEFAULT_PLATFORMS);
   const [frequency, setFrequency] = useState<FrequencyId | null>(null);
+  // Price is typed as a number with the currency picked beside it.
+  const [currency, setCurrency] = useState("$");
+  // What they're launching and when it goes live (yyyy-mm-dd).
+  const [launchType, setLaunchType] = useState<string>(LIVE_LAUNCH_TYPE);
+  const [notifyMe, setNotifyMe] = useState(true);
+  const [launchDate, setLaunchDate] = useState("");
+  const [dateGuess, setDateGuess] = useState(false);
 
   const [scan, setScan] = useState<ScanState>("idle");
   const [scanRow, setScanRow] = useState(0);
   const [missingRows, setMissingRows] = useState<Set<number>>(new Set());
   const [scanned, setScanned] = useState(false);
+  const [scanReason, setScanReason] = useState<string>("");
   const [popped, setPopped] = useState<Set<FieldKey>>(new Set());
   const [testimonials, setTestimonials] = useState<string[]>([]);
 
@@ -90,13 +110,18 @@ export default function OnboardingPage() {
       router.replace("/auth?signup");
       return;
     }
+    // Email sign-ups confirm their address first (the /auth screen).
+    if (needsVerification) {
+      router.replace("/auth");
+      return;
+    }
     getBusinessProfile(user.uid)
       .then((profile) => {
         if (profile) router.replace("/dashboard");
         else setCheckingProfile(false);
       })
       .catch(() => setCheckingProfile(false));
-  }, [authLoading, user, router]);
+  }, [authLoading, user, needsVerification, router]);
 
   // Step 1's placeholder types out example offers, so a beginner sees
   // what kind of answer we mean. Mirrored in the preview headline.
@@ -138,7 +163,8 @@ export default function OnboardingPage() {
     if (s === 1) return true;
     if (s === 2) return who.trim().length > 0 && what.trim().length > 0;
     if (s === 3) return channels.length > 0;
-    if (s === 4) return frequency !== null;
+    if (s === 4) return !!launchDateToEvent(launchDate);
+    if (s === 5) return frequency !== null;
     return true;
   }
 
@@ -179,6 +205,7 @@ export default function OnboardingPage() {
 
     let data: {
       ok?: boolean;
+      reason?: string;
       name?: string;
       whatTheyGet?: string;
       audience?: string;
@@ -195,13 +222,14 @@ export default function OnboardingPage() {
         sleep(900),
       ]);
       data = await res.json();
-      if (!res.ok) data = { ok: false };
+      if (!res.ok) data = { ok: false, reason: "error" };
     } catch {
       data = { ok: false };
     }
     if (token !== scanToken.current) return;
 
     if (!data.ok) {
+      setScanReason(data.reason ?? "");
       setScan("failed");
       return;
     }
@@ -228,7 +256,11 @@ export default function OnboardingPage() {
       } else if (value) {
         if (field === "who") setWho(value);
         if (field === "what") setWhat(value);
-        if (field === "price") setPrice(value);
+        if (field === "price") {
+          const sp = splitPrice(value);
+          if (sp.currency) setCurrency(sp.currency);
+          setPrice(sp.amount);
+        }
       } else {
         missing.add(row);
       }
@@ -252,6 +284,12 @@ export default function OnboardingPage() {
   }
 
   useEffect(() => {
+    try {
+      setCurrency(defaultCurrency(navigator.language));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     if (!signOffTouched.current && user?.displayName) setSignOff(firstName(user.displayName));
   }, [user]);
 
@@ -263,7 +301,7 @@ export default function OnboardingPage() {
       name: name.trim(),
       whatTheyGet: what.trim(),
       audience: who.trim(),
-      price: price.trim(),
+      price: joinPrice(currency, price),
       tone: "Friendly",
       readingLevel: "5th grade",
       fromName: signOff.trim() || undefined,
@@ -275,6 +313,12 @@ export default function OnboardingPage() {
         channels,
         frequency,
         suggestedPlan: suggestedPlan(frequency),
+        campaignType: LIVE_LAUNCH_TYPE,
+        wantedType: launchType !== LIVE_LAUNCH_TYPE ? launchType : undefined,
+        notifyWhenLive: launchType !== LIVE_LAUNCH_TYPE ? notifyMe : undefined,
+        launchDate,
+        launchDateGuess: dateGuess || undefined,
+        currency,
         salesPage: page.trim().slice(0, 2000) || undefined,
         onboardedAt: new Date().toISOString(),
       });
@@ -287,7 +331,8 @@ export default function OnboardingPage() {
           await addWinningCopy(user.uid, t);
         } catch {}
       }
-      router.push("/builder?first=1");
+      // Home first: one clear card and button, then the builder.
+      router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that. Try again.");
       setSaving(false);
@@ -295,18 +340,21 @@ export default function OnboardingPage() {
   }
 
   if (authLoading || checkingProfile) {
-    return <div className="min-h-screen bg-paper" />;
+    return <LoadingScreen />;
   }
 
   // ---- preview values ----
-  const fromName = signOff.trim() || user?.displayName || user?.email?.split("@")[0] || "You";
-  const initials =
-    fromName
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]?.toUpperCase())
-      .join("") || "Y";
+  // Never show the login's name or email prefix ("tester22") as the sender:
+  // it isn't what they'll sign emails as. Placeholder until they type one.
+  const fromName = signOff.trim() || "Your name";
+  const initials = signOff.trim()
+    ? signOff
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((w) => w[0]?.toUpperCase())
+        .join("")
+    : "Y";
   const demoTyping = step === 0 && !name;
   const nameShow = name.trim() || (demoTyping ? typed : "Your offer");
   const whoShow = who.trim() || "your ideal customer";
@@ -407,7 +455,24 @@ export default function OnboardingPage() {
                       <path d="M12 8v5M12 16.5v.5" />
                     </svg>
                     <div style={{ fontSize: 15, lineHeight: 1.5, color: "#7C2D12" }}>
-                      <b>We couldn&apos;t open that link.</b> Some page builders block us. No problem: copy the words from your page and paste them above.
+                      <b>
+                        {scanReason === "blocked"
+                          ? "That site won't let us read it."
+                          : scanReason === "script_only"
+                            ? "We could only see a little of that page."
+                            : scanReason === "unreachable"
+                              ? "We couldn't open that address."
+                              : scanReason === "too_short"
+                                ? "That's too short to read."
+                                : "We couldn't read that."}
+                      </b>{" "}
+                      {scanReason === "unreachable"
+                        ? "Check the spelling, or paste the words from your page instead."
+                        : "Some sites hide their words from us. Copy the words from your page and paste them above, then tap the button again."}{" "}
+                      Nothing you typed is lost.{" "}
+                      <button type="button" onClick={() => setStep(2)} style={{ border: 0, background: "none", padding: 0, font: "inherit", fontWeight: 700, color: "#7C2D12", textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
+                        Continue without it
+                      </button>
                     </div>
                   </div>
                 )}
@@ -468,9 +533,28 @@ export default function OnboardingPage() {
                 <input id="f-who" autoFocus className="cob-field" value={who} onChange={(e) => setWho(e.target.value)} onKeyDown={onEnter} placeholder="Coaches stuck under $10K a month" />
                 <label htmlFor="f-what" className="cob-label" style={{ marginTop: 16 }}>What they get</label>
                 <input id="f-what" className="cob-field" value={what} onChange={(e) => setWhat(e.target.value)} onKeyDown={onEnter} placeholder="Done-for-you ads, or we keep working free" />
-                <label htmlFor="f-price" className="cob-label" style={{ marginTop: 16 }}>Price</label>
-                <input id="f-price" className="cob-field" value={price} onChange={(e) => setPrice(e.target.value)} onKeyDown={onEnter} placeholder="$997" style={{ width: 160 }} />
-                <label htmlFor="f-signoff" className="cob-label" style={{ marginTop: 16 }}>Sign emails as</label>
+                <label htmlFor="f-price" className="cob-label" style={{ marginTop: 16 }}>
+                  Price <span className="cob-opt-tag">optional</span>
+                </label>
+                <div style={{ display: "flex", gap: 8, maxWidth: 260 }}>
+                  <select
+                    aria-label="Currency"
+                    className="cob-field"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    style={{ width: 104, flexShrink: 0, paddingRight: 8 }}
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.symbol} value={c.symbol}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input id="f-price" className="cob-field" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} onKeyDown={onEnter} placeholder="997" style={{ minWidth: 0 }} />
+                </div>
+                <label htmlFor="f-signoff" className="cob-label" style={{ marginTop: 16 }}>
+                  Sign emails as <span className="cob-opt-tag">optional</span>
+                </label>
                 <input
                   id="f-signoff"
                   className="cob-field"
@@ -488,6 +572,15 @@ export default function OnboardingPage() {
                     Continue
                     <Arrow />
                   </button>
+                  {!canContinue() && (
+                    <p className="cob-hint" role="status">
+                      {!who.trim() && !what.trim()
+                        ? "Fill in your ideal customer and what they get to continue."
+                        : !who.trim()
+                          ? "Fill in your ideal customer to continue."
+                          : "Fill in what they get to continue."}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -526,6 +619,102 @@ export default function OnboardingPage() {
 
             {step === 4 && (
               <div key="s4" className="cob-rise" style={{ marginTop: 36 }}>
+                <h1 className="cob-h1">What are you launching?</h1>
+                <p className="cob-sub">Pick the one that fits. You can run more later.</p>
+                <div className="cob-opts" style={{ gridTemplateColumns: "1fr" }}>
+                  {LAUNCH_TYPE_IDS.map((id) => {
+                    const entry = catalog.find((c) => c.id === id);
+                    if (!entry) return null;
+                    const live = id === LIVE_LAUNCH_TYPE;
+                    return (
+                      <button key={id} type="button" className={`cob-opt ${launchType === id ? "on" : ""}`} onClick={() => setLaunchType(id)} aria-pressed={launchType === id}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 16, fontWeight: 600 }}>{live ? "Webinar or live training" : entry.title}</span>
+                          <span className={live ? "cob-badge live" : "cob-badge"}>{live ? "Live now" : "Coming soon"}</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: "#6B6577", marginTop: 2 }}>
+                          {live ? "A free training, call or live demo that leads to a sale. Works for courses, coaching and services." : entry.description}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {launchType !== LIVE_LAUNCH_TYPE && (
+                  <div className="cob-rise" role="status" style={{ marginTop: 14, padding: "14px 16px", borderRadius: 14, background: "#F6F1FE", border: "1px solid #E4D6FA", fontSize: 15, lineHeight: 1.5, color: "#3D2A66" }}>
+                    <b>We&apos;re still building this one.</b> To get you started today, we&apos;ll set you up with a webinar launch. It works for any offer you sell with a free training or call.
+                    <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, fontSize: 14, cursor: "pointer" }}>
+                      <input type="checkbox" checked={notifyMe} onChange={(e) => setNotifyMe(e.target.checked)} style={{ width: 18, height: 18 }} />
+                      Tell me when it&apos;s ready
+                    </label>
+                  </div>
+                )}
+
+                <label className="cob-label" style={{ marginTop: 26 }}>When does it go live?</label>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[
+                    { label: "Next week", days: 8 },
+                    { label: "In 2 weeks", days: 15 },
+                    { label: "In a month", days: 30 },
+                  ].map((o) => {
+                    const v = launchDateInDays(o.days);
+                    return (
+                      <button
+                        key={o.label}
+                        type="button"
+                        className={`cob-chipbtn ${launchDate === v && !dateGuess ? "on" : ""}`}
+                        onClick={() => {
+                          setLaunchDate(v);
+                          setDateGuess(false);
+                        }}
+                      >
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                  <input
+                    type="date"
+                    aria-label="Pick a date"
+                    className="cob-field"
+                    min={launchDateInDays(0)}
+                    value={launchDate}
+                    onChange={(e) => {
+                      setLaunchDate(e.target.value);
+                      setDateGuess(false);
+                    }}
+                    style={{ width: 170, minHeight: 44 }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="cob-link"
+                  style={{ marginTop: 8, fontSize: 15, minHeight: 36 }}
+                  onClick={() => {
+                    setLaunchDate(launchDateInDays(15));
+                    setDateGuess(true);
+                  }}
+                >
+                  I&apos;m not sure yet
+                </button>
+                {launchDate && launchDateToEvent(launchDate) && (
+                  <p className="cob-hint" role="status">
+                    {dateGuess ? "We'll plan for " : "Goes live "}
+                    <b>{launchDateToEvent(launchDate)!.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}, 7:00 PM</b>
+                    {dateGuess ? ". You can change it any time." : "."}
+                    {daysUntil(launchDate) < 7 && " That's soon. The first messages would be dated in the past, so a date a week or more away works best."}
+                  </p>
+                )}
+
+                <button className="cob-btn" onClick={next} disabled={!canContinue()} style={{ marginTop: 22 }}>
+                  Continue
+                  <Arrow />
+                </button>
+                {!canContinue() && <p className="cob-hint" role="status">Pick a date, or tap &ldquo;I&apos;m not sure yet&rdquo;.</p>}
+              </div>
+            )}
+
+            {step === 5 && (
+              <div key="s5" className="cob-rise" style={{ marginTop: 36 }}>
                 <h1 className="cob-h1">How often do you run a sale or promo?</h1>
                 <p className="cob-sub">We&apos;ll suggest the plan that fits. You can change it anytime.</p>
                 <div className="cob-opts">
@@ -543,7 +732,7 @@ export default function OnboardingPage() {
                 )}
                 <button className="cob-btn cob-btn-grad" onClick={next} disabled={!canContinue() || saving} style={{ marginTop: 24 }}>
                   {saving && <SpinIcon size={18} color="#FFFFFF" />}
-                  {saving ? "Setting up..." : "Write my first campaign"}
+                  {saving ? "Setting up..." : "Finish setup"}
                   {!saving && <Arrow />}
                 </button>
                 <p className="cob-hint" style={{ marginTop: 12 }}>
@@ -585,7 +774,7 @@ export default function OnboardingPage() {
               <Avatar initials={initials} size={42} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                  <span style={{ fontWeight: 700, fontSize: 15 }}>{fromName}</span>
+                  <span className={signOff.trim() ? "" : "cob-ph"} style={{ fontWeight: 700, fontSize: 15 }}>{fromName}</span>
                   <span style={{ fontSize: 13, color: "#6B6577" }}>9:00 AM</span>
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 600, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -609,7 +798,7 @@ export default function OnboardingPage() {
           <div className="cob-floatin" style={{ position: "relative", margin: "-86px 0 0 48px", background: "#FFFFFF", border: "1px solid #ECEAF0", borderRadius: 20, boxShadow: "0 40px 80px -40px rgba(23,19,31,.35)", padding: "24px 28px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: "1px solid #F0EEF4" }}>
               <Avatar initials={initials} size={36} />
-              <span style={{ fontSize: 15, fontWeight: 500 }}>{fromName}</span>
+              <span className={signOff.trim() ? "" : "cob-ph"} style={{ fontSize: 15, fontWeight: 500 }}>{fromName}</span>
             </div>
             <div style={{ fontFamily: "Newsreader, serif", fontWeight: 500, fontSize: 34, letterSpacing: "-.025em", lineHeight: 1.1, marginTop: 18, minHeight: 38 }}>
               <span className={`${hl("name", step === 0)} ${ph(!name.trim())}`}>{nameShow}</span>
