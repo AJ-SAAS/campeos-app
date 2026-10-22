@@ -5,7 +5,7 @@
 .cps-root,.cps-root *{box-sizing:border-box}
 .cps-root a{color:#6D28D9}.cps-root a:hover{color:#4C1D95}
 @keyframes cps-fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-.cps-fu{animation:cps-fu .55s cubic-bezier(.2,.7,.2,1) both}
+.cps-fu{animation:cps-fu .35s cubic-bezier(.2,.7,.2,1) both}
 @keyframes cps-pop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
 .cps-pop{animation:cps-pop .45s cubic-bezier(.2,.7,.2,1) both}
 @keyframes cps-type{from{max-width:0}to{max-width:100%}}

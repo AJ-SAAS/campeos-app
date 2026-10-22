@@ -609,10 +609,10 @@ export function WinnersLibrary({ fast }) {
     if (!seen || reduced || done >= WINNERS.length) return;
     const text = WINNERS[done][2];
     if (chars < text.length) {
-      const t = setTimeout(() => setChars((c) => c + 1), fast ? 12 : 24);
+      const t = setTimeout(() => setChars((c) => c + 1), fast ? 8 : 24);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => { setDone((d) => d + 1); setChars(0); }, fast ? 240 : 480);
+    const t = setTimeout(() => { setDone((d) => d + 1); setChars(0); }, fast ? 150 : 480);
     return () => clearTimeout(t);
   }, [seen, reduced, done, chars]);
 
@@ -655,10 +655,10 @@ export function WinnersLibrary({ fast }) {
 /* ------------------------------------------------------------------ */
 
 const JOURNEY = [
-  { id: 'tell', ms: 10500, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
-  { id: 'write', ms: 7500, label: 'Write', lead: 'Your whole launch, written.', text: 'Every email, text, ad and post, in your voice, before you finish your coffee.' },
-  { id: 'schedule', ms: 7500, label: 'Schedule', lead: 'Every message gets a day and a time.', text: 'One calendar from the first invite to the last call.' },
-  { id: 'improve', ms: 9500, label: 'Improve', lead: 'Your next launch starts ahead.', text: 'Save what your buyers respond to and build the next launch from it.' },
+  { id: 'tell', ms: 6800, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
+  { id: 'write', ms: 5200, label: 'Write', lead: 'Your whole launch, written.', text: 'Every email, text, ad and post, in your voice, before you finish your coffee.' },
+  { id: 'schedule', ms: 4600, label: 'Schedule', lead: 'Every message gets a day and a time.', text: 'One calendar from the first invite to the last call.' },
+  { id: 'improve', ms: 6200, label: 'Improve', lead: 'Your next launch starts ahead.', text: 'Save what your buyers respond to and build the next launch from it.' },
 ];
 
 function JourneyIcon({ id, active, size = 34 }) {
@@ -709,11 +709,13 @@ function JourneyIcon({ id, active, size = 34 }) {
 const prefersReduced = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** How many of the `times` (ms from mount) have passed. Starts finished for reduced motion. */
+const SPEED = 0.6; // lower is faster
+
 function useStage(times) {
   const [n, setN] = useState(() => (prefersReduced() ? times.length : 0));
   useEffect(() => {
     if (prefersReduced()) return;
-    const ids = times.map((t, i) => setTimeout(() => setN(i + 1), t));
+    const ids = times.map((t, i) => setTimeout(() => setN(i + 1), t * SPEED));
     return () => ids.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -727,8 +729,8 @@ function useTyped(text, start, speed) {
     if (prefersReduced()) return;
     let id;
     const st = setTimeout(() => {
-      id = setInterval(() => setC((x) => { if (x >= text.length) { clearInterval(id); return x; } return x + 1; }), speed);
-    }, start);
+      id = setInterval(() => setC((x) => { if (x >= text.length) { clearInterval(id); return x; } return x + 1; }), speed * SPEED);
+    }, start * SPEED);
     return () => { clearTimeout(st); clearInterval(id); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -988,7 +990,7 @@ function ScreenSchedule() {
 
 /* 4. Improve: winners get saved, and the next launch starts from them. */
 function ScreenImprove() {
-  const n = useStage([4800, 6200]);
+  const n = useStage([5200, 6600]);
   return (
     <AppWindow url="campeos.com/winning-copy">
       <Side on="Winning copy" />
@@ -1021,7 +1023,7 @@ export function JourneyTabs() {
   // Rolls through the steps on its own until someone taps one.
   useEffect(() => {
     if (!seen || paused) return;
-    const t = setTimeout(() => setTab((n) => (n + 1) % JOURNEY.length), JOURNEY[tab].ms || 7500);
+    const t = setTimeout(() => setTab((n) => (n + 1) % JOURNEY.length), JOURNEY[tab].ms || 5000);
     return () => clearTimeout(t);
   }, [seen, paused, tab]);
 
@@ -1043,7 +1045,7 @@ export function JourneyTabs() {
               >
                 <JourneyIcon id={j.id} active={on} size={19} />
                 <span>{j.label}</span>
-                {on && !paused && seen && <span className="cps-jprog" key={`p${tab}`} aria-hidden="true" style={{ animationDuration: `${j.ms || 7500}ms` }} />}
+                {on && !paused && seen && <span className="cps-jprog" key={`p${tab}`} aria-hidden="true" style={{ animationDuration: `${j.ms || 5000}ms` }} />}
               </button>
             );
           })}
