@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { chat, COPY_MODEL } from "./client";
-import { OfferContext, SourceMaterial } from "./prompts";
+import { OfferContext, SourceMaterial, priceForPrompt } from "./prompts";
 
 // The buyer brief: the research a great copywriter does before writing a
 // single line, done once per campaign and handed to every message.
@@ -76,7 +76,7 @@ message in this campaign will be written from.
 
 THE OFFER
 Name: ${offer.name || "(not given)"}
-Price: ${offer.price || "(not given)"}
+Price: ${priceForPrompt(offer) || "(not given)"}
 Who it's for: ${offer.audience || "(not given)"}
 What they get: ${offer.whatTheyGet || "(not given)"}
 Tone: ${offer.tone || "(not given)"}

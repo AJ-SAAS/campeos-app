@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { OfferContext, READING_LEVELS } from "@/lib/ai/prompts";
+import { BILLING_OPTIONS, WHO_EXAMPLES } from "@/lib/onboarding/answers";
 
 // The create/edit form for an Offer — shared between the standalone
 // /offers page and the new-campaign offer picker in the builder, so the
@@ -45,7 +46,33 @@ export function OfferForm({
     <div className="flex flex-col gap-3.5 p-4 border border-line rounded-2xl">
       <OfferField label="Offer name" value={offer.name} onChange={(v) => set("name", v)} />
       <OfferField label="Price" value={offer.price} onChange={(v) => set("price", v)} />
-      <OfferField label="Who it's for" value={offer.audience} onChange={(v) => set("audience", v)} />
+      <div className="flex flex-col gap-2">
+        <div className="text-sm font-semibold">How they pay</div>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="How they pay">
+          {BILLING_OPTIONS.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              role="radio"
+              aria-checked={offer.billing === o.id}
+              onClick={() => set("billing", offer.billing === o.id ? undefined : o.id)}
+              className={`min-h-9 px-3.5 rounded-full text-[13px] font-semibold border ${
+                offer.billing === o.id
+                  ? "bg-clay text-white border-clay"
+                  : "bg-paper text-slate border-line font-medium hover:border-faint"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <OfferField
+        label="Who it's for, in one line"
+        value={offer.audience}
+        onChange={(v) => set("audience", v)}
+        placeholder={WHO_EXAMPLES[0]}
+      />
       <OfferField
         label="What they get"
         value={offer.whatTheyGet}
@@ -124,10 +151,12 @@ function OfferField({
   label,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  placeholder?: string;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -135,6 +164,7 @@ function OfferField({
       <input
         type="text"
         value={value}
+        placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className="h-11 border border-line rounded-[10px] px-3 text-sm bg-paper"
       />

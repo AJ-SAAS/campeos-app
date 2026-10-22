@@ -15,7 +15,12 @@ import {
   suggestedPlan,
   LAUNCH_TYPE_IDS,
   LIVE_LAUNCH_TYPE,
-  CURRENCIES,
+  BILLING_OPTIONS,
+  BillingId,
+  WHO_EXAMPLES,
+  billingFromPrice,
+  priceLabel,
+  whoIsThin,
   defaultCurrency,
   splitPrice,
   joinPrice,
@@ -25,6 +30,7 @@ import {
 } from "@/lib/onboarding/answers";
 import { catalog } from "@/lib/templates/catalog";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { CurrencyPicker } from "@/components/CurrencyPicker";
 import "@/components/onboarding/onboarding.css";
 import { firstName } from "@/lib/signOff";
 import { authFetch } from "@/lib/firebase/authFetch";
@@ -85,6 +91,8 @@ export default function OnboardingPage() {
   const [frequency, setFrequency] = useState<FrequencyId | null>(null);
   // Price is typed as a number with the currency picked beside it.
   const [currency, setCurrency] = useState("$");
+  // One-time, monthly or yearly. They have to pick when there's a price.
+  const [billing, setBilling] = useState<BillingId | null>(null);
   // What they're launching and when it goes live (yyyy-mm-dd).
   const [launchType, setLaunchType] = useState<string>(LIVE_LAUNCH_TYPE);
   const [notifyMe, setNotifyMe] = useState(true);
@@ -160,10 +168,13 @@ export default function OnboardingPage() {
     return () => clearTimeout(timer);
   }, [step, name]);
 
+  // A real amount (not "Free") means we need to know how they pay.
+  const hasAmount = /\d/.test(price);
+
   function canContinue(s = step): boolean {
     if (s === 0) return name.trim().length > 0;
     if (s === 1) return true;
-    if (s === 2) return who.trim().length > 0 && what.trim().length > 0;
+    if (s === 2) return who.trim().length > 0 && what.trim().length > 0 && (!hasAmount || billing !== null);
     if (s === 3) return channels.length > 0;
     if (s === 4) return !!launchDateToEvent(launchDate);
     if (s === 5) return frequency !== null;
@@ -212,6 +223,7 @@ export default function OnboardingPage() {
       whatTheyGet?: string;
       audience?: string;
       price?: string;
+      billing?: string;
       testimonials?: string[];
     } = {};
     try {
@@ -261,7 +273,10 @@ export default function OnboardingPage() {
         if (field === "price") {
           const sp = splitPrice(value);
           if (sp.currency) setCurrency(sp.currency);
-          setPrice(sp.amount);
+          // "$97/mo" -> 97, and billing is monthly. The page's own words win.
+          const b = (["once", "monthly", "yearly"].includes(data.billing ?? "") ? data.billing : billingFromPrice(value)) as BillingId | null;
+          if (b) setBilling(b);
+          setPrice(b ? sp.amount.replace(/\s?\/\s?(mo|month|yr|year)s?$/i, "").trim() : sp.amount);
         }
       } else {
         missing.add(row);
@@ -304,6 +319,7 @@ export default function OnboardingPage() {
       whatTheyGet: what.trim(),
       audience: who.trim(),
       price: joinPrice(currency, price),
+      billing: hasAmount && billing ? billing : undefined,
       tone: "Friendly",
       readingLevel: "5th grade",
       fromName: signOff.trim() || undefined,
@@ -361,7 +377,9 @@ export default function OnboardingPage() {
   const nameShow = name.trim() || (demoTyping ? typed : "Your offer");
   const whoShow = who.trim() || "your ideal customer";
   const whatShow = what.trim() || "What they get";
-  const priceShow = price.trim() || "your price";
+  const priceShow = price.trim()
+    ? priceLabel(joinPrice(currency, price), hasAmount && billing && billing !== "once" ? billing : undefined)
+    : "your price";
   const hl = (field: FieldKey, active: boolean) =>
     `cob-hl ${popped.has(field) ? "pop" : active ? "on" : ""}`;
   const ph = (empty: boolean) => (empty ? "cob-ph" : "");
@@ -534,36 +552,71 @@ export default function OnboardingPage() {
             {step === 2 && (
               <div key="s2" className="cob-rise" style={{ marginTop: 36 }}>
                 <h1 className="cob-h1">Who&apos;s your ideal customer?</h1>
-                <p className="cob-sub">And what do they get from you? Plain words are perfect.</p>
+                <p className="cob-sub">One line is all it takes. Plain words are perfect.</p>
                 {scanned && (
                   <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 18, padding: "6px 12px", borderRadius: 999, background: "#F1EAFD", color: "#5B21B6", fontSize: 13, fontWeight: 600 }}>
                     <Check size={13} />
                     Found on your page. Change anything.
                   </div>
                 )}
-                <label htmlFor="f-who" className="cob-label" style={{ marginTop: 22 }}>Your ideal customer</label>
-                <input id="f-who" autoFocus className="cob-field" value={who} onChange={(e) => setWho(e.target.value)} onKeyDown={onEnter} placeholder="Coaches stuck under $10K a month" />
-                <label htmlFor="f-what" className="cob-label" style={{ marginTop: 16 }}>What they get</label>
+                <label htmlFor="f-who" className="cob-label" style={{ marginTop: 22, marginBottom: 6 }}>Your ideal customer, in one line</label>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 10 }} aria-hidden="true">
+                  {["Who they are", "What they want", "What's in the way"].map((t, i) => (
+                    <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      {i > 0 && <span style={{ color: "#B5B0BF", fontSize: 13 }}>{i === 2 ? "but" : "who want"}</span>}
+                      <span style={{ padding: "3px 10px", borderRadius: 999, background: "#F1EAFD", color: "#5B21B6", fontSize: 12.5, fontWeight: 600 }}>{t}</span>
+                    </span>
+                  ))}
+                </div>
+                <textarea
+                  id="f-who"
+                  autoFocus
+                  rows={2}
+                  className="cob-area"
+                  value={who}
+                  onChange={(e) => setWho(e.target.value.replace(/\n/g, " "))}
+                  onKeyDown={onEnter}
+                  placeholder={WHO_EXAMPLES[0]}
+                  style={{ minHeight: 76, resize: "none" }}
+                />
+                {whoIsThin(who) ? (
+                  <p className="cob-hint" role="status" style={{ color: "#9A3412" }}>
+                    A bit short. Add what they want and what&apos;s in the way, like: &ldquo;{WHO_EXAMPLES[0]}&rdquo;.
+                  </p>
+                ) : (
+                  !who.trim() && <p className="cob-hint">For example: &ldquo;{WHO_EXAMPLES[1]}&rdquo;.</p>
+                )}
+                <label htmlFor="f-what" className="cob-label" style={{ marginTop: 20 }}>What they get</label>
                 <input id="f-what" className="cob-field" value={what} onChange={(e) => setWhat(e.target.value)} onKeyDown={onEnter} placeholder="Done-for-you ads, or we keep working free" />
                 <label htmlFor="f-price" className="cob-label" style={{ marginTop: 16 }}>
                   Price <span className="cob-opt-tag">optional</span>
                 </label>
-                <div style={{ display: "flex", gap: 8, maxWidth: 260 }}>
-                  <select
-                    aria-label="Currency"
-                    className="cob-field"
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
-                    style={{ width: 104, flexShrink: 0, paddingRight: 8 }}
-                  >
-                    {CURRENCIES.map((c) => (
-                      <option key={c.symbol} value={c.symbol}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
+                <div style={{ display: "flex", gap: 8, maxWidth: 320 }}>
+                  <div style={{ width: 132, flexShrink: 0 }}>
+                    <CurrencyPicker value={currency} onChange={setCurrency} className="cob-field" />
+                  </div>
                   <input id="f-price" className="cob-field" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} onKeyDown={onEnter} placeholder="997" style={{ minWidth: 0 }} />
                 </div>
+                {hasAmount && (
+                  <div className="cob-rise">
+                    <div className="cob-label" style={{ marginTop: 16, marginBottom: 8 }}>How do they pay?</div>
+                    <div role="radiogroup" aria-label="How do they pay?" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {BILLING_OPTIONS.map((o) => (
+                        <button
+                          key={o.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={billing === o.id}
+                          className={`cob-chipbtn ${billing === o.id ? "on" : ""}`}
+                          onClick={() => setBilling(o.id)}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <label htmlFor="f-signoff" className="cob-label" style={{ marginTop: 16 }}>
                   Sign emails as <span className="cob-opt-tag">optional</span>
                 </label>
@@ -590,7 +643,9 @@ export default function OnboardingPage() {
                         ? "Fill in your ideal customer and what they get to continue."
                         : !who.trim()
                           ? "Fill in your ideal customer to continue."
-                          : "Fill in what they get to continue."}
+                          : !what.trim()
+                            ? "Fill in what they get to continue."
+                            : "Pick how they pay to continue."}
                     </p>
                   )}
                 </div>

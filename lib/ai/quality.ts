@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { chat, UTILITY_MODEL } from "./client";
-import type { OfferContext, StepContext } from "./prompts";
+import { priceForPrompt, type OfferContext, type StepContext } from "./prompts";
 
 // The quality gate between the model and the user. Generic copy is the
 // one thing Campeos can't ship, so every message is checked twice before
@@ -134,7 +134,7 @@ export function knownFacts(offer: OfferContext, step: StepContext): string[] {
   const b = step.brief;
   return [
     offer.name && `Offer name: ${offer.name}`,
-    offer.price && `Price: ${offer.price}`,
+    offer.price && `Price: ${priceForPrompt(offer)}`,
     offer.audience && `Who it's for: ${offer.audience}`,
     offer.whatTheyGet && `What they get (includes any guarantee stated here): ${offer.whatTheyGet}`,
     offer.fromName && `The sender signs as: ${offer.fromName}`,

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { chat, UTILITY_MODEL } from "./client";
-import { OfferContext } from "./prompts";
+import { OfferContext, priceForPrompt } from "./prompts";
 
 // The agent's job: hold a conversation and, when it has enough, call one
 // of two tools. It is NOT given free-form code execution or direct
@@ -95,7 +95,7 @@ function buildSystemPrompt(
   if (knownProfile) {
     prompt += `\n\nYou already know this about the user's business from a previous campaign — don't ask for any of it again for a new campaign unless the user says it's changed:
 - Offer name: ${knownProfile.name}
-- Price: ${knownProfile.price}
+- Price: ${priceForPrompt(knownProfile)}
 - Audience: ${knownProfile.audience}
 - What they get: ${knownProfile.whatTheyGet}
 - Tone: ${knownProfile.tone}

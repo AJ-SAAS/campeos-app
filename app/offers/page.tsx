@@ -10,6 +10,7 @@ import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
 import { useSubscription } from "@/lib/firebase/useSubscription";
 import { Offer, createOffer, deleteOffer, listOffers, updateOffer } from "@/lib/firebase/offers";
 import { OfferContext } from "@/lib/ai/prompts";
+import { priceLabel } from "@/lib/onboarding/answers";
 
 // Standalone home for a client's saved offers — what am I selling,
 // reusable across every campaign instead of retyped from scratch each
@@ -146,7 +147,7 @@ export default function OffersPage() {
                       {offer.name || "Untitled offer"}
                     </div>
                     <div className="text-xs text-muted truncate">
-                      {[offer.price, offer.audience].filter(Boolean).join(" · ")}
+                      {[priceLabel(offer.price, offer.billing), offer.audience].filter(Boolean).join(" · ")}
                     </div>
                     {offer.whatTheyGet && (
                       <div className="text-[13px] text-muted leading-snug">{offer.whatTheyGet}</div>

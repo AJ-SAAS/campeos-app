@@ -6,6 +6,8 @@ const offerPageSchema = z.object({
   whatTheyGet: z.string(),
   audience: z.string(),
   price: z.string(),
+  // How they pay. Older cached scans don't have it, so it defaults to "".
+  billing: z.enum(["once", "monthly", "yearly", ""]).catch("").default(""),
   testimonials: z.array(z.string()).max(10),
   angles: z.array(z.string()).max(8),
 });
@@ -15,6 +17,7 @@ export interface OfferPageExtraction {
   whatTheyGet: string;
   audience: string;
   price: string;
+  billing: "once" | "monthly" | "yearly" | "";
   testimonials: string[];
   angles: string[];
 }
@@ -53,8 +56,17 @@ say it.
 - "name": the offer/product/program name, if stated. Otherwise "".
 - "whatTheyGet": a short, concrete description of what's actually
   included, in the page's own terms. Otherwise "".
-- "audience": who the page says this is for. Otherwise "".
+- "audience": the ideal customer as ONE short line in this shape:
+  "[who they are] who want [what they want] but [what is in their way]".
+  Plain words, no more than about 16 words. Example: "Coaches who want
+  more clients but hate cold DMs". Build it ONLY from what the page says.
+  If the page names who it's for and what they want but not what is in
+  the way, drop the "but" part. Never invent a struggle the page doesn't
+  mention. If the page doesn't say who it's for, "".
 - "price": the price exactly as shown (e.g. "$497", "$97/mo"). Otherwise "".
+- "billing": how the price is paid, only if the page shows it: "once"
+  (one-time payment, pay once, lifetime), "monthly" (per month, /mo,
+  monthly) or "yearly" (per year, /yr, annual). Otherwise "".
 - "testimonials": direct quotes or close paraphrases of real customer
   testimonials/reviews/results that appear on the page, each as one
   string. An empty array if none appear. Never invent one.
@@ -64,7 +76,7 @@ say it.
   if none are clear.
 
 Return ONLY a JSON object in this exact shape:
-{ "name": "", "whatTheyGet": "", "audience": "", "price": "", "testimonials": [], "angles": [] }`;
+{ "name": "", "whatTheyGet": "", "audience": "", "price": "", "billing": "", "testimonials": [], "angles": [] }`;
 
   const response = await chat({
     model: UTILITY_MODEL,

@@ -11,6 +11,12 @@ export type ReadingLevel = (typeof READING_LEVELS)[number];
 export interface OfferContext {
   name: string;
   price: string;
+  /**
+   * How the price is paid: "once", "monthly" or "yearly". Optional, so
+   * offers saved before it existed keep working. Without it a "$97" could
+   * be a one-off or a subscription, and the copy would have to guess.
+   */
+  billing?: string;
   audience: string;
   whatTheyGet: string;
   tone: string;
@@ -32,6 +38,17 @@ export interface OfferContext {
    * at all rather than invent a bracket placeholder for it.
    */
   fromName?: string;
+}
+
+/** The price as the writing prompts should see it, with how it's paid.
+ * "$97" + monthly -> "$97 (a subscription, billed every month)". */
+export function priceForPrompt(offer: { price: string; billing?: string }): string {
+  const price = (offer.price ?? "").trim();
+  if (!price) return price;
+  if (offer.billing === "once") return `${price} (one-time payment, they pay once)`;
+  if (offer.billing === "monthly") return `${price} (a subscription, billed every month)`;
+  if (offer.billing === "yearly") return `${price} (a subscription, billed every year)`;
+  return price;
 }
 
 export interface StepContext {
@@ -297,7 +314,7 @@ specificity of Ogilvy and the reason-why of Hopkins. Every line is about
 THIS reader and THIS offer. The offer:
 
 Offer: ${offer.name}
-Price: ${offer.price}
+Price: ${priceForPrompt(offer)}
 Audience: ${offer.audience}
 What they get: ${offer.whatTheyGet}
 Tone: ${offer.tone}

@@ -15,7 +15,8 @@ import { listCallThemes, listWinningCopy } from "@/lib/firebase/library";
 // by the Sidebar, so it follows the user across every main page. Goes
 // away by itself once every step is done, or for good with the X.
 
-const COLLAPSE_KEY = "campeos.checklistCollapsed";
+// v2: a fresh start, so everyone sees the list open on Home once.
+const COLLAPSE_KEY = "campeos.checklistCollapsed.v2";
 
 interface Item {
   id: string;
@@ -31,17 +32,20 @@ export function GetStartedWidget() {
   const pathname = usePathname();
   const [items, setItems] = useState<Item[] | null>(null);
   const [hidden, setHidden] = useState(true);
-  const [collapsed, setCollapsed] = useState(false);
+  // What they chose by tapping the arrow: true = minimized, false = open,
+  // null = never chose. Until they choose, the list is open on Home (it's
+  // there to say what to do next) and minimized everywhere else, where an
+  // open list can sit on top of buttons.
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const collapsed = chosen ?? pathname !== "/dashboard";
 
   useEffect(() => {
-    // Starts minimized for everyone: the open list covered buttons on the
-    // first screens (it hid "Unlock my launch"). They can open it with one
-    // tap, and after that it remembers what they last chose.
     let saved: string | null = null;
     try {
       saved = localStorage.getItem(COLLAPSE_KEY);
     } catch {}
-    setCollapsed(saved ? saved === "1" : true);
+    if (saved === "1") setChosen(true);
+    else if (saved === "0") setChosen(false);
   }, []);
 
   // Re-checked on every page change, so ticking a step off (saving a
@@ -115,12 +119,11 @@ export function GetStartedWidget() {
   const next = items.findIndex((i) => !i.done);
 
   function toggleCollapsed() {
-    setCollapsed((c) => {
-      try {
-        localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1");
-      } catch {}
-      return !c;
-    });
+    const next = !collapsed;
+    setChosen(next);
+    try {
+      localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+    } catch {}
   }
 
   function hideForGood() {

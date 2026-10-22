@@ -11,7 +11,7 @@ import { getAdminDb } from "@/lib/firebase/admin";
 const TTL_MS = 2 * 24 * 60 * 60 * 1000;
 
 export const cacheKey = (kind: "url" | "text", value: string) =>
-  createHash("sha256").update(`${kind}:${value}`).digest("hex");
+  createHash("sha256").update(`v2:${kind}:${value}`).digest("hex");
 
 export async function getCachedScan<T>(key: string): Promise<T | null> {
   try {

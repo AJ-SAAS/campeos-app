@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { OfferContext, READING_LEVELS } from "@/lib/ai/prompts";
+import { BILLING_OPTIONS } from "@/lib/onboarding/answers";
 
 interface SetupPanelProps {
   offer: OfferContext;
@@ -76,13 +77,23 @@ export function SetupPanel({
       <div className="shrink-0 rounded-2xl border border-line divide-y divide-line overflow-hidden">
         <SheetField label="Offer name" value={offer.name} onChange={(v) => set("name", v)} />
         <SheetField label="Price" value={offer.price} onChange={(v) => set("price", v)} />
-        <SheetField label="Who it's for" value={offer.audience} onChange={(v) => set("audience", v)} />
+        <SheetField label="Who it's for (one line)" value={offer.audience} onChange={(v) => set("audience", v)} />
         <SheetField label="What they get" value={offer.whatTheyGet} onChange={(v) => set("whatTheyGet", v)} />
         <SheetField
           label="Sign emails as"
           value={offer.fromName ?? ""}
           placeholder={signOffPlaceholder}
           onChange={(v) => set("fromName", v)}
+        />
+      </div>
+
+      <div className="shrink-0">
+        <SegmentedField
+          label="How they pay"
+          helper="One-time or a subscription. The copy changes with it."
+          options={BILLING_OPTIONS.map((o) => o.label)}
+          value={BILLING_OPTIONS.find((o) => o.id === offer.billing)?.label ?? ""}
+          onChange={(v) => set("billing", BILLING_OPTIONS.find((o) => o.label === v)?.id)}
         />
       </div>
 

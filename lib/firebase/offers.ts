@@ -27,11 +27,16 @@ export interface Offer extends OfferContext {
   createdAt: Date | null;
 }
 
+// Firestore refuses a field whose value is undefined (an offer with no
+// "sign emails as" or no billing type, say), so those are left out.
+const withoutUndefined = <T extends object>(o: T): T =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
+
 /** Saves a new offer for this user. Returns the new doc's id. */
 export async function createOffer(uid: string, offer: OfferContext): Promise<string> {
   const ref = await addDoc(collection(db, "offers"), {
     uid,
-    ...offer,
+    ...withoutUndefined(offer),
     createdAt: serverTimestamp(),
   });
   return ref.id;
@@ -48,6 +53,7 @@ export async function listOffers(uid: string): Promise<Offer[]> {
       uid: data.uid as string,
       name: (data.name as string) ?? "",
       price: (data.price as string) ?? "",
+      billing: data.billing as string | undefined,
       audience: (data.audience as string) ?? "",
       whatTheyGet: (data.whatTheyGet as string) ?? "",
       tone: (data.tone as string) ?? "",
@@ -64,7 +70,7 @@ export async function listOffers(uid: string): Promise<Offer[]> {
 
 /** Overwrites an existing offer's fields in place (editing, not creating a new one). */
 export async function updateOffer(id: string, offer: OfferContext): Promise<void> {
-  await setDoc(doc(db, "offers", id), offer, { merge: true });
+  await setDoc(doc(db, "offers", id), withoutUndefined(offer), { merge: true });
 }
 
 export async function deleteOffer(id: string): Promise<void> {

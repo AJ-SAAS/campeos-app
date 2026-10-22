@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { isDisposableEmail } from "../lib/disposableEmail";
 import { needsEmailVerification, requireVerifiedUser, type VerifiedUser } from "../lib/serverAuth";
 import { missingDetails, missingDetailsLabel, needsInput } from "../lib/dashboard";
-import { joinPrice, splitPrice, defaultCurrency, launchDateInDays, launchDateToEvent, daysUntil, suggestedPlan } from "../lib/onboarding/answers";
+import { CURRENCIES, findCurrency, billingFromPrice, priceLabel, whoIsThin, joinPrice, splitPrice, defaultCurrency, launchDateInDays, launchDateToEvent, daysUntil, suggestedPlan } from "../lib/onboarding/answers";
 import { pageSignals, urlVariants } from "../lib/web";
 
 // ---- fake sign-ups -------------------------------------------------------
@@ -177,4 +177,66 @@ test("normalizeUrlKey treats the same page the same way", () => {
   const b = normalizeUrlKey("https://site.com/offer");
   assert.equal(a, b);
   assert.notEqual(normalizeUrlKey("https://site.com/other"), b);
+});
+
+
+test("currency list: every row has its own symbol and a flag file", async () => {
+  const { existsSync } = await import("node:fs");
+  const symbols = new Set(CURRENCIES.map((c) => c.symbol));
+  assert.equal(symbols.size, CURRENCIES.length, "no two currencies share a symbol");
+  assert.equal(new Set(CURRENCIES.map((c) => c.code)).size, CURRENCIES.length);
+  for (const c of CURRENCIES) assert.ok(existsSync(`public/flags/${c.cc}.svg`), `missing flag for ${c.code}`);
+});
+
+test("currency: finds by symbol or code, and old saved values still work", () => {
+  assert.equal(findCurrency("$")?.code, "USD");
+  assert.equal(findCurrency("SEK")?.code, "SEK");
+  assert.equal(findCurrency("kr")?.code, "SEK", "the old bare kr");
+  assert.equal(findCurrency("gbp")?.symbol, "£");
+  assert.equal(findCurrency("nope"), undefined);
+});
+
+test("price: letter currencies get a space, symbols don't", () => {
+  assert.equal(joinPrice("SEK", "997"), "SEK 997");
+  assert.equal(joinPrice("CHF", "49"), "CHF 49");
+  assert.equal(joinPrice("R", "500"), "R500");
+  assert.equal(joinPrice("MX$", "1,200"), "MX$1,200");
+  assert.deepEqual(splitPrice("SEK 997"), { currency: "SEK", amount: "997" });
+  assert.deepEqual(splitPrice("R$ 49"), { currency: "R$", amount: "49" });
+  assert.deepEqual(splitPrice("RM120"), { currency: "RM", amount: "120" });
+});
+
+test("currency starts from the browser region for more countries", () => {
+  assert.equal(defaultCurrency("sv-SE"), "SEK");
+  assert.equal(defaultCurrency("en-SG"), "S$");
+  assert.equal(defaultCurrency("pt-BR"), "R$");
+  assert.equal(defaultCurrency("es-MX"), "MX$");
+  assert.equal(defaultCurrency("ja-JP"), "¥");
+});
+
+test("billing: read from the price, and shown with the price", () => {
+  assert.equal(billingFromPrice("$97/mo"), "monthly");
+  assert.equal(billingFromPrice("$97 per month"), "monthly");
+  assert.equal(billingFromPrice("$997/year"), "yearly");
+  assert.equal(billingFromPrice("$997"), null);
+  assert.equal(priceLabel("$97", "monthly"), "$97 a month");
+  assert.equal(priceLabel("$997", "yearly"), "$997 a year");
+  assert.equal(priceLabel("$997", "once"), "$997 one-time");
+  assert.equal(priceLabel("Free", "monthly"), "Free");
+  assert.equal(priceLabel("$97", undefined), "$97");
+});
+
+test("ideal customer: one or two words is too thin to write from", () => {
+  assert.equal(whoIsThin("marketers"), true);
+  assert.equal(whoIsThin("busy marketers"), true);
+  assert.equal(whoIsThin("Coaches who want more clients but hate cold DMs"), false);
+  assert.equal(whoIsThin(""), false, "empty is handled by the required check, not this nudge");
+});
+
+test("the writing prompt tells the model how the price is paid", async () => {
+  const { priceForPrompt } = await import("../lib/ai/prompts");
+  assert.match(priceForPrompt({ price: "$97", billing: "monthly" }), /billed every month/);
+  assert.match(priceForPrompt({ price: "$997", billing: "once" }), /one-time/);
+  assert.equal(priceForPrompt({ price: "$97" }), "$97");
+  assert.equal(priceForPrompt({ price: "", billing: "monthly" }), "");
 });
