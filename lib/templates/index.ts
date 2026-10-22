@@ -20,6 +20,9 @@ import { ebookTemplate } from "./ebook-low-ticket";
 import { xmasTemplate } from "./xmas-holidays";
 import { valentinesTemplate } from "./valentines-day";
 import { dailyDealsTemplate } from "./daily-deals";
+import { bookTemplate } from "./physical-book-shipping";
+import { socialProofTemplate } from "./social-proof";
+import { newsletterTemplate } from "./newsletter";
 
 // Adding a new campaign type ("pocket") means adding a file next to
 // webinar.ts and registering it here. Nothing else should need to change.
@@ -44,6 +47,9 @@ export const templates: Record<string, CampaignTemplate> = {
   "xmas-holidays": xmasTemplate,
   "valentines-day": valentinesTemplate,
   "daily-deals": dailyDealsTemplate,
+  "physical-book-shipping": bookTemplate,
+  "social-proof": socialProofTemplate,
+  newsletter: newsletterTemplate,
 };
 
 /** The "key date" text the writer sees: when it goes live and, for

@@ -220,7 +220,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 week",
     description: "Sell a free-plus-shipping book offer.",
     category: "leadgen",
-    status: "soon",
+    status: "available",
   },
 
   // Sales calls & high-ticket
@@ -253,10 +253,10 @@ export const catalog: CatalogEntry[] = [
   {
     id: "newsletter",
     title: "Newsletter Campaign",
-    length: "Ongoing",
+    length: "3 weeks",
     description: "A recurring send that keeps your list warm.",
     category: "retention",
-    status: "soon",
+    status: "available",
   },
   {
     id: "social-proof",
@@ -264,7 +264,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 week",
     description: "Lead with testimonials and results to build trust.",
     category: "retention",
-    status: "soon",
+    status: "available",
   },
   {
     id: "branding",

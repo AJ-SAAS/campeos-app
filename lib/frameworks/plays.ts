@@ -1501,6 +1501,235 @@ export const PLAYS: Record<string, Play> = {
     avoid: ["Never list a deal that was not sent."],
   }),
 
+  "book-announce": P({
+    id: "book-announce",
+    name: "The free book",
+    job: "Say the book is free, who it is for and what shipping costs. Plainly.",
+    beats: [
+      "Lead with the problem the book solves for this reader, in their words.",
+      "Say the book is free and they only cover shipping. Give the shipping cost or [SHIPPING COST] and where it ships or [SHIPS TO].",
+      "Three short bullets of what is inside.",
+      "Say who it is for and who it is not for.",
+      "One call to action with [LINK] and the real end date.",
+    ],
+    hooks: ["Your free copy", "A free book, you cover shipping", "Free book: just pay shipping"],
+    focus: "offer",
+    avoid: ["Never promise a delivery date that was not given.", "Never call it fully free if shipping is paid."],
+  }),
+
+  "book-inside": P({
+    id: "book-inside",
+    name: "A look inside the book",
+    job: "Show what the book gives them so the shipping fee feels small.",
+    beats: [
+      "Open on one idea from the book that the reader can use today.",
+      "Three to four chapters or lessons, one line each, using only what was given.",
+      "Say what changes for the reader after they read it.",
+      "One call to action with [LINK] and the end date.",
+    ],
+    hooks: ["Inside the book", "Chapter one in one minute", "What you will learn"],
+    focus: "desire",
+    avoid: ["Never invent chapter titles that were not given."],
+  }),
+
+  "book-why-free": P({
+    id: "book-why-free",
+    name: "Why is it free?",
+    job: "Answer the honest question: what is the catch?",
+    beats: [
+      "Say the question out loud: why would you give a book away?",
+      "Answer it plainly. The book is how readers get to know you, and shipping covers the cost of sending it. Add a next step only if one exists.",
+      "Say exactly what they pay and what they get.",
+      "One call to action with [LINK].",
+    ],
+    hooks: ["What is the catch?", "Why is the book free?", "Here is the honest answer"],
+    focus: "objection",
+    avoid: ["Never hide a later charge or a next step."],
+  }),
+
+  "post-book-free": P({
+    id: "post-book-free",
+    name: "Free book post",
+    job: "Tell followers the book is free and they cover shipping.",
+    beats: [
+      "First line: the problem the book solves, or the free book offer.",
+      "2 to 3 short lines: what is inside and who it is for.",
+      "Say the book is free and they cover shipping. One link and the end date.",
+    ],
+    hooks: ["Free book", "I will send you a copy", "Want a free copy?"],
+    focus: "offer",
+  }),
+
+  "ad-book-free": P({
+    id: "ad-book-free",
+    name: "Free book ad",
+    job: "Stop the scroll with the book and the free offer.",
+    beats: [
+      "Headline: the free book and the problem it solves.",
+      "Primary text: who it is for, what is inside and that they only cover shipping.",
+      "Button: get your copy.",
+    ],
+    hooks: ["Get your free copy", "Free book: pay shipping", "For people who want <result>"],
+    focus: "offer",
+    avoid: ["Never call it fully free if shipping is paid."],
+  }),
+
+  "book-shipping": P({
+    id: "book-shipping",
+    name: "What happens when you order",
+    job: "Remove the fear of the order by walking through what happens next.",
+    beats: [
+      "Open on the worry: what happens after I click?",
+      "Walk through the steps: order, shipping, arrival. Use dates only if given, otherwise [DELIVERY TIME].",
+      "Say what the shipping fee covers and where it ships.",
+      "One call to action with [LINK].",
+    ],
+    hooks: ["What happens next", "Here is how it works", "Order, then what?"],
+    focus: "objection",
+    avoid: ["Never promise a delivery date that was not given."],
+  }),
+
+  "email-proof-roundup": P({
+    id: "email-proof-roundup",
+    name: "What people say",
+    job: "Let real customers do the talking.",
+    beats: [
+      "One line to open: do not take our word for it.",
+      "Three short real quotes, each with the name and the result. Use [CUSTOMER NAME] and [RESULT] for any detail not given.",
+      "One line that ties the quotes together: what they have in common.",
+      "One soft link, no hard sell.",
+    ],
+    hooks: ["What people say", "Do not take my word for it", "Real words from real customers"],
+    focus: "proof",
+    avoid: ["Never invent a quote, a name or a result."],
+  }),
+
+  "post-proof-quote": P({
+    id: "post-proof-quote",
+    name: "Customer quote post",
+    job: "One real quote, shown as it was said.",
+    beats: [
+      "First line: the result, in the customer's own words.",
+      "One short line of who said it and what changed. Use [CUSTOMER NAME] if not given.",
+      "A soft link or a question to invite their story.",
+    ],
+    hooks: ["In their words", "This made my day", "Look what happened"],
+    focus: "proof",
+    avoid: ["Never invent a quote."],
+  }),
+
+  "proof-numbers": P({
+    id: "proof-numbers",
+    name: "The numbers",
+    job: "Back the story with the facts that are really known.",
+    beats: [
+      "Open on the one number that matters most. Use [NUMBER] if not given.",
+      "Two or three more facts, one line each, only if given: customers, results, years.",
+      "What the numbers mean for the reader in one plain line.",
+      "One soft link.",
+    ],
+    hooks: ["By the numbers", "The short version", "What the numbers say"],
+    focus: "proof",
+    avoid: ["Never invent a number or round it up."],
+  }),
+
+  "ad-proof": P({
+    id: "ad-proof",
+    name: "Proof ad",
+    job: "Use one real result as the ad.",
+    beats: [
+      "Headline: the result in the customer's words.",
+      "Primary text: who they are, what they did and what changed. Use [CUSTOMER NAME] and [RESULT] if not given.",
+      "Button: see how.",
+    ],
+    hooks: ["How <name> got <result>", "Real result", "This is what happened"],
+    focus: "proof",
+    avoid: ["Never invent a quote, a name or a result."],
+  }),
+
+  "proof-next-step": P({
+    id: "proof-next-step",
+    name: "Your turn",
+    job: "After a week of proof, invite the reader to take the next step.",
+    beats: [
+      "Say you have shared a lot of other people's results this week.",
+      "Name the one thing the reader would get from the next step.",
+      "Say what it costs or what to do, plainly.",
+      "One call to action with [LINK]. No pressure.",
+    ],
+    hooks: ["Your turn", "Ready when you are", "If this is you"],
+    focus: "offer",
+  }),
+
+  "newsletter-welcome": P({
+    id: "newsletter-welcome",
+    name: "Issue 1: start here",
+    job: "The first issue sets the promise: what the newsletter is, how often, and why read it.",
+    beats: [
+      "Say what the newsletter is and who it is for, in one plain line.",
+      "Promise: what readers get each issue and how often it comes.",
+      "Give the reader one useful thing right now, so issue 1 is worth opening.",
+      "Ask them to hit reply and say what they want to learn.",
+    ],
+    hooks: ["Start here", "Welcome", "Here is what to expect"],
+    focus: "story",
+  }),
+
+  "newsletter-roundup": P({
+    id: "newsletter-roundup",
+    name: "Roundup issue",
+    job: "A short issue of the best things: links, ideas and one pick.",
+    beats: [
+      "One line of what this issue holds.",
+      "Three short items, each with a one line reason to care. Use [ITEM] for anything not given.",
+      "One pick of the week: the thing you would not miss.",
+      "A soft invite to reply or share.",
+    ],
+    hooks: ["This week's best", "Three things worth your time", "Roundup"],
+    focus: "story",
+    avoid: ["Never invent links or sources."],
+  }),
+
+  "newsletter-reply": P({
+    id: "newsletter-reply",
+    name: "Reply to me",
+    job: "Get readers to answer, which trains inboxes to deliver you and tells you what to write next.",
+    beats: [
+      "One short question that is easy to answer in one line.",
+      "Why you are asking: so the next issues fit them.",
+      "Say you read every reply.",
+    ],
+    hooks: ["Quick question", "Can I ask you something?", "One question"],
+    focus: "story",
+  }),
+
+  "post-newsletter-promo": P({
+    id: "post-newsletter-promo",
+    name: "Newsletter promo post",
+    job: "Give followers a reason to join the list.",
+    beats: [
+      "First line: what they get from the newsletter, or one idea from the latest issue.",
+      "2 to 3 short lines: who it is for and how often it comes.",
+      "One link to join.",
+    ],
+    hooks: ["Join the newsletter", "In this week's issue", "You will like this one"],
+    focus: "desire",
+  }),
+
+  "ad-newsletter": P({
+    id: "ad-newsletter",
+    name: "Newsletter ad",
+    job: "Grow the list with one clear promise.",
+    beats: [
+      "Headline: what readers get, as a result.",
+      "Primary text: who it is for, how often and one sample idea.",
+      "Button: sign up.",
+    ],
+    hooks: ["Get it in your inbox", "Free every week", "Join <number> readers"],
+    focus: "desire",
+    avoid: ["Never invent a reader count."],
+  }),
+
   /* ------------------------------------------------------------ */
   /* Short channels: texts, posts, ads                              */
   /* ------------------------------------------------------------ */

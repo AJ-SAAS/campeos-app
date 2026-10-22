@@ -9,7 +9,7 @@ import { templateChannelsFor } from "../lib/onboarding/answers";
 import { finishCopy, STANDARD_EULA_URL } from "../lib/ai/generateStepCopy";
 import { lintCopy } from "../lib/ai/quality";
 
-const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser", "lead-magnet", "giveaway", "ebook-low-ticket", "xmas-holidays", "valentines-day", "daily-deals"];
+const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser", "lead-magnet", "giveaway", "ebook-low-ticket", "xmas-holidays", "valentines-day", "daily-deals", "physical-book-shipping", "social-proof", "newsletter"];
 const offer: OfferContext = { name: "Candle Club", price: "$40", audience: "Candle lovers", whatTheyGet: "A box of 3 candles", tone: "Friendly" };
 
 for (const id of NEW) {
@@ -199,4 +199,31 @@ test("xmas ends with a no-pitch thank you; valentine's has three angles and an o
   const v = templates["valentines-day"];
   assert.ok(v.steps.some((s) => s.playId === "love-angles"));
   assert.ok(v.steps.some((s) => s.playId === "order-by"));
+});
+
+test("physical book: says shipping is the only cost and never hides a catch", () => {
+  const t = templates["physical-book-shipping"];
+  assert.ok(t.steps.some((s) => s.playId === "book-why-free"));
+  assert.ok(t.steps.some((s) => s.playId === "book-shipping"));
+  assert.ok(getPlay("book-announce")!.avoid!.join(" ").includes("Never call it fully free"));
+  assert.ok(getPlay("book-why-free")!.avoid!.join(" ").includes("Never hide a later charge"));
+});
+
+test("social proof: asks for proof first, never invents it, ends with an invitation", () => {
+  const t = templates["social-proof"];
+  const first = t.steps.reduce((a, b) => (b.offsetHours < a.offsetHours ? b : a));
+  assert.equal(first.playId, "email-review-ask");
+  for (const id of ["email-proof-roundup", "post-proof-quote", "proof-numbers", "ad-proof"]) {
+    assert.ok(getPlay(id)!.avoid!.join(" ").includes("Never invent"), id);
+  }
+  const last = t.steps.filter((s) => s.playId === "proof-next-step");
+  assert.equal(last.length, 1);
+});
+
+test("newsletter: welcome first, weekly issues a week apart", () => {
+  const t = templates.newsletter;
+  const first = t.steps.reduce((a, b) => (b.offsetHours < a.offsetHours ? b : a));
+  assert.equal(first.playId, "newsletter-welcome");
+  const issues = t.steps.filter((s) => s.id.startsWith("email-issue-")).map((s) => s.offsetHours);
+  assert.deepEqual(issues, [0, 168, 336]);
 });
