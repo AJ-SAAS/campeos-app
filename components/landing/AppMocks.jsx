@@ -657,7 +657,7 @@ export function WinnersLibrary({ fast }) {
 const JOURNEY = [
   { id: 'tell', ms: 7400, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
   { id: 'write', ms: 5200, label: 'Write', lead: 'Your whole launch, written.', text: 'Every email, text, ad and post, in your voice, before you finish your coffee.' },
-  { id: 'schedule', ms: 4600, label: 'Schedule', lead: 'Every message gets a day and a time.', text: 'One calendar from the first invite to the last call.' },
+  { id: 'schedule', ms: 11500, label: 'Schedule', lead: 'Every message gets a day and a time.', text: 'One plan from the first teaser to the last call.' },
   { id: 'improve', ms: 6200, label: 'Improve', lead: 'Your next launch starts ahead.', text: 'Save what your buyers respond to and build the next launch from it.' },
 ];
 
@@ -1005,40 +1005,180 @@ function ScreenWrite() {
   );
 }
 
-/* 3. Schedule: the whole launch on one calendar. */
-const CAL = [
-  { day: 'Mon', logos: ['email'], title: 'Black Friday is coming', time: '9:00 AM' },
-  { day: 'Wed', logos: ['instagram', 'facebook'], title: 'Sneak peek of the deals', time: '5:00 PM' },
-  { day: 'Thu', logos: ['sms'], title: 'Sale starts tomorrow', time: '12:00 PM' },
-  { day: 'Fri', logos: ['email'], title: 'Sale is live', time: '9:00 AM', live: true },
-  { day: 'Mon', logos: ['facebook'], title: 'Last chance ad', time: '8:00 AM' },
+/* 3. Schedule: the whole Black Friday launch, 24 messages, scrolling past like a fast-forward. */
+const PHASES = [
+  { name: 'Warm-up', range: 'Nov 12 to 18', color: '#2563EB', bg: '#EAF1FF' },
+  { name: 'Early access', range: 'Nov 19 to 25', color: '#9B1FD6', bg: '#F5EAFE' },
+  { name: 'Sale days', range: 'Nov 26 to Dec 1', color: '#E0109F', bg: '#FFE9F6' },
 ];
+// [days after Nov 12, day label, time, channels, kind, hook]
+const MSGS = [
+  [0, 'Thu 12', '9 AM', ['youtube'], 'YouTube video', "I almost skipped Black Friday this year. Here's why I didn't."],
+  [0, 'Thu 12', '12 PM', ['instagram'], 'Instagram post', "Okay, I'm a little nervous about the 27th."],
+  [2, 'Sat 14', '10 AM', ['email'], 'Email', 'Last Black Friday, I messed up. Let me tell you how.'],
+  [4, 'Mon 16', '11 AM', ['facebook'], 'Facebook post', "Quick question. What's one thing you'd buy if it went on sale?"],
+  [5, 'Tue 17', '9 AM', ['email'], 'Email', "Remember my mess-up from last week? Here's how I'm fixing it."],
+  [6, 'Wed 18', '6 PM', ['instagram'], 'Instagram reel', 'If this sounds like you, this sale is for you.'],
+  [7, 'Thu 19', '9 AM', ['email'], 'Email', 'You were here first, so you go first.'],
+  [7, 'Thu 19', '12 PM', ['sms'], 'Text message', "Hey, it's [YOUR NAME]. Your early spot is ready."],
+  [9, 'Sat 21', '10 AM', ['facebook'], 'Facebook ad', 'To everyone who bought from me before: thank you.'],
+  [11, 'Mon 23', '9 AM', ['email'], 'Email', '[CUSTOMER NAME] sent me this last week. I read it three times.'],
+  [12, 'Tue 24', '7 PM', ['youtube'], 'YouTube live', "Ask me anything. No script. I'll stay till the questions run out."],
+  [13, 'Wed 25', '6 PM', ['email'], 'Email', "Tomorrow night. Here's what I'd do if I were you."],
+  [14, 'Thu 26', '8 PM', ['sms'], 'Text message', "It's open. Here's your early link."],
+  [14, 'Thu 26', '8 PM', ['email'], 'Email', "You're in. Here's your deal."],
+  [15, 'Fri 27', '9 AM', ['email'], 'Email', "Okay. It's live. (Deep breath.)", true],
+  [15, 'Fri 27', '9 AM', ['instagram', 'facebook'], 'Social post', "It's live. Go get your coffee first.", true],
+  [15, 'Fri 27', '6 PM', ['sms'], 'Text message', 'The bonus is gone at midnight. Wanted you to know.', true],
+  [16, 'Sat 28', '11 AM', ['facebook'], 'Facebook ad', "Still thinking about it? That's okay. Read this first."],
+  [17, 'Sun 29', '7 PM', ['email'], 'Email', 'Three questions I keep getting asked.'],
+  [18, 'Mon 30', '9 AM', ['email'], 'Email', "I wasn't going to do this. Then you wrote back."],
+  [18, 'Mon 30', '6 PM', ['instagram'], 'Instagram story', '6 hours left. No pressure. Just a heads up.'],
+  [19, 'Tue 1', '9 AM', ['email'], 'Email', "Last call. I'll keep it short."],
+  [19, 'Tue 1', '4 PM', ['sms'], 'Text message', "8 hours left. You've got this."],
+  [19, 'Tue 1', '8 PM', ['email'], 'Email', 'Thank you. Whatever you decided.'],
+];
+const phaseOf = (i) => (i < 6 ? 0 : i < 12 ? 1 : 2);
+const ROW_H = 68;
+const HEAD_H = 46;
+// One flat list (phase headers and messages) with fixed heights so the scroll can be worked out exactly.
+const FLAT = [];
+(() => {
+  let top = 0;
+  MSGS.forEach((m, i) => {
+    if (i === 0 || phaseOf(i) !== phaseOf(i - 1)) {
+      FLAT.push({ kind: 'phase', phase: phaseOf(i), top, h: HEAD_H });
+      top += HEAD_H;
+    }
+    FLAT.push({ kind: 'msg', i, m, top, h: ROW_H });
+    top += ROW_H;
+  });
+})();
+
+function HookText({ text }) {
+  return text.split(/(\[[^\]]+\])/).map((part, i) =>
+    part.startsWith('[') ? (
+      <span key={i} style={{ padding: '0 6px', borderRadius: '6px', background: '#F3EEFF', color: '#5B21B6', fontFamily: MONO, fontSize: '12px', fontWeight: 600 }}>{part}</span>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
 
 function ScreenSchedule() {
-  const n = useStage([300, 800, 1300, 1800, 2300, 3200]);
+  const viewRef = useRef(null);
+  const listRef = useRef(null);
+  const [st, setSt] = useState(() => (prefersReduced() ? { count: MSGS.length, cur: MSGS.length - 1, done: true } : { count: 0, cur: 0, done: false }));
+
+  useEffect(() => {
+    if (prefersReduced()) {
+      const v = viewRef.current, l = listRef.current;
+      if (v && l) l.style.transform = `translateY(${-(l.scrollHeight - v.clientHeight)}px)`;
+      return;
+    }
+    const DELAY = 500, DUR = 8400;
+    let raf, t0;
+    const ease = (p) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2) * 0.35 + p * 0.65;
+    const tick = (t) => {
+      if (!t0) t0 = t;
+      const p = Math.max(0, Math.min(1, (t - t0 - DELAY) / DUR));
+      const v = viewRef.current, l = listRef.current;
+      if (!v || !l) return;
+      const max = Math.max(0, l.scrollHeight - v.clientHeight);
+      const y = ease(p) * max;
+      l.style.transform = `translateY(${-y}px)`;
+      const line = y + v.clientHeight * 0.74;
+      let count = 0, cur = 0;
+      for (const r of FLAT) {
+        if (r.kind !== 'msg') continue;
+        if (r.top + r.h / 2 <= line) count = r.i + 1;
+        if (r.top + r.h / 2 <= y + v.clientHeight * 0.5) cur = r.i;
+      }
+      const done = p >= 1;
+      if (done) count = MSGS.length;
+      setSt((o) => (o.count === count && o.cur === cur && o.done === done ? o : { count, cur, done }));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const ph = phaseOf(st.cur);
+  const day = MSGS[st.cur][0];
+  const pct = (day / 19) * 100;
   return (
     <AppWindow url="campeos.com/campaigns">
       <Side on="Campaigns" />
       <Main>
-        <AppHeader crumb="Campaigns" current="Launch calendar" status={{ color: '#22C55E', text: 'Scheduled' }} actions={<><Btn>Edit times</Btn><Btn dark>Launch</Btn></>} />
-        <Pad>
-          <div style={{ border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden' }}>
-            {CAL.map((r, i) => {
-              const on = n > i;
-              return (
-                <div key={r.day} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 18px', borderTop: i ? `1px solid ${LINE}` : '0', background: r.live ? '#FAFAFB' : '#FFFFFF', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>
-                  <span style={{ width: '36px', fontFamily: MONO, fontSize: '12px', color: r.live ? INK : '#8A8494', fontWeight: r.live ? 700 : 400 }}>{r.day}</span>
-                  <span style={{ width: '40px', flexShrink: 0, display: 'flex' }}><Logos list={r.logos} size={16} /></span>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: '14.5px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
-                  <span className="cps-hx-time" style={{ fontFamily: MONO, fontSize: '12px', color: '#8A8494' }}>{r.time}</span>
-                  <Toggle on />
-                </div>
-              );
-            })}
+        <AppHeader crumb="Campaigns" current="Black Friday campaign" status={{ color: '#22C55E', text: st.done ? 'Scheduled' : 'Scheduling...' }} actions={<><Btn>Edit times</Btn><Btn dark>Launch</Btn></>} />
+        <Pad style={{ gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '5px 12px', borderRadius: '999px', background: PHASES[ph].bg, color: PHASES[ph].color, fontSize: '13px', fontWeight: 600, transition: 'background .4s, color .4s' }}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'currentColor' }} />
+              {PHASES[ph].name}
+              <span style={{ fontWeight: 500, opacity: 0.7 }}>{PHASES[ph].range}</span>
+            </span>
+            <span style={{ fontFamily: MONO, fontSize: '12px', fontWeight: 700, color: st.done ? '#15803D' : '#9B1FD6', letterSpacing: '.04em' }}>{st.count} OF {MSGS.length} SCHEDULED</span>
           </div>
-          <div style={{ opacity: n >= 6 ? 1 : 0, transform: n >= 6 ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', background: '#F8F8F9', border: `1px solid ${LINE}` }}>
-            <span style={{ width: '26px', height: '26px', borderRadius: '8px', background: GRAD_ICON, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Spark size={12} /></span>
-            <span style={{ fontSize: '14px', lineHeight: 1.45, color: MUTED }}><b style={{ color: INK, fontWeight: 600 }}>Best time to send.</b> Your buyers open most around 7 PM, so the big messages land then.</span>
+
+          <div aria-hidden="true" style={{ position: 'relative', height: '18px', margin: '2px 4px 0' }}>
+            <div style={{ position: 'absolute', left: 0, right: 0, top: '8px', height: '3px', borderRadius: '999px', background: '#F0EEF4' }} />
+            <div style={{ position: 'absolute', left: 0, top: '8px', height: '3px', borderRadius: '999px', background: 'linear-gradient(90deg,#2563EB,#9B1FD6,#E0109F)', width: `${pct}%`, transition: 'width .5s' }} />
+            {[7, 14].map((d) => <span key={d} style={{ position: 'absolute', left: `${(d / 19) * 100}%`, top: '5px', width: '1.5px', height: '9px', background: '#D8D4E0' }} />)}
+            <span style={{ position: 'absolute', left: `${(15 / 19) * 100}%`, top: '0', transform: 'translateX(-50%)', fontFamily: MONO, fontSize: '9px', fontWeight: 700, letterSpacing: '.06em', color: '#E0109F' }}>BF</span>
+            <span style={{ position: 'absolute', left: `${pct}%`, top: '3px', width: '13px', height: '13px', marginLeft: '-6.5px', borderRadius: '50%', background: GRAD_ICON, boxShadow: '0 0 0 4px rgba(155,31,214,.18), 0 0 14px rgba(224,16,159,.6)', transition: 'left .5s' }} />
+          </div>
+
+          <div ref={viewRef} style={{ position: 'relative', height: '336px', overflow: 'hidden', borderRadius: '14px', border: `1px solid ${LINE}`, background: '#FFFFFF' }}>
+            <div ref={listRef} style={{ willChange: 'transform' }}>
+              {FLAT.map((r) => {
+                if (r.kind === 'phase') {
+                  const P = PHASES[r.phase];
+                  return (
+                    <div key={`p${r.phase}`} style={{ height: `${r.h}px`, display: 'flex', alignItems: 'flex-end', padding: '0 16px 8px', gap: '8px', fontFamily: MONO, fontSize: '11px', fontWeight: 700, letterSpacing: '.08em', color: P.color }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: P.color, marginBottom: '3px' }} />
+                      {P.name.toUpperCase()}
+                      <span style={{ color: '#B5B0BF', fontWeight: 500 }}>{P.range.toUpperCase()}</span>
+                    </div>
+                  );
+                }
+                const [, dayLabel, time, chs, kind, hook, live] = r.m;
+                const on = st.count > r.i;
+                return (
+                  <div key={r.i} style={{ height: `${r.h}px`, display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px', borderTop: '1px solid #F5F4F7', background: live ? (on ? 'linear-gradient(90deg,#FFF1FA,#FFFFFF 70%)' : '#FFFFFF') : '#FFFFFF', boxShadow: live && on ? 'inset 3px 0 0 #E0109F' : 'none', opacity: on ? 1 : 0.28, transform: on ? 'none' : 'translateY(10px)', transition: 'opacity .45s, transform .45s, background .4s' }}>
+                    <div style={{ width: '50px', flexShrink: 0 }}>
+                      <div style={{ fontFamily: MONO, fontSize: '11px', fontWeight: 700, color: live ? '#E0109F' : INK, whiteSpace: 'nowrap' }}>{dayLabel.toUpperCase()}</div>
+                      <div style={{ fontFamily: MONO, fontSize: '11px', color: '#8A8494', marginTop: '2px' }}>{time}</div>
+                    </div>
+                    <Logos list={chs} size={15} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}><HookText text={hook} /></div>
+                      <div style={{ fontSize: '12px', color: '#8A8494', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {kind}
+                        {live && <span style={{ padding: '1px 8px', borderRadius: '999px', background: 'linear-gradient(135deg,#9B1FD6,#E0109F)', color: '#FFFFFF', fontSize: '10px', fontWeight: 700, letterSpacing: '.06em' }}>LIVE</span>}
+                      </div>
+                    </div>
+                    {on ? <Tick size={20} pop /> : <span style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1.5px solid #E6E3EC', flexShrink: 0 }} />}
+                  </div>
+                );
+              })}
+              <div style={{ height: '52px' }} />
+            </div>
+            <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '34px', background: 'linear-gradient(180deg,#FFFFFF,rgba(255,255,255,0))', pointerEvents: 'none' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '44px', background: 'linear-gradient(0deg,#FFFFFF,rgba(255,255,255,0))', pointerEvents: 'none' }} />
+          </div>
+
+          <div style={{ position: 'relative', height: '42px' }}>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '12px', background: 'linear-gradient(135deg,#1E1458,#5B21B6 55%,#C026D3)', color: '#FFFFFF', fontSize: '14px', fontWeight: 600, textAlign: 'center', padding: '0 12px', opacity: st.done ? 1 : 0, transform: st.done ? 'none' : 'translateY(8px) scale(.97)', transition: 'opacity .4s, transform .4s' }}>
+              <Spark size={14} /> 24 messages scheduled. Each one has a day, a time and a hook.
+            </div>
+            {st.done && (
+              <span aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '50%' }}>
+                {BURST.map(([dx, dy], i) => (
+                  <span key={i} className="cps-burst" style={{ '--dx': `${dx}px`, '--dy': `${dy}px`, animationDelay: `${i * 30}ms`, background: i % 3 === 0 ? '#E0109F' : i % 3 === 1 ? '#9B1FD6' : '#F59E0B' }} />
+                ))}
+              </span>
+            )}
           </div>
         </Pad>
       </Main>
