@@ -819,46 +819,46 @@ const TOOL = [
 ];
 
 /* 1. Tell it: a clean search bar. A link types in, a cursor clicks, a beam scans a mini page, and the finds fly into the brief. */
-const SCAN_URL = 'yourstore.com';
-const NAV_H = 38;
-const ROW_H = [66, 50, 50, 42, 58, 50];
+const SCAN_URL = 'campeos.com';
+const SITE_H = 1650; // css px height of public/landing/scan-site.jpg when it is 1000px wide
+// Where each find sits on the page picture: [left, top, width, height] as fractions.
 const FINDS = [
-  ['Hook', 'Our biggest sale of the year'],
-  ['Offer', '40% off everything, 4 days only'],
-  ['Deal', 'Code BF40 at checkout'],
-  ['Audience', 'Past buyers and new fans'],
-  ['Reviews', '3 found'],
-  ['Extras', 'Deadline, free gift, free shipping'],
+  { label: 'Hook', value: 'Run a sold-out launch', box: [0.024, 0.0903, 0.952, 0.0781] },
+  { label: 'Offer', value: 'Your whole launch, written for you', box: [0.2, 0.1842, 0.6, 0.0388] },
+  { label: 'Proof', value: 'Olivia Alexa, 434K on YouTube', box: [0.2914, 0.286, 0.4173, 0.0279] },
+  { label: 'Urgency', value: 'Live countdown to launch day', box: [0.1, 0.4697, 0.8, 0.0758] },
+  { label: 'Pain', value: 'A blank page and a long night', box: [0.024, 0.7424, 0.466, 0.2297] },
+  { label: 'Promise', value: 'Done in one evening', box: [0.51, 0.7424, 0.466, 0.2297] },
 ];
 const BURST = [[-120, -46], [-84, -78], [-40, -92], [0, -100], [40, -92], [84, -78], [120, -46], [-62, -30], [62, -30], [0, -60]];
 
+/** A real picture of a sales page that scrolls while a beam reads it and each find is outlined. */
 function ScanSite({ f }) {
-  const y = NAV_H + ROW_H.slice(0, f).reduce((a, b) => a + b, 0);
-  const rows = [
-    <div key="0" style={{ fontFamily: 'Newsreader, serif', fontWeight: 600, fontSize: 'clamp(18px, 5.2vw, 25px)', letterSpacing: '-.02em', lineHeight: 1.05, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Our biggest sale of the year</div>,
-    <div key="1" style={{ fontSize: '15px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>40% off everything. <span style={{ color: '#8A8494', fontWeight: 500 }}>4 days only.</span></div>,
-    <span key="2" style={{ display: 'inline-block', padding: '5px 12px', borderRadius: '8px', background: INK, color: '#FFFFFF', fontFamily: MONO, fontSize: '13px', letterSpacing: '.06em' }}>CODE BF40</span>,
-    <div key="3" style={{ fontSize: '13px', color: MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Made for past buyers and new fans</div>,
-    <div key="4" style={{ fontSize: '13px', color: MUTED, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><span style={{ color: '#F59E0B', letterSpacing: '2px' }}>&#9733;&#9733;&#9733;&#9733;&#9733;</span> &ldquo;Best sale I have ever shopped.&rdquo;</div>,
-    <div key="5" style={{ display: 'flex', gap: '6px', overflow: 'hidden' }}>{['Free gift', 'Free shipping', 'Ends Monday'].map((t) => <span key={t} style={{ padding: '4px 10px', borderRadius: '999px', background: '#F4F3F6', fontSize: '12px', fontWeight: 500, color: MUTED }}>{t}</span>)}</div>,
-  ];
+  const VIEW = 1.05; // viewport height as a share of its width
+  const imgH = SITE_H / 1000; // image height as a share of its width
+  const target = FINDS[Math.min(f, FINDS.length - 1)].box;
+  const mid = target[1] + target[3] / 2;
+  const shiftMax = (imgH - VIEW) / imgH;
+  const shift = Math.max(0, Math.min(shiftMax, mid - (VIEW * 0.45) / imgH));
+  const last = f > 0 ? FINDS[Math.min(f, FINDS.length) - 1].box : FINDS[0].box;
+  const beamY = f > 0 ? last[1] + last[3] : FINDS[0].box[1] - 0.02;
   return (
-    <div style={{ position: 'relative', flex: '1 1 290px', minWidth: 0, borderRadius: '16px', border: `1px solid ${LINE}`, background: '#FFFFFF', overflow: 'hidden', height: `${NAV_H + ROW_H.reduce((a, b) => a + b, 0) + 14}px` }}>
-      <div style={{ height: `${NAV_H}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #F5F4F7', fontSize: '12px', fontWeight: 700, letterSpacing: '.02em' }}>
-        <span>YOURSTORE</span><span style={{ color: '#B5B0BF', fontWeight: 500 }}>Shop &nbsp; Sale &nbsp; Cart</span>
+    <div style={{ position: 'relative', flex: '1 1 290px', minWidth: 0, borderRadius: '16px', border: `1px solid ${LINE}`, background: '#FFFFFF', overflow: 'hidden', aspectRatio: `1 / ${VIEW}`, alignSelf: 'flex-start' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', transform: `translateY(${-shift * 100}%)`, transition: 'transform .9s cubic-bezier(.4,.1,.2,1)' }}>
+        <div style={{ position: 'relative', width: '100%', aspectRatio: `1000 / ${SITE_H}` }}>
+          <img src="/landing/scan-site.jpg" alt="" draggable="false" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', userSelect: 'none' }} />
+          {FINDS.map((x, i) => {
+            const hit = f > i;
+            const [l, t, w, h] = x.box;
+            return (
+              <div key={x.label} style={{ position: 'absolute', left: `calc(${l * 100}% - 6px)`, top: `calc(${t * 100}% - 6px)`, width: `calc(${w * 100}% + 12px)`, height: `calc(${h * 100}% + 12px)`, borderRadius: '10px', background: hit ? 'rgba(155,31,214,.08)' : 'transparent', boxShadow: hit ? '0 0 0 2px #9B1FD6, 0 0 26px -2px rgba(155,31,214,.6)' : '0 0 0 2px transparent', transition: 'all .4s', pointerEvents: 'none' }}>
+                <span className={hit ? 'cps-tickpop' : ''} style={{ position: 'absolute', right: '8px', top: '-11px', padding: '3px 9px', borderRadius: '999px', background: 'linear-gradient(135deg,#9B1FD6,#E0109F)', color: '#FFFFFF', fontSize: '11px', fontWeight: 700, letterSpacing: '.05em', opacity: hit ? 1 : 0, transform: hit ? 'none' : 'scale(.6)', transition: 'opacity .25s, transform .25s' }}>{x.label.toUpperCase()}</span>
+              </div>
+            );
+          })}
+          <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, height: '90px', top: `${beamY * 100}%`, marginTop: '-90px', background: 'linear-gradient(180deg, rgba(155,31,214,0), rgba(155,31,214,.16) 70%, rgba(224,16,159,.32))', borderBottom: '2px solid #C026D3', boxShadow: '0 8px 24px 2px rgba(192,38,211,.5)', transition: 'top .9s cubic-bezier(.4,.1,.2,1), opacity .4s', opacity: f >= 6 ? 0 : 1, pointerEvents: 'none' }} />
+        </div>
       </div>
-      {rows.map((r, i) => {
-        const hit = f > i;
-        return (
-          <div key={i} style={{ height: `${ROW_H[i]}px`, padding: '4px 10px', display: 'flex', alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: '100%', padding: '7px 10px', borderRadius: '10px', background: hit ? 'rgba(155,31,214,.07)' : 'transparent', boxShadow: hit ? '0 0 0 1.5px #9B1FD6, 0 0 22px -4px rgba(155,31,214,.55)' : '0 0 0 1.5px transparent', opacity: hit || f === i ? 1 : 0.5, transition: 'all .4s' }}>
-              {r}
-              <span className={hit ? 'cps-tickpop' : ''} style={{ position: 'absolute', right: '8px', top: '-9px', padding: '2px 8px', borderRadius: '999px', background: 'linear-gradient(135deg,#9B1FD6,#E0109F)', color: '#FFFFFF', fontSize: '10.5px', fontWeight: 700, letterSpacing: '.04em', opacity: hit ? 1 : 0, transform: hit ? 'none' : 'scale(.6)', transition: 'opacity .25s, transform .25s' }}>{FINDS[i][0].toUpperCase()}</span>
-            </div>
-          </div>
-        );
-      })}
-      <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, height: '70px', top: `${y - 70}px`, background: 'linear-gradient(180deg, rgba(155,31,214,0), rgba(155,31,214,.16) 70%, rgba(224,16,159,.32))', borderBottom: '2px solid #C026D3', boxShadow: '0 8px 24px 2px rgba(192,38,211,.5)', transition: 'top .6s cubic-bezier(.4,.1,.2,1), opacity .4s', opacity: f >= 6 ? 0 : 1, pointerEvents: 'none' }} />
     </div>
   );
 }
@@ -903,7 +903,7 @@ function ScreenTell() {
               <div style={{ height: '100%', borderRadius: '999px', background: 'linear-gradient(90deg,#9B1FD6,#E0109F)', width: `${(f / 6) * 100}%`, transition: 'width .5s cubic-bezier(.3,.7,.2,1)' }} />
             </div>
             <div style={{ marginTop: '6px' }}>
-              {FINDS.map(([label, value], i) => {
+              {FINDS.map(({ label, value }, i) => {
                 const on = f > i;
                 return (
                   <div key={label} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px', height: '44px', padding: '0 4px', borderTop: i ? '1px solid #F5F4F7' : '0' }}>
@@ -1088,7 +1088,7 @@ export function JourneyTabs() {
   const cur = JOURNEY[tab];
   const Screen = SCREENS[cur.id];
   return (
-    <div ref={ref} style={{ marginTop: '40px' }}>
+    <div ref={ref} style={{ marginTop: '30px' }}>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <div role="tablist" aria-label="How Campeos works" className="cps-jpill">
           {JOURNEY.map((j, i) => {
