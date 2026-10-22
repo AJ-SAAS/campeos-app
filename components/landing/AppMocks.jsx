@@ -655,7 +655,7 @@ export function WinnersLibrary({ fast }) {
 /* ------------------------------------------------------------------ */
 
 const JOURNEY = [
-  { id: 'tell', ms: 6200, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
+  { id: 'tell', ms: 7400, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
   { id: 'write', ms: 5200, label: 'Write', lead: 'Your whole launch, written.', text: 'Every email, text, ad and post, in your voice, before you finish your coffee.' },
   { id: 'schedule', ms: 4600, label: 'Schedule', lead: 'Every message gets a day and a time.', text: 'One calendar from the first invite to the last call.' },
   { id: 'improve', ms: 6200, label: 'Improve', lead: 'Your next launch starts ahead.', text: 'Save what your buyers respond to and build the next launch from it.' },
@@ -818,9 +818,11 @@ const TOOL = [
   <g key="p"><rect x="4" y="5" width="16" height="14" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="M20 16l-5-5-8 8" /></g>,
 ];
 
-/* 1. Tell it: a clean search bar. A link types in, a cursor clicks, the page is read, the finds tick in. */
+/* 1. Tell it: a clean search bar. A link types in, a cursor clicks, a beam scans a mini page, and the finds fly into the brief. */
 const SCAN_URL = 'yourstore.com';
-const SCAN_FOUND = [
+const NAV_H = 38;
+const ROW_H = [66, 50, 50, 42, 58, 50];
+const FINDS = [
   ['Hook', 'Our biggest sale of the year'],
   ['Offer', '40% off everything, 4 days only'],
   ['Deal', 'Code BF40 at checkout'],
@@ -828,22 +830,54 @@ const SCAN_FOUND = [
   ['Reviews', '3 found'],
   ['Extras', 'Deadline, free gift, free shipping'],
 ];
+const BURST = [[-120, -46], [-84, -78], [-40, -92], [0, -100], [40, -92], [84, -78], [120, -46], [-62, -30], [62, -30], [0, -60]];
+
+function ScanSite({ f }) {
+  const y = NAV_H + ROW_H.slice(0, f).reduce((a, b) => a + b, 0);
+  const rows = [
+    <div key="0" style={{ fontFamily: 'Newsreader, serif', fontWeight: 600, fontSize: 'clamp(18px, 5.2vw, 25px)', letterSpacing: '-.02em', lineHeight: 1.05, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Our biggest sale of the year</div>,
+    <div key="1" style={{ fontSize: '15px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>40% off everything. <span style={{ color: '#8A8494', fontWeight: 500 }}>4 days only.</span></div>,
+    <span key="2" style={{ display: 'inline-block', padding: '5px 12px', borderRadius: '8px', background: INK, color: '#FFFFFF', fontFamily: MONO, fontSize: '13px', letterSpacing: '.06em' }}>CODE BF40</span>,
+    <div key="3" style={{ fontSize: '13px', color: MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Made for past buyers and new fans</div>,
+    <div key="4" style={{ fontSize: '13px', color: MUTED, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><span style={{ color: '#F59E0B', letterSpacing: '2px' }}>&#9733;&#9733;&#9733;&#9733;&#9733;</span> &ldquo;Best sale I have ever shopped.&rdquo;</div>,
+    <div key="5" style={{ display: 'flex', gap: '6px', overflow: 'hidden' }}>{['Free gift', 'Free shipping', 'Ends Monday'].map((t) => <span key={t} style={{ padding: '4px 10px', borderRadius: '999px', background: '#F4F3F6', fontSize: '12px', fontWeight: 500, color: MUTED }}>{t}</span>)}</div>,
+  ];
+  return (
+    <div style={{ position: 'relative', flex: '1 1 290px', minWidth: 0, borderRadius: '16px', border: `1px solid ${LINE}`, background: '#FFFFFF', overflow: 'hidden', height: `${NAV_H + ROW_H.reduce((a, b) => a + b, 0) + 14}px` }}>
+      <div style={{ height: `${NAV_H}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #F5F4F7', fontSize: '12px', fontWeight: 700, letterSpacing: '.02em' }}>
+        <span>YOURSTORE</span><span style={{ color: '#B5B0BF', fontWeight: 500 }}>Shop &nbsp; Sale &nbsp; Cart</span>
+      </div>
+      {rows.map((r, i) => {
+        const hit = f > i;
+        return (
+          <div key={i} style={{ height: `${ROW_H[i]}px`, padding: '4px 10px', display: 'flex', alignItems: 'center' }}>
+            <div style={{ position: 'relative', width: '100%', padding: '7px 10px', borderRadius: '10px', background: hit ? 'rgba(155,31,214,.07)' : 'transparent', boxShadow: hit ? '0 0 0 1.5px #9B1FD6, 0 0 22px -4px rgba(155,31,214,.55)' : '0 0 0 1.5px transparent', opacity: hit || f === i ? 1 : 0.5, transition: 'all .4s' }}>
+              {r}
+              <span className={hit ? 'cps-tickpop' : ''} style={{ position: 'absolute', right: '8px', top: '-9px', padding: '2px 8px', borderRadius: '999px', background: 'linear-gradient(135deg,#9B1FD6,#E0109F)', color: '#FFFFFF', fontSize: '10.5px', fontWeight: 700, letterSpacing: '.04em', opacity: hit ? 1 : 0, transform: hit ? 'none' : 'scale(.6)', transition: 'opacity .25s, transform .25s' }}>{FINDS[i][0].toUpperCase()}</span>
+            </div>
+          </div>
+        );
+      })}
+      <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, height: '70px', top: `${y - 70}px`, background: 'linear-gradient(180deg, rgba(155,31,214,0), rgba(155,31,214,.16) 70%, rgba(224,16,159,.32))', borderBottom: '2px solid #C026D3', boxShadow: '0 8px 24px 2px rgba(192,38,211,.5)', transition: 'top .6s cubic-bezier(.4,.1,.2,1), opacity .4s', opacity: f >= 6 ? 0 : 1, pointerEvents: 'none' }} />
+    </div>
+  );
+}
 
 function ScreenTell() {
   const [typed] = useTyped(SCAN_URL, 500, 70);
-  // 1 cursor glides in, 2 click, 3 reading, 4 still reading, 5 found, 6+ rows tick in
-  const n = useStage([1700, 2700, 3100, 4100, 5000, 5300, 5600, 5900, 6200, 6500, 6800]);
+  // 1 cursor glides in, 2 click, 3 scan starts, 4 to 9 finds 1 to 6, 10 brief ready
+  const n = useStage([1700, 2700, 3100, 3800, 4400, 5000, 5600, 6200, 6800, 7600]);
   const moved = n >= 1;
   const clicked = n === 2;
-  const reading = n >= 3 && n < 5;
-  const found = n >= 5;
-  const shown = Math.max(0, n - 5);
+  const f = Math.max(0, Math.min(6, n - 3));
+  const done = n >= 10;
+  const stage = n >= 3;
   return (
     <AppWindow url="campeos.com">
-      <div style={{ flex: '1 1 100%', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'clamp(28px, 6vw, 64px) clamp(16px, 4vw, 40px) clamp(24px, 4vw, 44px)' }}>
+      <div style={{ flex: '1 1 100%', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'clamp(24px, 5vw, 48px) clamp(14px, 3vw, 32px) clamp(22px, 4vw, 36px)' }}>
         <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: 'clamp(28px, 3.4vw, 42px)', letterSpacing: '-.025em', lineHeight: 1.06, textAlign: 'center' }}>What&apos;s your website?</div>
 
-        <div style={{ position: 'relative', width: '100%', maxWidth: '600px', marginTop: '28px' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '600px', marginTop: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', height: '60px', padding: '0 8px 0 18px', borderRadius: '16px', border: '1px solid #E6E3EC', background: '#FFFFFF', boxShadow: '0 12px 30px -22px rgba(23,19,31,.35)' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A8494" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
             <span style={{ flex: 1, minWidth: 0, fontFamily: MONO, fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
@@ -857,38 +891,52 @@ function ScreenTell() {
           </svg>
         </div>
 
-        <div style={{ position: 'relative', width: '100%', maxWidth: '600px', marginTop: '20px', minHeight: '330px', borderRadius: '16px', border: `1px solid ${LINE}`, background: '#FFFFFF', padding: '20px', overflow: 'hidden', opacity: n >= 3 ? 1 : 0, transform: n >= 3 ? 'none' : 'translateY(10px)', transition: 'opacity .35s, transform .35s' }}>
-          {reading && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: MUTED, fontWeight: 500 }}>
-                <span className="cps-tspin" aria-hidden="true" style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid #E6E3EC', borderTopColor: INK, display: 'inline-block' }} />
-                {n === 3 ? 'Reading your page...' : 'Finding your offer, price and reviews...'}
+        <div style={{ width: '100%', maxWidth: '860px', marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '16px', opacity: stage ? 1 : 0, transform: stage ? 'none' : 'translateY(12px)', transition: 'opacity .4s, transform .4s' }}>
+          <ScanSite f={f} />
+
+          <div className={done ? 'cps-glowcard' : ''} style={{ position: 'relative', flex: '1 1 290px', minWidth: 0, borderRadius: '16px', border: `1px solid ${done ? 'transparent' : LINE}`, background: '#FFFFFF', padding: '16px 16px 14px', transition: 'border-color .4s' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 600 }}>Your campaign brief</div>
+              <span style={{ fontFamily: MONO, fontSize: '12px', color: done ? '#15803D' : '#9B1FD6', fontWeight: 700 }}>{f === 0 ? 'READING...' : `${f} OF 6 FOUND`}</span>
+            </div>
+            <div style={{ height: '4px', borderRadius: '999px', background: '#F0EEF4', marginTop: '10px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: '999px', background: 'linear-gradient(90deg,#9B1FD6,#E0109F)', width: `${(f / 6) * 100}%`, transition: 'width .5s cubic-bezier(.3,.7,.2,1)' }} />
+            </div>
+            <div style={{ marginTop: '6px' }}>
+              {FINDS.map(([label, value], i) => {
+                const on = f > i;
+                return (
+                  <div key={label} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px', height: '44px', padding: '0 4px', borderTop: i ? '1px solid #F5F4F7' : '0' }}>
+                    {on ? (
+                      <div key="on" className="cps-flash" style={{ position: 'absolute', inset: '2px -4px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px', padding: '0 8px' }}>
+                        <Tick size={20} pop />
+                        <span style={{ width: '70px', flexShrink: 0, fontSize: '13px', color: '#8A8494' }}>{label}</span>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 600, lineHeight: 1.3 }}>{value}</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                        <span className="cps-skel" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#F0EEF4', flexShrink: 0 }} />
+                        <span className="cps-skel" style={{ width: '60px', height: '8px', borderRadius: '6px', background: '#F0EEF4' }} />
+                        <span className="cps-skel" style={{ flex: 1, maxWidth: '150px', height: '8px', borderRadius: '6px', background: '#F0EEF4' }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ position: 'relative', marginTop: '8px', height: '40px' }}>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '12px', background: 'linear-gradient(135deg,#1E1458,#5B21B6 55%,#C026D3)', color: '#FFFFFF', fontSize: '14px', fontWeight: 600, opacity: done ? 1 : 0, transform: done ? 'none' : 'translateY(8px) scale(.97)', transition: 'opacity .4s, transform .4s' }}>
+                <Spark size={14} /> Brief ready. Let&apos;s write your launch.
               </div>
-              <div aria-hidden="true" style={{ marginTop: '18px' }}>
-                {[['62%', 14], ['94%', 8], ['88%', 8], ['40%', 8], ['100%', 56], ['76%', 8], ['90%', 8], ['55%', 8]].map(([w, h], i) => (
-                  <div key={i} className="cps-skel" style={{ width: w, height: `${h}px`, borderRadius: '6px', background: '#F0EEF4', marginTop: i === 0 ? 0 : i === 4 ? 16 : 10 }} />
-                ))}
-              </div>
-              <span className="cps-scanline" />
-            </>
-          )}
-          {found && (
-            <>
-              <div style={{ fontSize: '14px', color: MUTED, fontWeight: 500 }}>Found on your page</div>
-              <div style={{ display: 'grid', marginTop: '6px' }}>
-                {SCAN_FOUND.map(([label, value], i) => {
-                  const on = i < shown;
-                  return (
-                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 2px', borderTop: i ? '1px solid #F5F4F7' : '0', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .3s, transform .3s' }}>
-                      <Tick size={20} pop={on} />
-                      <span style={{ width: '84px', flexShrink: 0, fontSize: '13px', color: '#8A8494' }}>{label}</span>
-                      <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 500, lineHeight: 1.35 }}>{value}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+              {done && (
+                <span aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '50%' }}>
+                  {BURST.map(([dx, dy], i) => (
+                    <span key={i} className="cps-burst" style={{ '--dx': `${dx}px`, '--dy': `${dy}px`, animationDelay: `${i * 30}ms`, background: i % 3 === 0 ? '#E0109F' : i % 3 === 1 ? '#9B1FD6' : '#F59E0B' }} />
+                  ))}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </AppWindow>

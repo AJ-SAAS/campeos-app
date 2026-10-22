@@ -203,3 +203,12 @@
   .cps-jpill{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;gap:2px;padding:4px}
   .cps-jt{flex-direction:column;gap:4px;padding:9px 2px 11px;font-size:12px}
 }
+
+/* Tell it screen: finds fly in, brief glows, sparkles burst */
+@keyframes cps-flash{from{opacity:0;transform:translateX(-22px);background:#E9D5FF}55%{opacity:1;background:#F5EEFF}to{opacity:1;transform:none;background:rgba(255,255,255,0)}}
+.cps-flash{animation:cps-flash .6s cubic-bezier(.2,.7,.2,1) both}
+@keyframes cps-glow{0%,100%{box-shadow:0 0 0 1.5px rgba(155,31,214,.45),0 16px 44px -14px rgba(155,31,214,.5)}50%{box-shadow:0 0 0 1.5px rgba(224,16,159,.6),0 20px 54px -10px rgba(224,16,159,.55)}}
+.cps-glowcard{animation:cps-glow 2.2s ease-in-out infinite}
+@keyframes cps-burst{0%{transform:translate(0,0) scale(.3);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}}
+.cps-burst{position:absolute;left:-3px;top:-3px;width:7px;height:7px;border-radius:50%;animation:cps-burst .9s ease-out both}
+@media (prefers-reduced-motion:reduce){.cps-flash,.cps-glowcard,.cps-burst{animation:none}}
