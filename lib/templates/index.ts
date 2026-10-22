@@ -11,6 +11,9 @@ import { socialBlast30Template } from "./social-blast-30";
 import { appLaunch30Template } from "./app-launch-30";
 import { miniLaunchTemplate } from "./mini-launch";
 import { productLaunchTemplate } from "./product-launch";
+import { winBackTemplate } from "./win-back";
+import { bookACallTemplate } from "./book-a-call";
+import { handRaiserTemplate } from "./hand-raiser";
 
 // Adding a new campaign type ("pocket") means adding a file next to
 // webinar.ts and registering it here. Nothing else should need to change.
@@ -26,6 +29,9 @@ export const templates: Record<string, CampaignTemplate> = {
   "app-launch-30": appLaunch30Template,
   "mini-launch": miniLaunchTemplate,
   "product-launch": productLaunchTemplate,
+  "win-back": winBackTemplate,
+  "book-a-call": bookACallTemplate,
+  "hand-raiser": handRaiserTemplate,
 };
 
 /** The "key date" text the writer sees: when it goes live and, for

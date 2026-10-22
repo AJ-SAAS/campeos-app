@@ -230,7 +230,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 week",
     description: "Fill your calendar with qualified sales calls.",
     category: "highticket",
-    status: "soon",
+    status: "available",
   },
   {
     id: "hand-raiser",
@@ -238,7 +238,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 week",
     description: "Find your hottest leads before you pitch them.",
     category: "highticket",
-    status: "soon",
+    status: "available",
   },
 
   // Retention & trust
@@ -248,7 +248,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 week",
     description: "Re-engage past customers or leads who went cold.",
     category: "retention",
-    status: "soon",
+    status: "available",
   },
   {
     id: "newsletter",

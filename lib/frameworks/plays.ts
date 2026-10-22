@@ -1027,6 +1027,189 @@ export const PLAYS: Record<string, Play> = {
     avoid: ["No offer and no price in this email."],
   }),
 
+  "winback-checkin": P({
+    id: "winback-checkin",
+    name: "A real check-in",
+    job: "Reopen the conversation with someone who went quiet, and learn why.",
+    beats: [
+      "Subject: short and human, like a note from a person. No offer words.",
+      "Open honestly: you noticed it has been a while, and you are not writing to sell.",
+      "Say plainly that you want to know what happened, in one line: did it not work, did life get in the way, or something else?",
+      "Make replying easy: ask for one honest sentence back, even if it is 'not for me'.",
+      "No offer, no price, no link to buy. Sign off like a person.",
+    ],
+    hooks: ["Can I ask you something?", "Did I do something wrong?", "It's been a while"],
+    focus: "story",
+    avoid: ["No offer and no discount in this email.", "Do not guilt the reader."],
+  }),
+
+  "winback-whats-new": P({
+    id: "winback-whats-new",
+    name: "What has changed",
+    job: "Show that the thing they left is not the thing that exists now.",
+    beats: [
+      "Open on the reason they likely left, using the doubts in the brief. Say it for them in one line.",
+      "What has changed since, as 2 to 3 short bullets. Use only real changes from the offer; if none are given, use [WHAT CHANGED].",
+      "What that means for them in plain words (the result, not the feature).",
+      "One easy next step with [LINK].",
+    ],
+    hooks: ["A lot has changed", "What we fixed", "You were right about <thing>"],
+    focus: "objection",
+    avoid: ["Never invent a change, a feature or a date."],
+  }),
+
+  "winback-sunset": P({
+    id: "winback-sunset",
+    name: "Stay or go",
+    job: "Give them an honest choice, and keep the list full of people who want to be there.",
+    beats: [
+      "Subject: a plain question like 'Should I keep emailing you?'.",
+      "Say you only want to write to people who want it, and you will stop if they are done.",
+      "Two clear options with a link each: stay on the list, or leave it. Both are fine.",
+      "One kind line either way. No pressure, no offer.",
+    ],
+    hooks: ["Should I keep emailing you?", "Stay or go?", "One last question"],
+    focus: "story",
+    avoid: ["No offer and no guilt."],
+  }),
+
+  "call-what-happens": P({
+    id: "call-what-happens",
+    name: "What happens on the call",
+    job: "Remove the fear of the unknown, so booking feels safe and easy.",
+    beats: [
+      "Open on the worry: people hesitate to book because they do not know what happens.",
+      "Walk through the call in 3 to 4 short steps: how long, what you ask, what you show, what they leave with. Use only what the offer says; otherwise [CALL LENGTH].",
+      "Say plainly that there is no pressure, and what happens if it is not a fit.",
+      "One call to action with [LINK] to book.",
+    ],
+    hooks: ["What happens on the call", "No, it is not a sales trap", "15 minutes, step by step"],
+    focus: "objection",
+    avoid: ["Never promise an outcome the offer does not state."],
+  }),
+
+  "call-fit": P({
+    id: "call-fit",
+    name: "Who the call is NOT for",
+    job: "Qualify people out so the right ones lean in and your calendar fills with fits.",
+    beats: [
+      "Open: the call is free and useful, and it is not for everyone.",
+      "Who should not book, 3 types, each with a short honest 'why'. Adapt them to this audience.",
+      "Who it is for: people ready to <desire> and willing to do the work.",
+      "If that is you, one call to action with [LINK] to book.",
+    ],
+    hooks: ["Please do not book this call if...", "This call is not for you if", "3 people I cannot help"],
+    focus: "objection",
+  }),
+
+  "call-slots": P({
+    id: "call-slots",
+    name: "The calendar closes",
+    job: "Make the booking deadline real, honestly.",
+    beats: [
+      "Lead with the real day the booking window ends. Give the number of spots only if the brief says so; otherwise say the calendar closes on that date.",
+      "One line of what they get on the call.",
+      "One line on who it is for.",
+      "One call to action with [LINK] to book.",
+    ],
+    hooks: ["Calendar closes <day>", "Last day to book", "The last spots"],
+    focus: "urgency",
+    avoid: ["Never invent a number of spots."],
+  }),
+
+  "post-book-call": P({
+    id: "post-book-call",
+    name: "Calendar is open post",
+    job: "Tell followers the calendar is open and who the call is for.",
+    beats: [
+      "First line: the calendar is open, and the one result the call is about.",
+      "2 to 3 short lines: who it is for and what they leave with.",
+      "One call to action: the booking link.",
+    ],
+    hooks: ["My calendar is open", "Want help with <outcome>?", "Free calls are open"],
+    focus: "desire",
+  }),
+
+  "ad-book-call": P({
+    id: "ad-book-call",
+    name: "Book a call ad",
+    job: "Turn the right person's pain into a booked call.",
+    beats: [
+      "Headline: name the situation or the result, under 40 characters.",
+      "Primary text: the moment of the problem, what the call is and what they leave with, and who it is for.",
+      "One call to action to book.",
+      "Visual idea: one line on what to show.",
+    ],
+    hooks: ["Stuck on <problem>?", "A free call to fix <problem>", "<Minutes> minutes to a plan"],
+    focus: "pain",
+  }),
+
+  "handraiser-bump": P({
+    id: "handraiser-bump",
+    name: "A second ask",
+    job: "Catch the people who missed the first ask, with a different angle.",
+    beats: [
+      "Very short. A different angle than the first ask: a new way to say the same question.",
+      "One line of what you would do for the people who reply.",
+      "Ask them to reply with one word.",
+      "No link. Under 70 words.",
+    ],
+    hooks: ["In case you missed this", "Still want this?", "A different way to ask"],
+    focus: "desire",
+  }),
+
+  "handraiser-next": P({
+    id: "handraiser-next",
+    name: "You raised your hand",
+    job: "Turn a reply into the next step, fast, for people who said yes.",
+    beats: [
+      "Thank them for replying, in one line, like a person.",
+      "Say what happens next in one or two short lines.",
+      "Ask 1 to 3 short questions that tell you if they are a fit, so the call is useful.",
+      "One call to action: reply, or [LINK] to book.",
+    ],
+    hooks: ["Thanks for replying", "Great, here is what is next", "You said yes"],
+    focus: "desire",
+    avoid: ["This email is only for people who replied. Write it that way."],
+  }),
+
+  "post-comment-word": P({
+    id: "post-comment-word",
+    name: "Comment to raise your hand",
+    job: "Get people to comment one word, so you know who wants it.",
+    beats: [
+      "First line: the result, as a question the right person says yes to.",
+      "2 short lines of what the ones who comment will get.",
+      "The call to action: comment one word. Name the word in capital letters.",
+    ],
+    hooks: ["Want <result>? Comment <WORD>", "Comment <WORD> and I will send it", "Who wants <result>?"],
+    focus: "desire",
+  }),
+
+  "ad-handraiser": P({
+    id: "ad-handraiser",
+    name: "Hand-raiser ad",
+    job: "Find the people who want it by asking them to message you.",
+    beats: [
+      "Headline: the result as a question, under 40 characters.",
+      "Primary text: the problem in one line, what they will get if they reply, and the one word or tap to raise a hand.",
+      "One call to action: send a message or reply.",
+      "Visual idea: one line on what to show.",
+    ],
+    hooks: ["Want <result>?", "Raise your hand if...", "Message me <WORD>"],
+    focus: "desire",
+  }),
+
+  "sms-handraiser": P({
+    id: "sms-handraiser",
+    name: "Text hand-raiser",
+    job: "A one line text that gets a reply.",
+    beats: ["One question about the result they want.", "Ask them to reply YES or one word."],
+    hooks: [],
+    focus: "desire",
+    avoid: ["Under 160 characters. No link."],
+  }),
+
   /* ------------------------------------------------------------ */
   /* Short channels: texts, posts, ads                              */
   /* ------------------------------------------------------------ */

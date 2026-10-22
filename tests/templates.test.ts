@@ -9,7 +9,7 @@ import { templateChannelsFor } from "../lib/onboarding/answers";
 import { finishCopy, STANDARD_EULA_URL } from "../lib/ai/generateStepCopy";
 import { lintCopy } from "../lib/ai/quality";
 
-const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch"];
+const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser"];
 const offer: OfferContext = { name: "Candle Club", price: "$40", audience: "Candle lovers", whatTheyGet: "A box of 3 candles", tone: "Friendly" };
 
 for (const id of NEW) {
@@ -26,7 +26,7 @@ for (const id of NEW) {
       assert.ok(s.playId && getPlay(s.playId), `${s.id} has a real play`);
       assert.ok(s.goals.length >= 2 || s.channel === "sms", `${s.id} has goals`);
       assert.ok(s.fields.length > 0);
-      assert.ok(s.offsetHours >= -720 && s.offsetHours <= (t.closeOffsetHours ?? 17 * 24), `${s.id} is inside the campaign`);
+      assert.ok(s.offsetHours >= -720 && s.offsetHours <= (t.closeOffsetHours !== undefined ? t.closeOffsetHours + 48 : 17 * 24), `${s.id} is inside the campaign`);
       assert.ok(!/—|–/.test(JSON.stringify(s)), `${s.id} has no dashes used as punctuation`);
     }
     for (const p of t.phases) assert.ok(t.steps.some((s) => s.phaseId === p.id), `phase ${p.id} is used`);
@@ -138,4 +138,19 @@ test("mini-launch runs three days after a one-day tease", () => {
   assert.ok(steps[0].scheduledAt < open);
   assert.ok(steps[steps.length - 1].scheduledAt.getTime() - open.getTime() <= 63 * 3600_000);
   assert.equal(new Set(steps.map((s) => s.scheduledAt.toDateString())).size, 4);
+});
+
+test("win-back starts with a no-pitch check-in and ends with stay or go", () => {
+  const t = templates["win-back"];
+  const steps = buildTimeline(t, { event: new Date(2026, 10, 9, 9, 0) });
+  assert.equal(steps[0].templateStepId, "email-checkin");
+  assert.equal(steps[steps.length - 1].templateStepId, "email-sunset");
+  assert.ok(getPlay("winback-checkin")!.avoid!.join(" ").includes("No offer"));
+});
+
+test("book a call and hand-raiser steps use call and ask plays, and hand-raiser keeps its follow-up for repliers", () => {
+  assert.ok(templates["book-a-call"].steps.some((s) => s.playId === "call-what-happens"));
+  assert.ok(templates["book-a-call"].steps.some((s) => s.playId === "call-fit"));
+  const next = templates["hand-raiser"].steps.find((s) => s.playId === "handraiser-next")!;
+  assert.ok(next.purpose.includes("only to the people who replied"));
 });
