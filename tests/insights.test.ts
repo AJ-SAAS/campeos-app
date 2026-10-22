@@ -177,3 +177,32 @@ test("strength: a full profile has no tips", () => {
   assert.ok(s.areas.every((a) => !a.tip));
   assert.equal(s.headline, "Strong. Campeos has plenty to write from.");
 });
+
+import { insightLines, parseScannedTestimonial, testimonialInsight } from "../lib/insights/ui";
+
+test("parseScannedTestimonial: pulls out a name and role only when clearly there", () => {
+  const a = parseScannedTestimonial('"It changed how I launch." - Sarah K., business coach');
+  assert.deepEqual(a, { quote: "It changed how I launch.", name: "Sarah K.", role: "business coach" });
+  const b = parseScannedTestimonial("You over-delivered.");
+  assert.equal(b.name, "");
+  assert.equal(b.quote, "You over-delivered.");
+  const c = parseScannedTestimonial("Best money I spent this year — Marcus");
+  assert.equal(c.name, "Marcus");
+});
+
+test("testimonialInsight: the quote is kept exactly, the name is optional", () => {
+  const t = testimonialInsight("u1", { quote: " I finally feel like I'm not breaking. " });
+  assert.equal(t.kind, "testimonial");
+  assert.equal(t.learned.testimonial?.quote, "I finally feel like I'm not breaking.");
+  assert.equal(t.credit, "none");
+  const n = testimonialInsight("u1", { quote: "Great.", name: "Priya", result: "10 weeks" });
+  assert.equal(n.credit, "full");
+  assert.deepEqual(n.learned.results, ["10 weeks"]);
+});
+
+test("insightLines: a saved testimonial reaches the copy writer with its name, deletes remove it", () => {
+  const a = { ...testimonialInsight("u1", { quote: "I stopped dreading launch week.", name: "Marcus Lee" }), id: "a", createdAt: "2026-10-20T10:00:00Z" };
+  const lines = insightLines("u1", [a]);
+  assert.ok(lines.proof.some((p) => p.includes("I stopped dreading launch week.") && p.includes("Marcus Lee")));
+  assert.deepEqual(insightLines("u1", []).proof, []);
+});

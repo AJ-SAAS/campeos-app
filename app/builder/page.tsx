@@ -47,6 +47,9 @@ import { checkAndIncrementUsage } from "@/lib/firebase/usage";
 import { getBusinessProfile, saveFirstCampaignId } from "@/lib/firebase/businessProfile";
 import { templateChannelsFor, CHANNEL_LABELS } from "@/lib/onboarding/answers";
 import type { Channel } from "@/lib/templates/types";
+import { listInsights } from "@/lib/firebase/insights";
+import { insightLines, insightProof as readProofItems } from "@/lib/insights/ui";
+import { ProofItem } from "@/lib/insights/types";
 import { authFetch } from "@/lib/firebase/authFetch";
 
 // The Campaign Builder — Builder.dc.html, wired to the real engine, the
@@ -390,15 +393,36 @@ function BuilderInner() {
   // lib/firebase/library.ts.
   const [winningCopy, setWinningCopy] = useState<string[]>([]);
   const [callThemes, setCallThemes] = useState<string[]>([]);
+  // Real proof (testimonials, results) and buyer research from Buyer
+  // insights. Read when the page opens and again just before writing, so
+  // anything added or edited on the Buyer insights page is used.
+  const [insightProof, setInsightProof] = useState<string[]>([]);
+  const [insightResearch, setInsightResearch] = useState<string[]>([]);
+  const [proofItems, setProofItems] = useState<ProofItem[]>([]);
+  const [proofResults, setProofResults] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) {
       setWinningCopy([]);
       setCallThemes([]);
+      setInsightProof([]);
+      setInsightResearch([]);
+      setProofItems([]);
+      setProofResults([]);
       return;
     }
     listWinningCopy(user.uid).then(setWinningCopy);
     listCallThemes(user.uid).then(setCallThemes);
+    listInsights(user.uid)
+      .then((all) => {
+        const lines = insightLines(user.uid, all);
+        setInsightProof(lines.proof);
+        setInsightResearch(lines.research);
+        const p = readProofItems(user.uid, all);
+        setProofItems(p.items);
+        setProofResults(p.results);
+      })
+      .catch(() => {});
   }, [user]);
 
   async function handleAddWinningCopy(text: string) {
@@ -496,9 +520,27 @@ function BuilderInner() {
       }
 
       const eventAt = keyDatesFor(activeTemplate, eventDate);
+      // Fresh read of Buyer insights, so edits made there a minute ago count.
+      let proofLines = insightProof;
+      let researchLines = insightResearch;
+      try {
+        const all = await listInsights(user.uid);
+        const lines = insightLines(user.uid, all);
+        proofLines = lines.proof;
+        researchLines = lines.research;
+        setInsightProof(proofLines);
+        setInsightResearch(researchLines);
+        const p = readProofItems(user.uid, all);
+        setProofItems(p.items);
+        setProofResults(p.results);
+      } catch {
+        /* keep what was loaded */
+      }
+      const writeWinning = [...winningCopy, ...proofLines];
+      const writeThemes = [...callThemes, ...researchLines];
       const briefKey = JSON.stringify([
         offer.name, offer.price, offer.audience, offer.whatTheyGet, offer.tone,
-        winningCopy.length, callThemes.length, salesPage.length, activeTemplate.id,
+        writeWinning, writeThemes, salesPage.length, activeTemplate.id,
       ]);
       const res = await authFetch("/api/generate-step", {
         method: "POST",
@@ -523,7 +565,7 @@ function BuilderInner() {
               fields: s.fields,
             },
           })),
-          source: { winningCopy, callThemes, salesPage: salesPage || undefined },
+          source: { winningCopy: writeWinning, callThemes: writeThemes, salesPage: salesPage || undefined },
           templateId: activeTemplate.id,
           brief: brief?.key === briefKey ? brief.brief : undefined,
         }),
@@ -1015,6 +1057,8 @@ function BuilderInner() {
               if (!selected) return;
               handleFieldEdit(selected.templateStepId, fieldKey, value);
             }}
+            proof={proofItems}
+            proofResults={proofResults}
             saveStatus={fieldSaveStatus}
             draft={!campaignId}
             campaignId={campaignId}

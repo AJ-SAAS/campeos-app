@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { getBusinessProfile, hasOnboarded, saveBusinessProfile } from "@/lib/firebase/businessProfile";
 import { createOffer } from "@/lib/firebase/offers";
-import { addWinningCopy } from "@/lib/firebase/library";
+import { addInsight } from "@/lib/firebase/insights";
+import { parseScannedTestimonial, testimonialInsight } from "@/lib/insights/ui";
 import {
   PLATFORMS,
   DEFAULT_PLATFORMS,
@@ -345,9 +346,14 @@ export default function OnboardingPage() {
       try {
         await createOffer(user.uid, offer);
       } catch {}
+      // Testimonials found on their page go into Buyer insights as real
+      // testimonials (quote, and the name when the page gave one), where
+      // they can be edited or deleted and the copy writer can use them.
       for (const t of testimonials) {
         try {
-          await addWinningCopy(user.uid, t);
+          const p = parseScannedTestimonial(t);
+          if (!p.quote) continue;
+          await addInsight(testimonialInsight(user.uid, { ...p, source: "scan" }));
         } catch {}
       }
       // Home first: one clear card and button, then the builder.

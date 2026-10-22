@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { UIStep } from "./Timeline";
 import { ImageSlot } from "./ImageSlot";
 import { imageSlots, shapesFor, StepImage } from "@/lib/images";
+import { fillPlaceholders, FillChange, scanPlaceholders } from "@/lib/insights/logic";
+import { ProofItem } from "@/lib/insights/types";
 
 interface StepEditorProps {
   step: UIStep | undefined;
@@ -35,6 +37,9 @@ interface StepEditorProps {
   /** This step's saved pictures, by slot. */
   images?: Record<string, StepImage>;
   onImageChange?: (slot: string, image: StepImage | null) => void;
+  /** Real testimonials from Buyer insights, for "Fill from your proof". */
+  proof?: ProofItem[];
+  proofResults?: string[];
 }
 
 const LANE_STYLE: Record<string, { label: string; fg: string; bg: string }> = {
@@ -70,6 +75,8 @@ export function StepEditor({
   userPlatforms = [],
   images = {},
   onImageChange,
+  proof = [],
+  proofResults = [],
 }: StepEditorProps) {
   const [instruction, setInstruction] = useState("");
   const [whyOpen, setWhyOpen] = useState(false);
@@ -270,6 +277,17 @@ export function StepEditor({
                 {missingDetailsLabel(step.copy)}. Find the parts in [CAPS] below and type over them before you copy this step.
               </span>
             )}
+
+            <FillFromProof
+              copy={step.copy}
+              proof={proof}
+              results={proofResults}
+              onApply={(next) => {
+                Object.entries(next).forEach(([k, v]) => {
+                  if (k !== "source" && v !== step.copy?.[k]) onFieldChange(k, v);
+                });
+              }}
+            />
 
             <div className="w-full flex flex-col gap-7 text-left">
               {step.fields.map((field) => {
@@ -473,5 +491,93 @@ function ChevronIcon({ open }: { open: boolean }) {
     >
       <path d="M6 9l6 6 6-6" />
     </svg>
+  );
+}
+
+
+// Blanks like [TESTIMONIAL] or [RESULT] can be filled with the user's real
+// proof from Buyer insights. Shows exactly what will change first, and
+// nothing is invented: with no proof saved, it says where to add some.
+function FillFromProof({
+  copy,
+  proof,
+  results,
+  onApply,
+}: {
+  copy: Record<string, string> | undefined;
+  proof: ProofItem[];
+  results: string[];
+  onApply: (next: Record<string, string>) => void;
+}) {
+  const [preview, setPreview] = useState<{ copy: Record<string, string>; changes: FillChange[] } | null>(null);
+  const [none, setNone] = useState(false);
+  const c = scanPlaceholders(copy);
+  const fillable = c.testimonial + c.customerName + c.result;
+  if (!copy || fillable === 0) return null;
+
+  if (proof.length === 0 && results.length === 0) {
+    return (
+      <span className="text-[13px] text-muted leading-snug">
+        The blanks here ([TESTIMONIAL], [RESULT]) can be filled with real proof.{" "}
+        <a href="/buyer-insights" className="underline font-semibold">
+          Add a testimonial
+        </a>
+        .
+      </span>
+    );
+  }
+
+  function run() {
+    const r = fillPlaceholders(copy!, proof, { results });
+    if (r.changes.length === 0) {
+      setNone(true);
+      return;
+    }
+    setNone(false);
+    setPreview({ copy: r.copy, changes: r.changes });
+  }
+
+  return (
+    <div className="w-full flex flex-col gap-2.5 text-left">
+      {!preview && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={run}
+            className="inline-flex items-center h-9 px-4 rounded-full bg-slate text-white text-[13px] font-semibold"
+          >
+            Fill from your proof
+          </button>
+          <span className="text-[12.5px] text-muted">
+            {fillable} blank{fillable === 1 ? "" : "s"} real proof can fill
+          </span>
+          {none && <span className="text-[12.5px] text-muted">Nothing to fill with yet. Add more on the Buyer insights page.</span>}
+        </div>
+      )}
+      {preview && (
+        <div className="flex flex-col gap-2.5 p-3.5 border border-line rounded-xl bg-ivory/60">
+          <span className="text-[13px] font-semibold">Here is what will change</span>
+          {preview.changes.map((ch, i) => (
+            <div key={i} className="flex flex-col gap-1 text-[13px] leading-snug">
+              <span className="text-faint line-through">{ch.before}</span>
+              <span className="text-slate">{ch.after}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              onClick={() => {
+                onApply(preview.copy);
+                setPreview(null);
+              }}
+              className="inline-flex items-center h-9 px-4 rounded-full bg-slate text-white text-[13px] font-semibold"
+            >
+              Use these
+            </button>
+            <button onClick={() => setPreview(null)} className="text-[13px] text-muted font-medium">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

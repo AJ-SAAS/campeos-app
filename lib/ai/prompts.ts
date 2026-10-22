@@ -197,7 +197,12 @@ ${signOffRule}
   scene from the audience and what they get, and stay concrete.
 - If winning copy or call themes are given below, use them as the raw
   material for this step's angle. Don't just repeat them word for word;
-  write new copy that carries the same idea.`;
+  write new copy that carries the same idea.
+- Lines that start with "Testimonial:" or "Result:" are REAL proof the user
+  saved. Quote a testimonial exactly as written, with the name as given, and
+  never change its wording or attach it to a different person. Use a real
+  result only as stated. If a step needs proof and none is given, use a
+  [PLACEHOLDER], never an invented one.`;
 }
 
 export function buildStepCopyPrompt(
