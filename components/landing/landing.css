@@ -183,3 +183,12 @@
   .cps-wtick{order:2}
   .cps-wtext{order:3;flex-basis:100% !important;white-space:normal !important;overflow:visible !important}
 }
+
+/* Page scan in the "Tell it" step */
+.cps-scanline{position:absolute;left:0;right:0;top:0;height:46px;background:linear-gradient(180deg,rgba(155,31,214,0),rgba(155,31,214,.22) 85%,rgba(224,16,159,.55));border-bottom:2px solid #C026D3;animation:cps-scanline 1.15s ease-in-out infinite alternate}
+@keyframes cps-scanline{from{transform:translateY(-46px)}to{transform:translateY(225px)}}
+.cps-skel{animation:cps-skel 1.1s ease-in-out infinite alternate}
+@keyframes cps-skel{from{opacity:.55}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.cps-scanline,.cps-skel{animation:none}}
+.cps-tspin{animation:cps-tspin .8s linear infinite}
+@keyframes cps-tspin{to{transform:rotate(360deg)}}

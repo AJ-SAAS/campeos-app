@@ -657,6 +657,7 @@ export function WinnersLibrary() {
 const JOURNEY = [
   {
     id: 'tell',
+    ms: 10500,
     label: 'Tell it',
     title: 'Tell it what you sell. That\'s all you do.',
     text: 'Paste your page link or type a few lines. Campeos finds your offer, your price and your buyers\' words. No blank page, no starting from scratch.',
@@ -721,29 +722,100 @@ function JourneyIcon({ id, active }) {
   );
 }
 
+
+/* Step one of the journey: a link types in, the page is scanned, then what was found ticks in. */
+const SCAN_URL = 'yourpage.com/class';
+const SCAN_FOUND = [
+  ['Hook', 'Posting every day and still no clients?'],
+  ['Offer', 'A free 60-minute class'],
+  ['Price', '$97'],
+  ['Audience', 'Coaches who want more clients'],
+  ['Testimonials', '3 found'],
+  ['Also found', 'Deadline, bonus, guarantee'],
+];
+
+function TellPanel({ card }) {
+  const reduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [chars, setChars] = useState(reduced ? SCAN_URL.length : 0);
+  const [phase, setPhase] = useState(reduced ? 'found' : 'typing'); // typing -> scanning -> found
+  const [shown, setShown] = useState(reduced ? SCAN_FOUND.length : 0);
+
+  useEffect(() => {
+    if (reduced) return;
+    if (phase === 'typing') {
+      if (chars < SCAN_URL.length) {
+        const t = setTimeout(() => setChars((c) => c + 1), 55);
+        return () => clearTimeout(t);
+      }
+      const t = setTimeout(() => setPhase('scanning'), 500);
+      return () => clearTimeout(t);
+    }
+    if (phase === 'scanning') {
+      const t = setTimeout(() => setPhase('found'), 2300);
+      return () => clearTimeout(t);
+    }
+    if (shown < SCAN_FOUND.length) {
+      const t = setTimeout(() => setShown((n) => n + 1), shown === 0 ? 250 : 520);
+      return () => clearTimeout(t);
+    }
+  }, [reduced, phase, chars, shown]);
+
+  const scanning = phase === 'scanning';
+  const pressing = phase === 'scanning' || (phase === 'typing' && chars === SCAN_URL.length);
+  return (
+    <div className="cps-fu" style={card}>
+      <div style={{ fontSize: '12px', color: MUTED }}>Your sales page</div>
+      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 12px', borderRadius: '12px', border: `1px solid ${phase === 'typing' ? '#C9B6F2' : LINE}`, background: '#FAF9FC', fontFamily: MONO, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9B91AA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" /></svg>
+          <span>{SCAN_URL.slice(0, chars)}</span>
+          {phase === 'typing' && <span className="cps-caret" aria-hidden="true" />}
+        </div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0 14px', borderRadius: '12px', background: GRAD, color: '#FFFFFF', fontSize: '13px', fontWeight: 700, transform: pressing && !scanning ? 'scale(.94)' : 'none', transition: 'transform .2s', opacity: chars === 0 && phase === 'typing' ? 0.5 : 1 }}>Scan</span>
+      </div>
+
+      <div style={{ position: 'relative', marginTop: '16px', minHeight: '262px' }}>
+        {phase !== 'found' && (
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, borderRadius: '14px', border: `1px solid ${LINE}`, background: '#FFFFFF', padding: '14px', overflow: 'hidden', opacity: phase === 'typing' ? 0.55 : 1, transition: 'opacity .3s' }}>
+            {[['62%', 14], ['94%', 8], ['88%', 8], ['40%', 8], ['100%', 46], ['76%', 8], ['90%', 8], ['55%', 8]].map(([w, h], i) => (
+              <div key={i} className="cps-skel" style={{ width: w, height: `${h}px`, borderRadius: '6px', background: '#EFECF5', marginTop: i === 0 ? 0 : i === 4 ? 14 : 9 }} />
+            ))}
+            {scanning && <span className="cps-scanline" />}
+          </div>
+        )}
+        {scanning && (
+          <div role="status" style={{ position: 'absolute', left: 0, right: 0, bottom: '10px', display: 'flex', justifyContent: 'center' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '7px 14px', borderRadius: '999px', background: '#17131F', color: '#FFFFFF', fontSize: '13px', fontWeight: 600 }}>
+              <svg className="cps-tspin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6" /></svg>
+              Reading your page...
+            </span>
+          </div>
+        )}
+        {phase === 'found' && (
+          <div style={{ display: 'grid', gap: '2px' }}>
+            <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: MUTED, padding: '0 4px 4px' }}>FOUND ON YOUR PAGE</div>
+            {SCAN_FOUND.map(([label, value], i) => {
+              const on = i < shown;
+              return (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 4px', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .35s, transform .35s' }}>
+                  <span className={on ? 'cps-tickpop' : ''} style={{ display: 'inline-flex', width: '22px', height: '22px', flexShrink: 0, borderRadius: '50%', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
+                  </span>
+                  <span style={{ width: '88px', flexShrink: 0, fontSize: '12px', color: MUTED }}>{label === 'Also found' ? 'Extras' : label}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 600, lineHeight: 1.35 }}>{value}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function JourneyPanel({ id }) {
   const card = { background: '#FFFFFF', border: '1px solid #E8E6EE', borderRadius: '20px', boxShadow: '0 24px 48px -34px rgba(23,19,31,.4)', padding: '22px', width: '100%', maxWidth: '520px' };
-  if (id === 'tell') {
-    const found = ['Found your offer', 'Found your price', 'Found 3 testimonials'];
-    return (
-      <div key="t" className="cps-fu" style={card}>
-        <div style={{ fontSize: '12px', color: MUTED }}>Your sales page</div>
-        <div style={{ marginTop: '8px', padding: '12px 14px', borderRadius: '12px', border: `1px solid ${LINE}`, background: '#FAF9FC', fontFamily: MONO, fontSize: '13px' }}>
-          <span className="cps-type" style={{ animationDuration: '1.2s' }}>yourpage.com/free-class</span>
-        </div>
-        <div style={{ display: 'grid', gap: '10px', marginTop: '18px' }}>
-          {found.map((t, i) => (
-            <div key={t} className="cps-fu" style={{ animationDelay: `${1.3 + i * 0.6}s`, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', fontWeight: 600 }}>
-              <span className="cps-tickpop" style={{ animationDelay: `${1.4 + i * 0.6}s`, display: 'inline-flex', width: '22px', height: '22px', borderRadius: '50%', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
-              </span>
-              {t}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (id === 'tell') return <TellPanel key="t" card={card} />;
   if (id === 'write') {
     return (
       <div key="w" className="cps-fu" style={card}>
@@ -805,9 +877,9 @@ export function JourneyTabs() {
   // Rolls through the steps on its own until someone taps one.
   useEffect(() => {
     if (!seen || paused) return;
-    const t = setInterval(() => setTab((n) => (n + 1) % JOURNEY.length), 5200);
-    return () => clearInterval(t);
-  }, [seen, paused]);
+    const t = setTimeout(() => setTab((n) => (n + 1) % JOURNEY.length), JOURNEY[tab].ms || 5200);
+    return () => clearTimeout(t);
+  }, [seen, paused, tab]);
 
   const cur = JOURNEY[tab];
   return (
@@ -828,7 +900,7 @@ export function JourneyTabs() {
                 <JourneyIcon id={j.id} active={on} />
               </span>
               <span style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.01em' }}>{j.label}</span>
-              {on && !paused && seen && <span className="cps-jprog" key={`p${tab}`} aria-hidden="true" />}
+              {on && !paused && seen && <span className="cps-jprog" key={`p${tab}`} aria-hidden="true" style={{ animationDuration: `${j.ms || 5200}ms` }} />}
             </button>
           );
         })}
