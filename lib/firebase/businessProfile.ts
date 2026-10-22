@@ -55,6 +55,16 @@ export async function getBusinessProfile(uid: string): Promise<BusinessProfile |
   return snap.data() as BusinessProfile;
 }
 
+/**
+ * True once the person has actually been through onboarding. A profile doc
+ * can exist without that (the checklist or a first campaign can write one),
+ * so "a doc exists" isn't enough: it needs the finished stamp, or an offer
+ * name for accounts made before the stamp existed.
+ */
+export function hasOnboarded(profile: BusinessProfile | null | undefined): boolean {
+  return !!profile && (!!profile.onboardedAt || !!profile.name);
+}
+
 // merge: true so the agent saving a new offer after a campaign never
 // wipes the onboarding answers (channels, frequency) stored on the same
 // doc. Before those existed this was a full overwrite, which was fine

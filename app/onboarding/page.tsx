@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
-import { getBusinessProfile, saveBusinessProfile } from "@/lib/firebase/businessProfile";
+import { getBusinessProfile, hasOnboarded, saveBusinessProfile } from "@/lib/firebase/businessProfile";
 import { createOffer } from "@/lib/firebase/offers";
 import { addWinningCopy } from "@/lib/firebase/library";
 import {
@@ -117,7 +117,7 @@ export default function OnboardingPage() {
     }
     getBusinessProfile(user.uid)
       .then((profile) => {
-        if (profile) router.replace("/dashboard");
+        if (hasOnboarded(profile)) router.replace("/dashboard");
         else setCheckingProfile(false);
       })
       .catch(() => setCheckingProfile(false));

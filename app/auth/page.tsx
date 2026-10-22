@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
-import { getBusinessProfile } from "@/lib/firebase/businessProfile";
+import { getBusinessProfile, hasOnboarded } from "@/lib/firebase/businessProfile";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import "@/components/onboarding/onboarding.css";
 
@@ -69,7 +69,7 @@ function AuthInner() {
   useEffect(() => {
     if (authLoading || !user || needsVerification) return;
     getBusinessProfile(user.uid)
-      .then((profile) => router.replace(profile ? "/dashboard" : "/onboarding"))
+      .then((profile) => router.replace(hasOnboarded(profile) ? "/dashboard" : "/onboarding"))
       .catch(() => router.replace("/onboarding"));
   }, [authLoading, user, needsVerification, router]);
 
@@ -196,7 +196,7 @@ function AuthInner() {
             </h1>
             <p className="cob-sub" style={{ marginTop: 14 }}>
               {mode === "signup"
-                ? "It's free to start. You'll see your first 3 messages written before you pay anything."
+                ? "Tell us about your offer and we'll write your first launch."
                 : "Pick up right where your launch left off."}
             </p>
 
@@ -360,10 +360,6 @@ function AuthInner() {
                 </div>
                 <p style={{ fontSize: 13, color: "#6B6577", margin: "14px 0 0", lineHeight: 1.5 }}>Can&apos;t see it? Check spam or promotions.</p>
               </form>
-            )}
-
-            {mode === "signup" && (
-              <p style={{ fontSize: 14, color: "#6B6577", margin: "12px 0 0" }}>No card needed. Setup takes about a minute.</p>
             )}
 
             <p style={{ fontSize: 15, color: "#6B6577", margin: "18px 0 0" }}>

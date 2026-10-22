@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
-import { getBusinessProfile } from "./businessProfile";
+import { getBusinessProfile, hasOnboarded } from "./businessProfile";
 
 /**
  * The soft gate for every page inside the signed-in app (dashboard,
@@ -68,7 +68,7 @@ export function useRequireAccess(): { ready: boolean } {
     let cancelled = false;
     getBusinessProfile(user.uid).then((profile) => {
       if (cancelled) return;
-      if (!profile) {
+      if (!hasOnboarded(profile)) {
         router.replace("/onboarding");
       } else {
         verifiedReadyUids.add(user.uid);
