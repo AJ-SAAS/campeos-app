@@ -584,34 +584,115 @@ export function CheckList({ items }) {
   );
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Winners library: rows roll out one by one, each ends in a green tick */
+/* ------------------------------------------------------------------ */
+
+const WINNERS = [
+  ['Ad hooks', 'that stop the scroll', 'Posting every day and still no clients?'],
+  ['Subject lines', 'that get opened', 'Your next 10 clients start Monday'],
+  ['Headlines', 'that get clicks', 'Book 10 calls a week without cold DMs'],
+  ['Buyer words', 'your audience uses', '\u201cI was posting for nothing.\u201d'],
+  ['Angles', 'your buyers care about', 'No time to run ads myself'],
+  ['Deadlines', 'that make people act', 'Seats close Friday at midnight'],
+];
+
+export function WinnersLibrary() {
+  const ref = useRef(null);
+  const seen = useInView(ref);
+  const [done, setDone] = useState(0);
+  const [chars, setChars] = useState(0);
+  const reduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  useEffect(() => {
+    if (!seen || reduced || done >= WINNERS.length) return;
+    const text = WINNERS[done][2];
+    if (chars < text.length) {
+      const t = setTimeout(() => setChars((c) => c + 1), 24);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => { setDone((d) => d + 1); setChars(0); }, 480);
+    return () => clearTimeout(t);
+  }, [seen, reduced, done, chars]);
+
+  const allDone = reduced || done >= WINNERS.length;
+  return (
+    <div ref={ref} style={{ width: '100%', background: '#FFFFFF', border: `1px solid ${LINE}`, borderRadius: '20px', overflow: 'hidden', boxShadow: '0 24px 48px -34px rgba(23,19,31,.4)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '16px', borderBottom: '1px solid #ECEAF1' }}>
+        <div style={{ fontWeight: 700, fontSize: '15px' }}>Your winners library</div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '999px', background: '#F3EEFF', color: '#5B21B6', fontSize: '12px', fontWeight: 700 }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22C55E' }} />Training your agent
+        </span>
+      </div>
+      {WINNERS.map(([label, sub, text], i) => {
+        const ticked = allDone || i < done;
+        const typing = !allDone && i === done && seen;
+        const waiting = !allDone && i > done;
+        const shown = ticked ? text : typing ? text.slice(0, chars) : '';
+        return (
+          <div key={label} className="cps-wrow" style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '13px 16px', borderTop: i ? '1px solid #F0EEF4' : '0', opacity: waiting ? 0.35 : 1, transition: 'opacity .3s' }}>
+            <div className="cps-wlabel" style={{ width: '132px', flexShrink: 0 }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: INK }}>{label}</div>
+              <div style={{ fontSize: '12px', color: MUTED }}>{sub}</div>
+            </div>
+            <div className="cps-wtext" style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 500, minHeight: '20px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {shown}
+              {typing && <span className="cps-caret" aria-hidden="true" />}
+            </div>
+            <span className={ticked ? 'cps-tickpop cps-wtick' : 'cps-wtick'} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', flexShrink: 0, borderRadius: '50%', background: ticked ? 'linear-gradient(135deg,#16A34A,#22C55E)' : '#EDEAF3', color: '#FFFFFF', transition: 'background .3s' }}>
+              {ticked && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Journey tabs: Write / Schedule / Improve, big animated icons        */
 /* ------------------------------------------------------------------ */
 
 const JOURNEY = [
   {
+    id: 'tell',
+    label: 'Tell it',
+    title: 'Tell it what you sell. That\'s all you do.',
+    text: 'Paste your page link or type a few lines. Campeos finds your offer, your price and your buyers\' words. No blank page, no starting from scratch.',
+  },
+  {
     id: 'write',
     label: 'Write',
-    title: 'Every email, text, ad and post, written',
-    text: 'Tell Campeos what you sell. It writes the whole launch in your voice, from your offer and your buyers\' words.',
+    title: 'Your whole launch, written for you',
+    text: 'Every email, text, ad and post, in your voice. The writing that used to eat your nights is done before you finish your coffee.',
   },
   {
     id: 'schedule',
     label: 'Schedule',
-    title: 'Planned day by day, with the best time to send',
-    text: 'Each message lands on the right day, in the right order, from first invite to last call. Turn any of them on or off.',
+    title: 'Every message gets a day and a time',
+    text: 'In the right order, from the first invite to the last call. You see your whole launch on one calendar and turn any message on or off.',
   },
   {
     id: 'improve',
     label: 'Improve',
-    title: 'Save what worked. Start smarter next time',
-    text: 'Keep the lines your buyers responded to. Your next launch is built from them, so it gets sharper every time.',
+    title: 'Your next launch starts ahead',
+    text: 'Save the lines your buyers responded to. Campeos builds your next launch from your winners, so it gets sharper every time.',
   },
 ];
 
 function JourneyIcon({ id, active }) {
   const c = active ? '#FFFFFF' : '#6D28D9';
   const common = { width: 34, height: 34, viewBox: '0 0 24 24', fill: 'none', stroke: c, strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
+  if (id === 'tell') {
+    return (
+      <svg {...common} className={active ? 'cps-jic cps-jic-write' : 'cps-jic'}>
+        <path className="cps-jdraw" d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+        <path className="cps-jdraw" style={{ animationDelay: '.4s' }} d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 10 18.7l1-1" />
+        <path className="cps-jspark" d="M19 15v4M17 17h4" />
+      </svg>
+    );
+  }
   if (id === 'write') {
     return (
       <svg {...common} className={active ? 'cps-jic cps-jic-write' : 'cps-jic'}>
@@ -642,6 +723,27 @@ function JourneyIcon({ id, active }) {
 
 function JourneyPanel({ id }) {
   const card = { background: '#FFFFFF', border: '1px solid #E8E6EE', borderRadius: '20px', boxShadow: '0 24px 48px -34px rgba(23,19,31,.4)', padding: '22px', width: '100%', maxWidth: '520px' };
+  if (id === 'tell') {
+    const found = ['Found your offer', 'Found your price', 'Found 3 testimonials'];
+    return (
+      <div key="t" className="cps-fu" style={card}>
+        <div style={{ fontSize: '12px', color: MUTED }}>Your sales page</div>
+        <div style={{ marginTop: '8px', padding: '12px 14px', borderRadius: '12px', border: `1px solid ${LINE}`, background: '#FAF9FC', fontFamily: MONO, fontSize: '13px' }}>
+          <span className="cps-type" style={{ animationDuration: '1.2s' }}>yourpage.com/free-class</span>
+        </div>
+        <div style={{ display: 'grid', gap: '10px', marginTop: '18px' }}>
+          {found.map((t, i) => (
+            <div key={t} className="cps-fu" style={{ animationDelay: `${1.3 + i * 0.6}s`, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', fontWeight: 600 }}>
+              <span className="cps-tickpop" style={{ animationDelay: `${1.4 + i * 0.6}s`, display: 'inline-flex', width: '22px', height: '22px', borderRadius: '50%', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
+              </span>
+              {t}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (id === 'write') {
     return (
       <div key="w" className="cps-fu" style={card}>
@@ -700,7 +802,7 @@ export function JourneyTabs() {
   const [tab, setTab] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  // Rolls through the three on its own until someone taps one.
+  // Rolls through the steps on its own until someone taps one.
   useEffect(() => {
     if (!seen || paused) return;
     const t = setInterval(() => setTab((n) => (n + 1) % JOURNEY.length), 5200);
@@ -710,7 +812,7 @@ export function JourneyTabs() {
   const cur = JOURNEY[tab];
   return (
     <div ref={ref} style={{ marginTop: '56px' }}>
-      <div role="tablist" aria-label="How Campeos works" className="cps-jtabs" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px' }}>
+      <div role="tablist" aria-label="How Campeos works" className="cps-jtabs" style={{ display: 'grid', gridTemplateColumns: `repeat(${JOURNEY.length}, minmax(0, 1fr))`, gap: '14px' }}>
         {JOURNEY.map((j, i) => {
           const on = i === tab;
           return (
