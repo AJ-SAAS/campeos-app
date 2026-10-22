@@ -10,6 +10,7 @@ import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
 import { useSubscription } from "@/lib/firebase/useSubscription";
 import { Campaign, latestCampaignByTemplate, listCampaigns } from "@/lib/firebase/campaigns";
 import { catalog, categoryLabels, categoryOrder } from "@/lib/templates/catalog";
+import { campaignGradient } from "@/lib/templates/colors";
 
 // The campaign template gallery — every campaign type Campeos offers, one
 // card each. Clicking an available card either opens the user's most
@@ -115,17 +116,15 @@ export default function CampaignsPage() {
                         {/* Shared accent bar across every card — only the
                             color changes by state (brand vs. active). */}
                         <div
-                          className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${
-                            activeCampaign ? "from-lime to-emerald-300" : "from-clay to-pink"
-                          }`}
+                          className="absolute top-0 left-0 right-0 h-[3px]"
+                          style={{ background: campaignGradient(entry.id) }}
                         />
 
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2.5">
                             <div
-                              className={`w-[30px] h-[30px] shrink-0 rounded-[9px] flex items-center justify-center font-display text-[11px] font-bold text-white bg-gradient-to-r ${
-                                activeCampaign ? "from-lime to-emerald-300" : "from-clay to-pink"
-                              }`}
+                              className="campaign-icon w-[30px] h-[30px] shrink-0 rounded-[9px] flex items-center justify-center font-display text-[11px] font-bold text-white"
+                              style={{ background: campaignGradient(entry.id) }}
                             >
                               {initialsOf(entry.title)}
                             </div>

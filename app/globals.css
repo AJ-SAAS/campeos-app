@@ -18,3 +18,12 @@ body {
   outline: 2px solid #7C3AED;
   outline-offset: 2px;
 }
+
+/* Campaign cards: each icon has its own colour, floats gently and shines
+   once when the card is hovered. */
+.campaign-icon{position:relative;overflow:hidden;transition:transform .25s cubic-bezier(.3,.7,.2,1)}
+.campaign-icon::after{content:"";position:absolute;top:0;left:-80%;width:50%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg)}
+.group:hover .campaign-icon,a:hover .campaign-icon{transform:translateY(-2px) rotate(-6deg) scale(1.06)}
+a:hover .campaign-icon::after{animation:campaign-shine .8s ease-out}
+@keyframes campaign-shine{from{left:-80%}to{left:140%}}
+@media (prefers-reduced-motion:reduce){.campaign-icon,.campaign-icon::after{animation:none !important;transition:none}}
