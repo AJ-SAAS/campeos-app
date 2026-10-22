@@ -592,6 +592,180 @@ export const PLAYS: Record<string, Play> = {
     avoid: ["Do not write a word-for-word script.", "Never invent a story, a customer or a number. Use [YOUR STORY] for details only the seller knows."],
   }),
 
+  "video-story": P({
+    id: "video-story",
+    name: "Video: the story behind the sale",
+    job: "Build trust before any discount shows up, by telling why this sale exists.",
+    beats: [
+      "titles: 3 title ideas, each a different angle (the question people ask, a confession, the reason). Each under 70 characters, plain words, honest.",
+      "summary: 2 to 3 plain sentences: a real story that shows why this sale exists, with no pitch in it.",
+      "bullets: 5 to 6 short bullets in order: open on a real moment (use [YOUR STORY] for personal details), what you used to believe, what changed, why you run this sale, a hint of what is coming and the real date, where to join the list (link in the description).",
+    ],
+    hooks: ["Why I only run one sale a year", "The real reason behind this sale", "What I wish I knew before my first sale"],
+    focus: "story",
+    avoid: ["Do not write a word-for-word script.", "Never invent a personal story, a date or a number. Use [YOUR STORY] for details only the seller knows."],
+  }),
+
+  "video-qa": P({
+    id: "video-qa",
+    name: "Video: live Q&A before the sale",
+    job: "Answer the real questions out loud so the doubts are gone before the sale opens.",
+    beats: [
+      "titles: 3 title ideas, each a different angle (ask me anything, the questions people keep sending, should you wait for the sale). Each under 70 characters.",
+      "summary: 2 to 3 plain sentences: a live session where you answer questions about the offer before the sale, and what people leave knowing.",
+      "bullets: 5 to 6 short bullets in order: welcome and what you will cover, the 3 to 5 questions buyers ask most (use the doubts in the brief, otherwise [QUESTION 1], [QUESTION 2]), one honest line on who it is not for, a hint of the sale and its real date, how to join the list, ask them to drop questions in the chat.",
+    ],
+    hooks: ["Ask me anything before the sale", "The questions you keep sending me", "Should you wait for the sale? Live answers"],
+    focus: "objection",
+    avoid: ["Do not write a word-for-word script.", "Never invent a question a real customer asked. Use [QUESTION] placeholders if the brief has none."],
+  }),
+
+  "video-short": P({
+    id: "video-short",
+    name: "Short video: who it is for",
+    job: "In 30 seconds, make the right person think 'that is me'.",
+    beats: [
+      "titles: 3 hook lines for the first two seconds of a vertical video, each a different angle. Each under 70 characters, said out loud like a person.",
+      "summary: 1 to 2 plain sentences on what the clip shows and the one thing the viewer should feel.",
+      "bullets: 4 to 5 short beats for a 20 to 30 second clip: the hook, 'this is for you if' with two real examples from the audience, one 'not for you if', what is coming and the real date, the call to action.",
+    ],
+    hooks: ["This is for you if...", "Stop scrolling if you <situation>", "Not for everyone, but maybe for you"],
+    focus: "desire",
+    avoid: ["Do not write a word-for-word script.", "Never invent a customer or a number."],
+  }),
+
+  "email-open-loop": P({
+    id: "email-open-loop",
+    name: "A story that asks a question",
+    job: "Earn attention and open a question the next email answers. No pitch.",
+    beats: [
+      "Subject: a short, curious line a friend would send. No sale words.",
+      "Open on a small, specific scene from the season that the reader will recognize (a full inbox, a rush, a deadline). Use the reader's words from the brief.",
+      "A short, honest reason you do this at all, in your own words. Use ONE [YOUR STORY] placeholder for personal details; the rest must still work without it.",
+      "Say the open question out loud, exactly as the step gives it. Then say plainly that you will answer it on the real date you were given (otherwise [DAY]).",
+      "No offer, no price, no link to buy. One soft line: reply and tell me your guess.",
+    ],
+    hooks: ["Can I ask you something?", "I have a confession about this time of year", "A question for you"],
+    focus: "curiosity",
+    avoid: ["Do not pitch or name a price.", "Never invent personal life events, dates or numbers."],
+  }),
+
+  "loop-answer": P({
+    id: "loop-answer",
+    name: "The answer, and the waitlist opens",
+    job: "Pay off the open question and move the reader onto the waitlist.",
+    beats: [
+      "Open by picking up the question from the last email, in one line.",
+      "The answer in 2 plain sentences: what is in the offer (use the stack from the brief, otherwise [WHAT'S INCLUDED]) and why it is worth waiting for.",
+      "What the waitlist gets: first access and any early perk from the brief, otherwise [EARLY PERK]. Say exactly when the waitlist gets in (the real time if given).",
+      "Who it is for in one line.",
+      "One call to action: join the waitlist with [LINK]. Say what happens when they click.",
+    ],
+    hooks: ["Here's the answer", "What's in it, and the waitlist", "You asked, so here it is"],
+    focus: "offer",
+  }),
+
+  "waitlist-nudge": P({
+    id: "waitlist-nudge",
+    name: "Waitlist reminder",
+    job: "Get the people who have not joined the list yet to do it before early access.",
+    beats: [
+      "Open with the one thing that is true now: the waitlist is open and early access starts on the real date.",
+      "What they get by being on it, in 2 or 3 short bullets, using only perks from the brief (otherwise [EARLY PERK]).",
+      "One honest reason to join now and not later. Only use scarcity if it is real.",
+      "One call to action: join with [LINK].",
+    ],
+    hooks: ["The list is open", "Get on the list before <day>", "Your spot on the list"],
+    focus: "offer",
+    avoid: ["Do not invent a spot count or a deadline for the waitlist."],
+  }),
+
+  "doors-tomorrow": P({
+    id: "doors-tomorrow",
+    name: "Doors open tomorrow",
+    job: "Get the list ready to act the minute the sale opens.",
+    beats: [
+      "Lead with tomorrow: the real day and time the sale opens, and who gets in first.",
+      "A short reminder of what is in it and the main result.",
+      "How to be ready: be on the list, have the link, set a reminder. Keep it to three short lines.",
+      "One line that handles 'I will look later': what changes once it is open.",
+      "Call to action with [LINK].",
+    ],
+    hooks: ["Doors open tomorrow", "Tomorrow at <time>", "Be ready for tomorrow"],
+    focus: "urgency",
+  }),
+
+  "post-behind-scenes": P({
+    id: "post-behind-scenes",
+    name: "Behind the scenes post",
+    job: "Show what is inside the sale so people want a place on the list.",
+    beats: [
+      "First line: a 'here is what I have been putting together' hook that works before 'more'.",
+      "2 to 4 short lines on what is in it, using only things from the offer.",
+      "One line on why you built it this way.",
+      "One call to action: join the list (link in bio or the link in the post).",
+    ],
+    hooks: ["What I've been building for Black Friday", "A look inside the sale", "Here's what's in it"],
+    focus: "curiosity",
+  }),
+
+  "post-sale": P({
+    id: "post-sale",
+    name: "Sale is live post",
+    job: "Say it is live, what it is and when it ends, in a few lines.",
+    beats: [
+      "First line: it is live, and the offer in a few words.",
+      "2 to 3 short lines: what is included, the price or discount, and the real end time.",
+      "One call to action with the link.",
+    ],
+    hooks: ["It's live", "The sale is on", "<Offer> is open until <time>"],
+    focus: "offer",
+  }),
+
+  "ad-waitlist": P({
+    id: "ad-waitlist",
+    name: "Waitlist ad",
+    job: "Turn people who already know you into names on the waitlist.",
+    beats: [
+      "Headline: the result and 'get on the list', under 40 characters.",
+      "Primary text: speak to people who already know you or bought before, say what the list gets (early access and any real perk), and the date early access opens.",
+      "One call to action to join.",
+      "Visual idea: one line on what to show.",
+    ],
+    hooks: ["Get on the list", "First in line", "Join before <day>"],
+    focus: "offer",
+  }),
+
+  "gift-pick": P({
+    id: "gift-pick",
+    name: "Who it is a great gift for",
+    job: "Help a buyer picture the person they are buying for.",
+    beats: [
+      "Open with the gift question: who is hard to buy for this year?",
+      "3 short 'perfect for' lines, each a real type of person from the audience.",
+      "What the person gets and how it feels to receive it, in plain words.",
+      "The price in one line and the real end date of the sale.",
+      "Call to action with [LINK].",
+    ],
+    hooks: ["Who's hard to buy for?", "The gift that does not need wrapping", "3 people this is perfect for"],
+    focus: "desire",
+  }),
+
+  "order-by": P({
+    id: "order-by",
+    name: "Order by date",
+    job: "Make the delivery cut-off the reason to buy now.",
+    beats: [
+      "Lead with the last day to order so it arrives in time: the real date if given, otherwise [ORDER-BY DATE]. If the offer is digital and arrives right away, say it works as a last-minute gift instead.",
+      "What happens after that date, in one line.",
+      "One line of what they get.",
+      "Call to action with [LINK].",
+    ],
+    hooks: ["Last day to order", "Order by <date>", "Still time to give this"],
+    focus: "urgency",
+    avoid: ["Never invent a shipping date or a promise. Use [ORDER-BY DATE] if it is not given."],
+  }),
+
   /* ------------------------------------------------------------ */
   /* Short channels: texts, posts, ads                              */
   /* ------------------------------------------------------------ */

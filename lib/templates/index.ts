@@ -4,6 +4,9 @@ import { webinarTemplate } from "./webinar";
 import { flashSale48hTemplate } from "./flash-sale-48h";
 import { cartCloseTemplate } from "./cart-close";
 import { cashInjectionTemplate } from "./cash-injection";
+import { blackFridayTemplate } from "./black-friday";
+import { cyberMondayTemplate } from "./cyber-monday";
+import { holidaySaleTemplate } from "./holiday-sale";
 
 // Adding a new campaign type ("pocket") means adding a file next to
 // webinar.ts and registering it here. Nothing else should need to change.
@@ -12,6 +15,9 @@ export const templates: Record<string, CampaignTemplate> = {
   "flash-sale-48h": flashSale48hTemplate,
   "cart-close": cartCloseTemplate,
   "cash-injection": cashInjectionTemplate,
+  "black-friday": blackFridayTemplate,
+  "cyber-monday": cyberMondayTemplate,
+  "holiday-sale": holidaySaleTemplate,
 };
 
 /** The "key date" text the writer sees: when it goes live and, for

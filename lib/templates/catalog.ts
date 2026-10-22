@@ -59,10 +59,10 @@ export const catalog: CatalogEntry[] = [
   {
     id: "black-friday",
     title: "Black Friday",
-    length: "1 week",
-    description: "Build anticipation, then a hard countdown to the deal.",
+    length: "16 days",
+    description: "Build trust and a waitlist, early access for the list, then a hard countdown to the deal.",
     category: "seasonal",
-    status: "soon",
+    status: "available",
   },
   {
     id: "cyber-monday",
@@ -70,7 +70,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 day",
     description: "A single hard-deadline push the Monday after Black Friday.",
     category: "seasonal",
-    status: "soon",
+    status: "available",
   },
   {
     id: "holiday-sale",
@@ -78,7 +78,7 @@ export const catalog: CatalogEntry[] = [
     length: "4 days",
     description: "A seasonal deal with a clear start and end.",
     category: "seasonal",
-    status: "soon",
+    status: "available",
   },
   {
     id: "xmas-holidays",
