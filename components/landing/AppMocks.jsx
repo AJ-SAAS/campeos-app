@@ -655,7 +655,7 @@ export function WinnersLibrary({ fast }) {
 /* ------------------------------------------------------------------ */
 
 const JOURNEY = [
-  { id: 'tell', ms: 6800, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
+  { id: 'tell', ms: 6200, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
   { id: 'write', ms: 5200, label: 'Write', lead: 'Your whole launch, written.', text: 'Every email, text, ad and post, in your voice, before you finish your coffee.' },
   { id: 'schedule', ms: 4600, label: 'Schedule', lead: 'Every message gets a day and a time.', text: 'One calendar from the first invite to the last call.' },
   { id: 'improve', ms: 6200, label: 'Improve', lead: 'Your next launch starts ahead.', text: 'Save what your buyers respond to and build the next launch from it.' },
@@ -818,8 +818,8 @@ const TOOL = [
   <g key="p"><rect x="4" y="5" width="16" height="14" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="M20 16l-5-5-8 8" /></g>,
 ];
 
-/* 1. Tell it: the onboarding screen. A link types in, the page is scanned, the finds tick in. */
-const SCAN_URL = 'yourstore.com/black-friday';
+/* 1. Tell it: a clean search bar. A link types in, a cursor clicks, the page is read, the finds tick in. */
+const SCAN_URL = 'yourstore.com';
 const SCAN_FOUND = [
   ['Hook', 'Our biggest sale of the year'],
   ['Offer', '40% off everything, 4 days only'],
@@ -830,54 +830,64 @@ const SCAN_FOUND = [
 ];
 
 function ScreenTell() {
-  const [typed, typing] = useTyped(SCAN_URL, 500, 60);
-  const n = useStage([2100, 4500, 4800, 5300, 5800, 6300, 6800, 7300]);
-  const scanning = n === 1;
-  const found = n >= 2;
-  const shown = Math.max(0, n - 2);
+  const [typed] = useTyped(SCAN_URL, 500, 70);
+  // 1 cursor glides in, 2 click, 3 reading, 4 still reading, 5 found, 6+ rows tick in
+  const n = useStage([1700, 2700, 3100, 4100, 5000, 5300, 5600, 5900, 6200, 6500, 6800]);
+  const moved = n >= 1;
+  const clicked = n === 2;
+  const reading = n >= 3 && n < 5;
+  const found = n >= 5;
+  const shown = Math.max(0, n - 5);
   return (
-    <AppWindow url="campeos.com/onboarding">
-      <div style={{ flex: '1 1 320px', minWidth: 0, padding: 'clamp(24px, 4vw, 48px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: '#8A8494' }}>STEP 2 OF 6</div>
-        <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: 'clamp(28px, 3.2vw, 40px)', letterSpacing: '-.025em', lineHeight: 1.06, marginTop: '10px' }}>Do you have a sales page?</div>
-        <div style={{ fontSize: '15px', color: MUTED, marginTop: '10px', lineHeight: 1.5 }}>Paste the link. We&apos;ll fill in the rest.</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '26px', padding: '14px 16px', borderRadius: '12px', border: `1px solid ${typing ? '#17131F' : '#E6E3EC'}`, background: '#FFFFFF', fontFamily: MONO, fontSize: '14px', minHeight: '24px', transition: 'border-color .2s' }}>
-          <span>{typed}</span>
-          {typing && <span className="cps-caret" aria-hidden="true" />}
-        </div>
-        <div style={{ marginTop: '12px', display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', padding: '12px 20px', borderRadius: '12px', background: INK, color: '#FFFFFF', fontSize: '14px', fontWeight: 500, transform: !typing && n === 0 && typed.length === SCAN_URL.length ? 'scale(.95)' : 'none', transition: 'transform .2s', opacity: typed.length === 0 ? 0.5 : 1 }}>
-          Fill it in for me
-        </div>
-        <div style={{ marginTop: '24px', height: '4px', borderRadius: '999px', background: '#F0EEF4', overflow: 'hidden', opacity: n === 0 ? 0 : 1, transition: 'opacity .3s' }}>
-          <div style={{ height: '100%', borderRadius: '999px', background: INK, width: found ? '100%' : scanning ? '92%' : '0%', transition: scanning ? 'width 2.3s ease-out' : 'width .4s' }} />
-        </div>
-        <div style={{ fontSize: '13px', color: '#8A8494', marginTop: '10px', minHeight: '18px' }}>{found ? 'Done. Found 6 things.' : scanning ? 'Reading your page...' : ''}</div>
-      </div>
+    <AppWindow url="campeos.com">
+      <div style={{ flex: '1 1 100%', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'clamp(28px, 6vw, 64px) clamp(16px, 4vw, 40px) clamp(24px, 4vw, 44px)' }}>
+        <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: 'clamp(28px, 3.4vw, 42px)', letterSpacing: '-.025em', lineHeight: 1.06, textAlign: 'center' }}>What&apos;s your website?</div>
 
-      <div style={{ flex: '1 1 300px', minWidth: 0, padding: 'clamp(20px, 3vw, 36px)', background: '#FAFAFB', borderLeft: `1px solid ${LINE}`, borderTop: `1px solid ${LINE}`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ position: 'relative', minHeight: '340px', borderRadius: '16px', border: `1px solid ${LINE}`, background: '#FFFFFF', padding: '20px', overflow: 'hidden' }}>
-          <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: '#8A8494' }}>{found ? 'FOUND ON YOUR PAGE' : 'YOUR PAGE'}</div>
-          {!found && (
-            <div aria-hidden="true" style={{ marginTop: '16px', opacity: n === 0 ? 0.5 : 1, transition: 'opacity .3s' }}>
-              {[['62%', 14], ['94%', 8], ['88%', 8], ['40%', 8], ['100%', 56], ['76%', 8], ['90%', 8], ['55%', 8], ['82%', 8]].map(([w, h], i) => (
-                <div key={i} className="cps-skel" style={{ width: w, height: `${h}px`, borderRadius: '6px', background: '#F0EEF4', marginTop: i === 0 ? 0 : i === 4 ? 16 : 10 }} />
-              ))}
-              {scanning && <span className="cps-scanline" />}
-            </div>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '600px', marginTop: '28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', height: '60px', padding: '0 8px 0 18px', borderRadius: '16px', border: '1px solid #E6E3EC', background: '#FFFFFF', boxShadow: '0 12px 30px -22px rgba(23,19,31,.35)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A8494" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+            <span style={{ flex: 1, minWidth: 0, fontFamily: MONO, fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+              {typed}{typed.length < SCAN_URL.length && <span className="cps-caret" aria-hidden="true" />}
+              {typed.length === 0 && <span style={{ color: '#B5B0BF' }}>{'\u200b'}</span>}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0 22px', height: '44px', borderRadius: '12px', background: INK, color: '#FFFFFF', fontSize: '15px', fontWeight: 500, transform: clicked ? 'scale(.93)' : 'none', transition: 'transform .15s' }}>Scan</span>
+          </div>
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" style={{ position: 'absolute', right: '34px', top: '34px', pointerEvents: 'none', filter: 'drop-shadow(0 3px 5px rgba(23,19,31,.35))', opacity: moved && n < 4 ? 1 : 0, transform: moved ? (clicked ? 'translate(0,0) scale(.85)' : 'translate(0,0)') : 'translate(-170px, 120px)', transition: 'transform .9s cubic-bezier(.3,.7,.2,1), opacity .35s' }}>
+            <path d="M5 3l14 8-6.2 1.8L10 19z" fill="#17131F" stroke="#FFFFFF" strokeWidth="1.6" strokeLinejoin="round" />
+          </svg>
+        </div>
+
+        <div style={{ position: 'relative', width: '100%', maxWidth: '600px', marginTop: '20px', minHeight: '330px', borderRadius: '16px', border: `1px solid ${LINE}`, background: '#FFFFFF', padding: '20px', overflow: 'hidden', opacity: n >= 3 ? 1 : 0, transform: n >= 3 ? 'none' : 'translateY(10px)', transition: 'opacity .35s, transform .35s' }}>
+          {reading && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: MUTED, fontWeight: 500 }}>
+                <span className="cps-tspin" aria-hidden="true" style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid #E6E3EC', borderTopColor: INK, display: 'inline-block' }} />
+                {n === 3 ? 'Reading your page...' : 'Finding your offer, price and reviews...'}
+              </div>
+              <div aria-hidden="true" style={{ marginTop: '18px' }}>
+                {[['62%', 14], ['94%', 8], ['88%', 8], ['40%', 8], ['100%', 56], ['76%', 8], ['90%', 8], ['55%', 8]].map(([w, h], i) => (
+                  <div key={i} className="cps-skel" style={{ width: w, height: `${h}px`, borderRadius: '6px', background: '#F0EEF4', marginTop: i === 0 ? 0 : i === 4 ? 16 : 10 }} />
+                ))}
+              </div>
+              <span className="cps-scanline" />
+            </>
           )}
           {found && (
-            <div style={{ display: 'grid', marginTop: '8px' }}>
-              {SCAN_FOUND.map(([label, value], i) => {
-                const on = i < shown;
-                return (
-                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 2px', borderTop: i ? '1px solid #F5F4F7' : '0', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .35s, transform .35s' }}>
-                    <Tick size={20} pop={on} />
-                    <span style={{ width: '84px', flexShrink: 0, fontSize: '13px', color: '#8A8494' }}>{label}</span>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 500, lineHeight: 1.35 }}>{value}</span>
-                  </div>
-                );
-              })}
-            </div>
+            <>
+              <div style={{ fontSize: '14px', color: MUTED, fontWeight: 500 }}>Found on your page</div>
+              <div style={{ display: 'grid', marginTop: '6px' }}>
+                {SCAN_FOUND.map(([label, value], i) => {
+                  const on = i < shown;
+                  return (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 2px', borderTop: i ? '1px solid #F5F4F7' : '0', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .3s, transform .3s' }}>
+                      <Tick size={20} pop={on} />
+                      <span style={{ width: '84px', flexShrink: 0, fontSize: '13px', color: '#8A8494' }}>{label}</span>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 500, lineHeight: 1.35 }}>{value}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>
