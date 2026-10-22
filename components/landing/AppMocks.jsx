@@ -590,12 +590,12 @@ export function CheckList({ items }) {
 /* ------------------------------------------------------------------ */
 
 const WINNERS = [
-  ['Ad hooks', 'that stop the scroll', 'Our biggest sale of the year is here'],
-  ['Subject lines', 'that get opened', 'Black Friday starts in 3 hours'],
-  ['Headlines', 'that get clicks', '40% off everything. 4 days only.'],
-  ['Buyer words', 'your audience uses', '\u201cI wish I had bought more.\u201d'],
-  ['Angles', 'your buyers care about', 'Free shipping on every order'],
-  ['Deadlines', 'that make people act', 'Sale ends Monday at midnight'],
+  ['Ad hooks', 'that stop the scroll', 'Writing launch emails at midnight? Stop.'],
+  ['Subject lines', 'that get opened', 'Is your Black Friday ready?'],
+  ['Headlines', 'that get clicks', 'Your whole launch, written in one evening'],
+  ['Buyer words', 'your audience uses', '\u201cI was staring at a blank page.\u201d'],
+  ['Angles', 'your buyers care about', 'No more blank pages'],
+  ['Deadlines', 'that make people act', 'Early access closes Friday at midnight'],
 ];
 
 export function WinnersLibrary({ fast }) {
@@ -655,7 +655,7 @@ export function WinnersLibrary({ fast }) {
 /* ------------------------------------------------------------------ */
 
 const JOURNEY = [
-  { id: 'tell', ms: 7400, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
+  { id: 'tell', ms: 8400, label: 'Tell it', lead: 'Tell it what you sell.', text: 'Paste your page link and Campeos finds your hook, offer, price and testimonials.' },
   { id: 'write', ms: 5200, label: 'Write', lead: 'Your whole launch, written.', text: 'Every email, text, ad and post, in your voice, before you finish your coffee.' },
   { id: 'schedule', ms: 11500, label: 'Schedule', lead: 'Every message gets a day and a time.', text: 'One plan from the first teaser to the last call.' },
   { id: 'improve', ms: 6200, label: 'Improve', lead: 'Your next launch starts ahead.', text: 'Save what your buyers respond to and build the next launch from it.' },
@@ -864,9 +864,9 @@ function ScanSite({ f }) {
 }
 
 function ScreenTell() {
-  const [typed] = useTyped(SCAN_URL, 500, 70);
+  const [typed] = useTyped(SCAN_URL, 1500, 70);
   // 1 cursor glides in, 2 click, 3 scan starts, 4 to 9 finds 1 to 6, 10 brief ready
-  const n = useStage([1700, 2700, 3100, 3800, 4400, 5000, 5600, 6200, 6800, 7600]);
+  const n = useStage([2700, 3700, 4100, 4800, 5400, 6000, 6600, 7200, 7800, 8600]);
   const moved = n >= 1;
   const clicked = n === 2;
   const f = Math.max(0, Math.min(6, n - 3));
@@ -882,7 +882,7 @@ function ScreenTell() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A8494" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
             <span style={{ flex: 1, minWidth: 0, fontFamily: MONO, fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
               {typed}{typed.length < SCAN_URL.length && <span className="cps-caret" aria-hidden="true" />}
-              {typed.length === 0 && <span style={{ color: '#B5B0BF' }}>{'\u200b'}</span>}
+              {typed.length === 0 && <span style={{ color: '#B5B0BF' }}>Type your website...</span>}
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0 22px', height: '44px', borderRadius: '12px', background: INK, color: '#FFFFFF', fontSize: '15px', fontWeight: 500, transform: clicked ? 'scale(.93)' : 'none', transition: 'transform .15s' }}>Scan</span>
           </div>
@@ -945,20 +945,20 @@ function ScreenTell() {
 
 /* 2. Write: the builder. Messages write themselves, one after another. */
 const WRITE_LINES = [
-  'Hey Sarah,',
-  'Our Black Friday sale starts Friday at 9 AM. Everything is 40% off with code BF40.',
-  'Stock is limited, so shop early.',
+  'Hey there,',
+  'Black Friday is on the 27th. Most people write their emails the night before.',
+  "You don't have to. Campeos writes your whole launch in one evening, every email, text and ad.",
 ];
 
 function ScreenWrite() {
-  const [subject, typing] = useTyped('Black Friday starts Friday', 400, 45);
+  const [subject, typing] = useTyped('Is your Black Friday ready?', 400, 45);
   const n = useStage([1700, 2500, 3300, 4000, 4300, 5600]);
   const written = 1 + (n >= 4 ? 1 : 0) + (n >= 6 ? 1 : 0);
   const rows = [
-    { logos: ['email'], title: 'Black Friday is coming', meta: 'Email · Day 1', status: n >= 4 ? 'Ready' : 'Writing...' },
-    { logos: ['sms'], title: 'Sale starts tomorrow', meta: 'Text · Day 3', status: n >= 6 ? 'Ready' : n >= 5 ? 'Writing...' : 'Not written' },
-    { logos: ['instagram', 'facebook'], title: 'Sale is live', meta: 'Social · Day 4', status: n >= 6 ? 'Writing...' : 'Not written' },
-    { logos: ['facebook'], title: 'Last chance ad', meta: 'Ad · Day 4', status: 'Not written' },
+    { logos: ['email'], title: 'Is your Black Friday ready?', meta: 'Email · Day 1', status: n >= 4 ? 'Ready' : 'Writing...' },
+    { logos: ['sms'], title: 'Early access is open', meta: 'Text · Day 3', status: n >= 6 ? 'Ready' : n >= 5 ? 'Writing...' : 'Not written' },
+    { logos: ['instagram', 'facebook'], title: 'Watch a launch get written', meta: 'Social · Day 4', status: n >= 6 ? 'Writing...' : 'Not written' },
+    { logos: ['facebook'], title: 'Black Friday is 8 days away', meta: 'Ad · Day 4', status: 'Not written' },
   ];
   const fieldRow = { display: 'flex', alignItems: 'center', gap: '16px', padding: '13px 18px', borderBottom: `1px solid ${LINE}`, fontSize: '14px' };
   return (
@@ -981,21 +981,21 @@ function ScreenWrite() {
           </div>
           <div style={{ flex: '2 1 330px', minWidth: 0, border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', background: '#FFFFFF' }}>
             <div style={fieldRow}><span style={{ width: '58px', color: '#8A8494' }}>Subject</span><span style={{ fontWeight: 500, minHeight: '20px' }}>{subject}{typing && <span className="cps-caret" aria-hidden="true" />}</span></div>
-            <div style={fieldRow}><span style={{ width: '58px', color: '#8A8494' }}>Preview</span><span style={{ color: MUTED, opacity: n >= 1 ? 1 : 0, transition: 'opacity .4s' }}>40% off everything. 4 days only.</span></div>
+            <div style={fieldRow}><span style={{ width: '58px', color: '#8A8494' }}>Preview</span><span style={{ color: MUTED, opacity: n >= 1 ? 1 : 0, transition: 'opacity .4s' }}>One evening. Every email, text and ad.</span></div>
             <div style={{ display: 'flex', gap: '20px', padding: '11px 18px', borderBottom: `1px solid ${LINE}`, color: '#8A8494' }}>
               {TOOL.map((t, i) => <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{t}</svg>)}
             </div>
             <div style={{ padding: '20px 22px 22px' }}>
-              <div style={{ fontSize: '20px', fontWeight: 600, letterSpacing: '-.01em', opacity: n >= 1 ? 1 : 0, transition: 'opacity .4s' }}>Black Friday starts Friday</div>
+              <div style={{ fontSize: '20px', fontWeight: 600, letterSpacing: '-.01em', opacity: n >= 1 ? 1 : 0, transition: 'opacity .4s' }}>Is your Black Friday ready?</div>
               {WRITE_LINES.map((l, i) => (
                 <div key={l} style={{ fontSize: '14.5px', lineHeight: 1.6, color: '#3D3747', marginTop: '10px', opacity: n > i ? 1 : 0, transform: n > i ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>{l}</div>
               ))}
               <div style={{ position: 'relative', marginTop: '16px', height: '118px', borderRadius: '14px', overflow: 'hidden', background: 'linear-gradient(120deg,#1E1458,#5B21B6 55%,#C026D3)', color: '#FFFFFF', padding: '18px 20px', opacity: n >= 4 ? 1 : 0, transform: n >= 4 ? 'none' : 'translateY(8px)', transition: 'opacity .5s, transform .5s' }}>
                 <span aria-hidden="true" style={{ position: 'absolute', right: '-40px', top: '-50px', width: '180px', height: '180px', borderRadius: '50%', background: 'rgba(255,255,255,.12)' }} />
                 <span aria-hidden="true" style={{ position: 'absolute', right: '60px', bottom: '-60px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,.09)' }} />
-                <div style={{ position: 'relative', fontFamily: MONO, fontSize: '11px', letterSpacing: '.12em', opacity: 0.85 }}>BLACK FRIDAY</div>
-                <div style={{ position: 'relative', fontSize: '24px', fontWeight: 600, letterSpacing: '-.02em', marginTop: '6px' }}>40% off everything</div>
-                <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px', padding: '6px 14px', borderRadius: '8px', background: '#FFFFFF', color: INK, fontSize: '13px', fontWeight: 600 }}>Shop the sale</div>
+                <div style={{ position: 'relative', fontFamily: MONO, fontSize: '11px', letterSpacing: '.12em', opacity: 0.85 }}>BLACK FRIDAY LAUNCH</div>
+                <div style={{ position: 'relative', fontSize: '24px', fontWeight: 600, letterSpacing: '-.02em', marginTop: '6px' }}>Done in one evening</div>
+                <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px', padding: '6px 14px', borderRadius: '8px', background: '#FFFFFF', color: INK, fontSize: '13px', fontWeight: 600 }}>Plan my launch</div>
               </div>
             </div>
           </div>
@@ -1013,26 +1013,26 @@ const PHASES = [
 ];
 // [days after Nov 12, day label, time, channels, kind, hook]
 const MSGS = [
-  [0, 'Thu 12', '9 AM', ['youtube'], 'YouTube video', "I almost skipped Black Friday this year. Here's why I didn't."],
-  [0, 'Thu 12', '12 PM', ['instagram'], 'Instagram post', "Okay, I'm a little nervous about the 27th."],
-  [2, 'Sat 14', '10 AM', ['email'], 'Email', 'Last Black Friday, I messed up. Let me tell you how.'],
-  [4, 'Mon 16', '11 AM', ['facebook'], 'Facebook post', "Quick question. What's one thing you'd buy if it went on sale?"],
-  [5, 'Tue 17', '9 AM', ['email'], 'Email', "Remember my mess-up from last week? Here's how I'm fixing it."],
-  [6, 'Wed 18', '6 PM', ['instagram'], 'Instagram reel', 'If this sounds like you, this sale is for you.'],
+  [0, 'Thu 12', '9 AM', ['youtube'], 'YouTube video', "Writing Black Friday emails at midnight is a bad plan. Here's a better one."],
+  [0, 'Thu 12', '12 PM', ['instagram'], 'Instagram post', "How many emails does a Black Friday launch really need? Let's count."],
+  [2, 'Sat 14', '10 AM', ['email'], 'Email', "It's 11 PM and your launch emails aren't written. Sound familiar?"],
+  [4, 'Mon 16', '11 AM', ['facebook'], 'Facebook post', 'Quick question. How many days before a launch do you start writing?'],
+  [5, 'Tue 17', '9 AM', ['email'], 'Email', "Here's what I'd write first if I only had one evening."],
+  [6, 'Wed 18', '6 PM', ['instagram'], 'Instagram reel', 'Watch a whole launch get written. Start to finish.'],
   [7, 'Thu 19', '9 AM', ['email'], 'Email', 'You were here first, so you go first.'],
-  [7, 'Thu 19', '12 PM', ['sms'], 'Text message', "Hey, it's [YOUR NAME]. Your early spot is ready."],
-  [9, 'Sat 21', '10 AM', ['facebook'], 'Facebook ad', 'To everyone who bought from me before: thank you.'],
-  [11, 'Mon 23', '9 AM', ['email'], 'Email', '[CUSTOMER NAME] sent me this last week. I read it three times.'],
-  [12, 'Tue 24', '7 PM', ['youtube'], 'YouTube live', "Ask me anything. No script. I'll stay till the questions run out."],
-  [13, 'Wed 25', '6 PM', ['email'], 'Email', "Tomorrow night. Here's what I'd do if I were you."],
+  [7, 'Thu 19', '12 PM', ['sms'], 'Text message', "Hey, it's [YOUR NAME] from Campeos. Your early spot is ready."],
+  [9, 'Sat 21', '10 AM', ['facebook'], 'Facebook ad', 'Black Friday is 6 days away. Is your launch written yet?'],
+  [11, 'Mon 23', '9 AM', ['email'], 'Email', '[CUSTOMER NAME] sent me this after their last launch. I read it twice.'],
+  [12, 'Tue 24', '7 PM', ['youtube'], 'YouTube live', "Bring your offer. We'll plan your launch live."],
+  [13, 'Wed 25', '6 PM', ['email'], 'Email', "Tomorrow the doors open. Here's how to get ready."],
   [14, 'Thu 26', '8 PM', ['sms'], 'Text message', "It's open. Here's your early link."],
   [14, 'Thu 26', '8 PM', ['email'], 'Email', "You're in. Here's your deal."],
   [15, 'Fri 27', '9 AM', ['email'], 'Email', "Okay. It's live. (Deep breath.)", true],
   [15, 'Fri 27', '9 AM', ['instagram', 'facebook'], 'Social post', "It's live. Go get your coffee first.", true],
-  [15, 'Fri 27', '6 PM', ['sms'], 'Text message', 'The bonus is gone at midnight. Wanted you to know.', true],
+  [15, 'Fri 27', '6 PM', ['sms'], 'Text message', 'Your deal ends at midnight. Wanted you to know.', true],
   [16, 'Sat 28', '11 AM', ['facebook'], 'Facebook ad', "Still thinking about it? That's okay. Read this first."],
   [17, 'Sun 29', '7 PM', ['email'], 'Email', 'Three questions I keep getting asked.'],
-  [18, 'Mon 30', '9 AM', ['email'], 'Email', "I wasn't going to do this. Then you wrote back."],
+  [18, 'Mon 30', '9 AM', ['email'], 'Email', 'Cyber Monday. One more day to get your launch written.'],
   [18, 'Mon 30', '6 PM', ['instagram'], 'Instagram story', '6 hours left. No pressure. Just a heads up.'],
   [19, 'Tue 1', '9 AM', ['email'], 'Email', "Last call. I'll keep it short."],
   [19, 'Tue 1', '4 PM', ['sms'], 'Text message', "8 hours left. You've got this."],
@@ -1204,7 +1204,7 @@ function ScreenImprove() {
       </Main>
       <div role="status" style={{ position: 'absolute', right: '22px', top: '70px', maxWidth: '300px', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '14px', background: '#17131F', color: '#FFFFFF', boxShadow: '0 20px 40px -20px rgba(23,19,31,.6)', opacity: n >= 1 ? 1 : 0, transform: n >= 1 ? 'none' : 'translateY(12px)', transition: 'opacity .4s, transform .4s' }}>
         <Tick pop={n >= 1} />
-        <span style={{ fontSize: '13px', lineHeight: 1.4 }}><b style={{ fontWeight: 600 }}>Saved as a winner</b><br />&ldquo;Sale ends Monday at midnight&rdquo;</span>
+        <span style={{ fontSize: '13px', lineHeight: 1.4 }}><b style={{ fontWeight: 600 }}>Saved as a winner</b><br />&ldquo;Early access closes Friday at midnight&rdquo;</span>
       </div>
     </AppWindow>
   );
