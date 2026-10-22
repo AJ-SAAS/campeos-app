@@ -40,11 +40,23 @@ export function suggestedPlan(frequency: string | undefined): PlanId {
   return frequency === "rarely" || frequency === "new" ? "starter" : "pro";
 }
 
-/** What the user is launching. Only the webinar launch is built today; the
- * rest are on the way, and the screen says so up front (no surprise
- * Webinar after picking Black Friday). Titles come from the campaign
- * catalog so the two lists can't drift. */
-export const LAUNCH_TYPE_IDS = ["webinar", "black-friday", "flash-sale-48h", "product-launch", "win-back"] as const;
+/** What the user is launching. The eight most common campaigns, plus an
+ * "I'm not sure" choice. Every campaign is built, so all of them start the
+ * real thing; the full list lives on the Campaigns page. Titles come from
+ * the campaign catalog so the two lists can't drift. */
+export const LAUNCH_TYPE_IDS = [
+  "webinar",
+  "product-launch",
+  "black-friday",
+  "flash-sale-48h",
+  "mini-launch",
+  "lead-magnet",
+  "book-a-call",
+  "win-back",
+] as const;
+/** Someone who does not know yet. They start with the webinar launch,
+ * which fits most offers, and can pick any other campaign later. */
+export const NOT_SURE_LAUNCH_TYPE = "not-sure";
 export const LIVE_LAUNCH_TYPE = "webinar";
 
 /** The date the campaign goes live, as yyyy-mm-dd in the user's time. */

@@ -14,6 +14,7 @@ import {
   FrequencyId,
   suggestedPlan,
   LAUNCH_TYPE_IDS,
+  NOT_SURE_LAUNCH_TYPE,
   LIVE_LAUNCH_TYPE,
   BILLING_OPTIONS,
   BillingId,
@@ -97,7 +98,7 @@ export default function OnboardingPage() {
   const [launchType, setLaunchType] = useState<string>(LIVE_LAUNCH_TYPE);
   // Live once its real template exists (catalog status "available").
   const launchIsLive = catalog.find((c) => c.id === launchType)?.status === "available";
-  const [notifyMe, setNotifyMe] = useState(true);
+  const launchNotSure = launchType === NOT_SURE_LAUNCH_TYPE;
   const [launchDate, setLaunchDate] = useState("");
   const [dateGuess, setDateGuess] = useState(false);
 
@@ -334,8 +335,6 @@ export default function OnboardingPage() {
         frequency,
         suggestedPlan: suggestedPlan(frequency),
         campaignType: launchIsLive ? launchType : LIVE_LAUNCH_TYPE,
-        wantedType: !launchIsLive ? launchType : undefined,
-        notifyWhenLive: !launchIsLive ? notifyMe : undefined,
         launchDate,
         launchDateGuess: dateGuess || undefined,
         currency,
@@ -694,28 +693,24 @@ export default function OnboardingPage() {
                   {LAUNCH_TYPE_IDS.map((id) => {
                     const entry = catalog.find((c) => c.id === id);
                     if (!entry) return null;
-                    const live = entry.status === "available";
                     return (
                       <button key={id} type="button" className={`cob-opt ${launchType === id ? "on" : ""}`} onClick={() => setLaunchType(id)} aria-pressed={launchType === id}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 16, fontWeight: 600 }}>{id === LIVE_LAUNCH_TYPE ? "Webinar or live training" : entry.title}</span>
-                          <span className={live ? "cob-badge live" : "cob-badge"}>{live ? "Live now" : "Coming soon"}</span>
-                        </div>
+                        <span style={{ fontSize: 16, fontWeight: 600 }}>{id === LIVE_LAUNCH_TYPE ? "Webinar or live training" : entry.title}</span>
                         <div style={{ fontSize: 13, color: "#6B6577", marginTop: 2 }}>
                           {id === LIVE_LAUNCH_TYPE ? "A free training, call or live demo that leads to a sale. Works for courses, coaching and services." : entry.description}
                         </div>
                       </button>
                     );
                   })}
+                  <button type="button" className={`cob-opt ${launchNotSure ? "on" : ""}`} onClick={() => setLaunchType(NOT_SURE_LAUNCH_TYPE)} aria-pressed={launchNotSure}>
+                    <span style={{ fontSize: 16, fontWeight: 600 }}>I&apos;m not sure yet</span>
+                    <div style={{ fontSize: 13, color: "#6B6577", marginTop: 2 }}>No problem. We&apos;ll start you with a webinar launch, which fits most offers.</div>
+                  </button>
                 </div>
 
-                {!launchIsLive && (
+                {launchNotSure && (
                   <div className="cob-rise" role="status" style={{ marginTop: 14, padding: "14px 16px", borderRadius: 14, background: "#F6F1FE", border: "1px solid #E4D6FA", fontSize: 15, lineHeight: 1.5, color: "#3D2A66" }}>
-                    <b>We&apos;re still building this one.</b> To get you started today, we&apos;ll set you up with a webinar launch. It works for any offer you sell with a free training or call.
-                    <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, fontSize: 14, cursor: "pointer" }}>
-                      <input type="checkbox" checked={notifyMe} onChange={(e) => setNotifyMe(e.target.checked)} style={{ width: 18, height: 18 }} />
-                      Tell me when it&apos;s ready
-                    </label>
+                    You can pick any of our {catalog.length} campaigns later from the Campaigns page.
                   </div>
                 )}
 
