@@ -148,3 +148,33 @@ test("www and bare addresses are both tried", () => {
   assert.deepEqual(urlVariants("https://campeos.com/"), ["https://campeos.com/", "https://www.campeos.com/"]);
   assert.deepEqual(urlVariants("https://www.campeos.com/x"), ["https://www.campeos.com/x", "https://campeos.com/x"]);
 });
+
+import { condenseText, normalizeUrlKey, pageToLines } from "../lib/web";
+
+test("condenseText drops repeats, menus and cookie lines", () => {
+  const out = condenseText("Home\nMenu\nWe use cookies to help\nGet 10 clients in 30 days\nGet 10 clients in 30 days\nAccept all\nOnly $97 today\n© 2026 Acme. All rights reserved.");
+  assert.equal(out, "Home\nGet 10 clients in 30 days\nOnly $97 today");
+});
+
+test("condenseText keeps prices and testimonials when a long page is cut", () => {
+  const filler = Array.from({ length: 400 }, (_, i) => `Filler sentence number ${i} about nothing important here`).join("\n");
+  const raw = `Headline for the offer\n${filler}\n"This changed my business" said Dana, a client\nJust $497 for the full program`;
+  const out = condenseText(raw, 3000);
+  assert.ok(out.length <= 3000);
+  assert.ok(out.startsWith("Headline for the offer"));
+  assert.ok(out.includes("$497"));
+  assert.ok(out.includes("This changed my business"));
+});
+
+test("pageToLines removes nav, footer and scripts and keeps block breaks", () => {
+  const html = "<nav>Pricing About</nav><script>var a=1</script><h1>Big promise</h1><p>Real words here</p><footer>Terms Privacy</footer>";
+  const lines = pageToLines(html).split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  assert.deepEqual(lines, ["Big promise", "Real words here"]);
+});
+
+test("normalizeUrlKey treats the same page the same way", () => {
+  const a = normalizeUrlKey("https://www.Site.com/offer/?utm_source=x&fbclid=1#top");
+  const b = normalizeUrlKey("https://site.com/offer");
+  assert.equal(a, b);
+  assert.notEqual(normalizeUrlKey("https://site.com/other"), b);
+});

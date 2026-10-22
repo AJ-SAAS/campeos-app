@@ -193,3 +193,78 @@ export async function fetchPageText(url: string, maxLength = 12000, timeoutMs = 
   }
   return null;
 }
+
+// ---------- Lighter text for the AI (no AI involved here) ----------
+
+const BOILERPLATE = /^(skip to (main )?content|menu|close|search|log ?in|sign ?in|sign ?up|cart|accept( all)?( cookies)?|decline|©|copyright|all rights reserved|privacy( policy)?|terms( of (service|use))?|cookies?( policy| settings)?|powered by|back to top)\b|all rights reserved|we use cookies/i;
+
+// Lines worth keeping even when a long page has to be cut short.
+const KEEPERS = /[$€£₹]\s?\d|\d+\s?%|testimonial|review|guarantee|results?|clients?|customers?|students?|members?|per month|\/\s?mo\b|price|["“”]|★|stars?|webinar|workshop|program|course/i;
+
+/**
+ * Cuts a page's words down to what's worth paying to read: drops empty and
+ * menu/cookie/footer lines, removes lines that repeat, and when the page is
+ * still too long keeps the opening plus the lines that talk about prices,
+ * results and testimonials. Plain code, no AI. Works on pasted text too.
+ */
+export function condenseText(raw: string, max = 9000): string {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const piece of raw.split(/\n+/)) {
+    const line = decode(piece);
+    if (line.length < 3) continue;
+    if (line.length < 60 && BOILERPLATE.test(line)) continue;
+    const key = line.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    lines.push(line);
+  }
+  const all = lines.join("\n");
+  if (all.length <= max) return all;
+
+  const headBudget = Math.floor(max * 0.6);
+  const kept = new Set<number>();
+  let used = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (used + lines[i].length + 1 > headBudget) break;
+    kept.add(i);
+    used += lines[i].length + 1;
+  }
+  for (let i = 0; i < lines.length && used < max; i++) {
+    if (kept.has(i) || !KEEPERS.test(lines[i])) continue;
+    const take = lines[i].slice(0, 600);
+    if (used + take.length + 1 > max) continue;
+    kept.add(i);
+    lines[i] = take;
+    used += take.length + 1;
+  }
+  return [...kept].sort((a, b) => a - b).map((i) => lines[i]).join("\n");
+}
+
+/** A page's HTML as readable lines (one per block), without menus, footers and code. */
+export function pageToLines(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<(nav|footer|aside|svg|select|template|iframe)\b[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<\/(p|div|section|article|li|ul|ol|h[1-6]|tr|blockquote|figure|header|main)>|<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ");
+}
+
+/** The same page always gives the same key: no www, no #hash, no tracking params, no trailing slash. */
+export function normalizeUrlKey(url: string): string {
+  try {
+    const u = new URL(url);
+    u.hash = "";
+    for (const k of [...u.searchParams.keys()]) {
+      if (/^(utm_|fbclid|gclid|ref$|mc_)/i.test(k)) u.searchParams.delete(k);
+    }
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    const path = u.pathname.replace(/\/+$/, "");
+    const q = u.searchParams.toString();
+    return `${host}${path}${q ? `?${q}` : ""}`;
+  } catch {
+    return url.trim().toLowerCase();
+  }
+}

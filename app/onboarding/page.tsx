@@ -96,6 +96,8 @@ export default function OnboardingPage() {
   const [missingRows, setMissingRows] = useState<Set<number>>(new Set());
   const [scanned, setScanned] = useState(false);
   const [scanReason, setScanReason] = useState<string>("");
+  // The words copied from their page, when the link couldn't be read.
+  const [pasted, setPasted] = useState("");
   const [popped, setPopped] = useState<Set<FieldKey>>(new Set());
   const [testimonials, setTestimonials] = useState<string[]>([]);
 
@@ -194,8 +196,8 @@ export default function OnboardingPage() {
     }
   }
 
-  async function runScan() {
-    const input = page.trim();
+  async function runScan(override?: string) {
+    const input = (override ?? page).trim();
     if (!input) return;
     const token = ++scanToken.current;
     setScan("scanning");
@@ -449,27 +451,37 @@ export default function OnboardingPage() {
                 />
 
                 {scan === "failed" && (
-                  <div className="cob-rise" role="status" style={{ display: "flex", gap: 12, marginTop: 14, padding: "14px 16px", borderRadius: 14, background: "#FFF7ED", border: "1px solid #FED7AA" }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C2410C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }}>
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M12 8v5M12 16.5v.5" />
-                    </svg>
+                  <div className="cob-rise" role="status" style={{ marginTop: 14, padding: "16px 18px", borderRadius: 14, background: "#FFF7ED", border: "1px solid #FED7AA" }}>
                     <div style={{ fontSize: 15, lineHeight: 1.5, color: "#7C2D12" }}>
                       <b>
-                        {scanReason === "blocked"
-                          ? "That site won't let us read it."
-                          : scanReason === "script_only"
-                            ? "We could only see a little of that page."
-                            : scanReason === "unreachable"
-                              ? "We couldn't open that address."
-                              : scanReason === "too_short"
-                                ? "That's too short to read."
-                                : "We couldn't read that."}
+                        {scanReason === "unreachable"
+                          ? "We couldn't open that address."
+                          : scanReason === "too_short"
+                            ? "That's too short to read."
+                            : "We couldn't read that page by link."}
                       </b>{" "}
                       {scanReason === "unreachable"
-                        ? "Check the spelling, or paste the words from your page instead."
-                        : "Some sites hide their words from us. Copy the words from your page and paste them above, then tap the button again."}{" "}
-                      Nothing you typed is lost.{" "}
+                        ? "Check the spelling, or use the quick way below."
+                        : "Some sites keep their words hidden from us. The quick way below always works."}
+                    </div>
+                    <ol style={{ margin: "12px 0 0", paddingLeft: 20, fontSize: 15, lineHeight: 1.6, color: "#7C2D12" }}>
+                      <li>Open your sales page in another tab.</li>
+                      <li>Select everything: <b>Ctrl+A</b> (Mac: <b>Cmd+A</b>), then copy: <b>Ctrl+C</b> (Mac: <b>Cmd+C</b>).</li>
+                      <li>Paste it here: <b>Ctrl+V</b> (Mac: <b>Cmd+V</b>).</li>
+                    </ol>
+                    <textarea
+                      id="f-pasted"
+                      className="cob-area"
+                      value={pasted}
+                      onChange={(e) => setPasted(e.target.value)}
+                      placeholder="Paste the words from your page here"
+                      style={{ marginTop: 12, minHeight: 130, background: "#FFFFFF" }}
+                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: 18, marginTop: 12, flexWrap: "wrap" }}>
+                      <button className="cob-btn" onClick={() => runScan(pasted)} disabled={pasted.trim().length < 40}>
+                        Fill it in from this
+                        <Arrow />
+                      </button>
                       <button type="button" onClick={() => setStep(2)} style={{ border: 0, background: "none", padding: 0, font: "inherit", fontWeight: 700, color: "#7C2D12", textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
                         Continue without it
                       </button>
@@ -479,7 +491,7 @@ export default function OnboardingPage() {
 
                 {scan !== "scanning" && (
                   <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 24, flexWrap: "wrap" }}>
-                    <button className="cob-btn" onClick={runScan} disabled={!page.trim()}>
+                    <button className="cob-btn" onClick={() => runScan()} disabled={!page.trim()}>
                       Fill it in for me
                       <Arrow />
                     </button>

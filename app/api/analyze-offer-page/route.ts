@@ -3,7 +3,8 @@ import { requireVerifiedUser } from "@/lib/serverAuth";
 import { isAdminUid, claimDaily, DAILY_LIMIT_MESSAGE } from "@/lib/access";
 import { z } from "zod";
 import { analyzeOfferPage, MIN_READABLE_LENGTH } from "@/lib/ai/analyzeOfferPage";
-import { asUrl, fetchPageHtml, pageSignals, stripHtmlToText, urlVariants } from "@/lib/web";
+import { asUrl, condenseText, fetchPageHtml, normalizeUrlKey, pageSignals, pageToLines, urlVariants } from "@/lib/web";
+import { cacheKey, getCachedScan, putCachedScan } from "@/lib/scanCache";
 
 // Takes a sales-page URL from the new first onboarding step, fetches it
 // server-side, strips it down to visible text, and runs that through
@@ -44,16 +45,14 @@ const FETCH_TIMEOUT_MS = 8000;
 const MIN_SIGNAL_LENGTH = 80;
 // Roughly enough to cover a long landing page without blowing past a
 // reasonable prompt-length budget for UTILITY_MODEL.
-const MAX_TEXT_LENGTH = 12000;
+// Trimmed first (lib/web.ts condenseText), so the model reads less.
+const MAX_TEXT_LENGTH = 9000;
 
 
 export async function POST(req: NextRequest) {
   const gate = await requireVerifiedUser(req, isAdminUid);
   if (gate.error) return gate.error;
   const caller = gate.user;
-  if (!(await claimDaily(caller.uid, "scan", 40))) {
-    return NextResponse.json({ error: DAILY_LIMIT_MESSAGE }, { status: 429 });
-  }
   let body: unknown;
   try {
     body = await req.json();
@@ -72,14 +71,27 @@ export async function POST(req: NextRequest) {
   const raw = (parsed.data.input ?? parsed.data.url ?? "").trim();
   const url = asUrl(raw);
 
+  // Same page or same words scanned in the last 2 days: reuse the answer.
+  // Free, instant, and doesn't count against the daily limit.
+  const key = url ? cacheKey("url", normalizeUrlKey(url)) : cacheKey("text", raw.replace(/\s+/g, " ").toLowerCase());
+  const cached = await getCachedScan<Record<string, unknown>>(key);
+  if (cached) {
+    return NextResponse.json({ ok: true, source: url ? "url" : "text", cached: true, ...cached });
+  }
+
+  if (!(await claimDaily(caller.uid, "scan", 40))) {
+    return NextResponse.json({ error: DAILY_LIMIT_MESSAGE }, { status: 429 });
+  }
+
   // Pasted words, not a link: no fetch, straight to the extractor.
   if (!url) {
-    const pasted = raw.replace(/\s+/g, " ").slice(0, MAX_TEXT_LENGTH);
+    const pasted = condenseText(raw, MAX_TEXT_LENGTH);
     if (pasted.length < 40) {
       return NextResponse.json({ ok: false, reason: "too_short" });
     }
     try {
       const extraction = await analyzeOfferPage(pasted);
+      await putCachedScan(key, extraction);
       return NextResponse.json({ ok: true, source: "text", ...extraction });
     } catch {
       return NextResponse.json({ ok: false, reason: "extract_failed" });
@@ -100,13 +112,13 @@ export async function POST(req: NextRequest) {
     }
     if (page.status !== "ok") continue;
     sawPage = true;
-    const body = stripHtmlToText(page.html);
+    const body = condenseText(pageToLines(page.html), MAX_TEXT_LENGTH);
     const signals = pageSignals(page.html);
     const combined = body.length >= MIN_READABLE_LENGTH ? body : `${signals}\n${body}`.trim();
     if (combined.length > text.length) text = combined;
     if (text.length >= MIN_READABLE_LENGTH) break;
   }
-  text = text.slice(0, MAX_TEXT_LENGTH);
+  text = condenseText(text, MAX_TEXT_LENGTH);
 
   // Titles and descriptions alone can still name an offer, so the bar for
   // "worth sending to the model" is lower than for a full page of text.
@@ -119,6 +131,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const extraction = await analyzeOfferPage(text);
+    await putCachedScan(key, extraction);
     return NextResponse.json({ ok: true, source: "url", ...extraction });
   } catch {
     // The crawl worked but the AI call didn't (bad JSON, API error,
