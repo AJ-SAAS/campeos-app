@@ -52,7 +52,7 @@ import {
 // campaign; the newest this many are plenty for "this week".
 const MAX_CAMPAIGNS_FOR_WEEK = 15;
 
-const CHANNEL_NAME: Record<string, string> = { ad: "Facebook ad", email: "Email", sms: "Text", social: "Post", video: "Video" };
+const CHANNEL_NAME: Record<string, string> = { ad: "Facebook ad", email: "Email", sms: "Text", social: "Post", video: "Video", store: "App Store" };
 
 export default function Dashboard() {
   const { user } = useAuth();

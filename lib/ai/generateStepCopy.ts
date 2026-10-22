@@ -22,6 +22,16 @@ function schemaForFields(fields: StepContext["fields"]) {
   return z.object(shape);
 }
 
+export const STANDARD_EULA_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
+
+/** App Store descriptions always carry the standard terms link. Added in
+ * code, not asked of the model, so it is never missing or misspelled. */
+export function finishCopy<T extends Record<string, string>>(step: Pick<StepContext, "channel">, copy: T): T {
+  if (step.channel !== "store" || typeof copy.description !== "string") return copy;
+  if (copy.description.includes(STANDARD_EULA_URL)) return copy;
+  return { ...copy, description: `${copy.description.trimEnd()}\n\nTerms of Use (EULA): ${STANDARD_EULA_URL}` };
+}
+
 export interface GeneratedStepCopy {
   [fieldKey: string]: string;
 }
@@ -64,7 +74,7 @@ export async function generateStepCopyScored(
   const schema = schemaForFields(step.fields);
   const cacheKey = campaignCacheKey(offer, step);
   let copy = await writeOnce(prompt, schema, step.title, cacheKey);
-  if (opts.check === false) return { copy, score: -1, problems: [], rewritten: false };
+  if (opts.check === false) return { copy: finishCopy(step, copy), score: -1, problems: [], rewritten: false };
 
   const allow = [offer.name, offer.audience, offer.whatTheyGet].join(" ");
   let critic = { score: -1, problems: [] as string[] };
@@ -113,7 +123,7 @@ specific to this reader. Never add new [PLACEHOLDERS]. Return the same JSON keys
   } catch (err) {
     console.warn("[quality] pass skipped", err instanceof Error ? err.message : err);
   }
-  return { copy, score: critic.score, problems: critic.problems, rewritten };
+  return { copy: finishCopy(step, copy), score: critic.score, problems: critic.problems, rewritten };
 }
 
 async function writeOnce(

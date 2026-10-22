@@ -115,6 +115,14 @@ export function lintCopy(
   if (blanks > 5) problems.push(`${blanks} [PLACEHOLDERS]. Too many blanks for the user to fill. Keep only the facts that truly must come from them.`);
 
   if (step.channel === "sms" && body.length > 320) problems.push(`The text is ${body.length} characters. Keep it under 300.`);
+  if (step.channel === "store") {
+    const limits: [string, number][] = [["appName", 30], ["subtitle", 30], ["promo", 170], ["keywords", 100]];
+    for (const [k, max] of limits) {
+      const v = copy[k] ?? "";
+      if (v.length > max) problems.push(`${k} is ${v.length} characters. The App Store allows ${max}. Cut it to ${max} or fewer.`);
+    }
+    if (/,\s/.test(copy.keywords ?? "")) problems.push("Keywords must be separated by commas with no spaces after them.");
+  }
   if (step.channel === "social" && (body.match(/#\w+/g) ?? []).length > 3) problems.push("More than 3 hashtags. Keep it to 3 at most.");
   if (step.channel === "email" && (copy.headline ?? "").length > 65) problems.push("The subject line is too long. Keep it under 50 characters.");
   if (/—| – /.test(all)) problems.push("Contains a dash used as punctuation. Use a period or comma.");
@@ -153,6 +161,7 @@ const CHANNEL_BAR: Record<string, string> = {
   sms: "This is a text message. Judge it as a text from a person they know: one clear point, one reason to act, under 300 characters. Short is right; don't ask for story or proof.",
   ad: "This is a paid ad. Judge the first line as a scroll-stopper for THIS reader, one promise, one call to action. The headline must name their situation or the result, not the product.",
   social: "This is an organic social post. Judge the first line (it's all most people see), short lines, and one call to action. It should read like the seller posting, not a brand.",
+  store: "This is an App Store listing. Judge the first two lines of the description hardest (only they show before 'more'), a subtitle that says what the app does, and keywords that real people would search. Penalize any feature, rating or quote that was not given.",
   video: "This is a plan for a short video, not a script. Judge the three title ideas (different angles, honest, under 70 characters), a clear summary, and bullets someone could film from in order. Don't ask for a word-for-word script.",
   email: "This is an email. Judge the subject line and first two lines hardest: they decide if it's read at all.",
 };

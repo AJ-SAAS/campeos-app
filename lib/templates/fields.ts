@@ -19,6 +19,16 @@ export const socialFields = [
   { key: "visual", label: "Image or video idea", kind: "short" as const },
 ];
 
+// The App Store listing. Apple's own limits are enforced in the prompt and in
+// lib/ai/quality.ts: name 30, subtitle 30, promo text 170, keywords 100.
+export const storeFields = [
+  { key: "appName", label: "App name (30 max)", kind: "short" as const },
+  { key: "subtitle", label: "Subtitle (30 max)", kind: "short" as const },
+  { key: "promo", label: "Promotional text (170 max)", kind: "long" as const },
+  { key: "keywords", label: "Keywords (100 max)", kind: "short" as const },
+  { key: "description", label: "Description", kind: "long" as const },
+];
+
 // A video is not scripted word for word. Campeos gives a few title angles
 // to pick from and a short plan of what the video covers, so the person
 // can film it in their own words.

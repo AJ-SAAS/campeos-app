@@ -5,9 +5,9 @@
 // the user picked in onboarding (lib/onboarding/answers.ts); ads run on
 // Meta, shown as Facebook unless they only use Instagram.
 
-export type PlatformKey = "email" | "sms" | "facebook" | "instagram" | "tiktok" | "linkedin" | "threads" | "youtube";
+export type PlatformKey = "store" | "email" | "sms" | "facebook" | "instagram" | "tiktok" | "linkedin" | "threads" | "youtube";
 
-const LOGO: Record<Exclude<PlatformKey, "sms">, string> = {
+const LOGO: Record<Exclude<PlatformKey, "sms" | "store">, string> = {
   email: "/brand/email.png",
   facebook: "/brand/facebook.png",
   instagram: "/brand/instagram.png",
@@ -38,6 +38,7 @@ export function channelInfo(channel: string, userPlatforms: string[]): ChannelIn
       ? { key: channel, name: "Instagram ad", short: "Ads", platforms: ["instagram"] }
       : { key: channel, name: "Facebook ad", short: "Ads", platforms: ["facebook"] };
   }
+  if (channel === "store") return { key: channel, name: "App Store listing", short: "App Store", platforms: ["store"] };
   if (channel === "video") return { key: channel, name: "Video", short: "Videos", platforms: ["youtube"] };
   if (channel === "social") {
     const social = SOCIAL.filter((p) => picked.includes(p));
@@ -53,6 +54,19 @@ export function channelInfo(channel: string, userPlatforms: string[]): ChannelIn
 
 export function PlatformLogo({ platform, size = 20, muted = false }: { platform: PlatformKey; size?: number; muted?: boolean }) {
   const cls = muted ? "grayscale opacity-45" : "";
+  if (platform === "store") {
+    return (
+      <span
+        className={`inline-flex items-center justify-center rounded-[6px] bg-[#1C8CF5] ${cls}`}
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+      >
+        <svg width={Math.round(size * 0.62)} height={Math.round(size * 0.62)} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 4L5 19M12 4l7 15M7.5 14.5h9" />
+        </svg>
+      </span>
+    );
+  }
   if (platform === "sms") {
     return (
       <span

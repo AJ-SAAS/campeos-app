@@ -137,6 +137,7 @@ function useWritingLine(generating: boolean, channels: string[]): string {
     ...(has("sms") ? ["Writing your texts..."] : []),
     ...(has("social") ? ["Writing your posts..."] : []),
     ...(has("video") ? ["Planning your videos..."] : []),
+    ...(has("store") ? ["Writing your App Store listing..."] : []),
     "Checking every post sounds like you...",
     "Almost done...",
   ];

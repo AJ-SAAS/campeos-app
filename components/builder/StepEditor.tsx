@@ -41,6 +41,7 @@ const LANE_STYLE: Record<string, { label: string; fg: string; bg: string }> = {
   ad: { label: "Facebook ad", fg: "#1B6B4F", bg: "#DFF0E8" },
   email: { label: "Email", fg: "#1F5FA6", bg: "#E4EDF8" },
   sms: { label: "Text message", fg: "#6B4FA3", bg: "#ECE7F5" },
+  store: { label: "App Store", fg: "#1F5FA6", bg: "#E4EDF8" },
   video: { label: "Video", fg: "#B4342A", bg: "#F8E4E1" },
   social: { label: "Social post", fg: "#1B6B4F", bg: "#DFF0E8" },
 };

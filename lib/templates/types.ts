@@ -4,7 +4,7 @@
 // sales angle it's playing). Adding a new campaign type means writing a
 // new array of these — never touching the engine or the UI.
 
-export type Channel = "email" | "sms" | "social" | "ad" | "video";
+export type Channel = "email" | "sms" | "social" | "ad" | "video" | "store";
 
 // Anchors are the fixed dates a campaign is built around. "event" is the
 // webinar/launch/sale-start date the user picks; "end" is when the offer

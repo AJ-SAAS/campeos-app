@@ -141,6 +141,22 @@ export const catalog: CatalogEntry[] = [
     status: "available",
   },
   {
+    id: "social-blast-30",
+    title: "30 Day Social Media Blast",
+    length: "30 days",
+    description: "A month of posts, videos and emails that build hype toward a big day you pick.",
+    category: "launches",
+    status: "available",
+  },
+  {
+    id: "app-launch-30",
+    title: "30 Day App Go-To-Market",
+    length: "30 days",
+    description: "Write your App Store listing, build a list, launch around day 14, then keep momentum.",
+    category: "launches",
+    status: "available",
+  },
+  {
     id: "product-launch",
     title: "Product Launch",
     length: "2 weeks",

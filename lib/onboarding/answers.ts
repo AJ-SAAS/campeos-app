@@ -248,6 +248,7 @@ export function templateChannelsFor(platforms: string[] | undefined): Set<Channe
   if (platforms.some((p) => SOCIAL.includes(p as PlatformId))) set.add("social");
   if (platforms.some((p) => SOCIAL.includes(p as PlatformId))) set.add("video");
   if (platforms.some((p) => AD_PLATFORMS.includes(p as PlatformId))) set.add("ad");
+  if (set.size > 0) set.add("store"); // a listing is a deliverable, not a platform
   return set.size > 0 ? set : null;
 }
 
@@ -258,5 +259,6 @@ export const CHANNEL_LABELS: Record<Channel, string> = {
   sms: "SMS",
   social: "Social posts",
   video: "Videos",
+  store: "App Store listing",
   ad: "Ads",
 };

@@ -766,6 +766,209 @@ export const PLAYS: Record<string, Play> = {
     avoid: ["Never invent a shipping date or a promise. Use [ORDER-BY DATE] if it is not given."],
   }),
 
+  "store-listing": P({
+    id: "store-listing",
+    name: "App Store listing",
+    job: "Make the right person tap Get, using only what the app really does.",
+    beats: [
+      "appName and subtitle: the real name, then what the app does for the user in plain words. Both at most 30 characters.",
+      "promo: one line, at most 170 characters, on the one thing worth knowing right now.",
+      "keywords: words real people would search, at most 100 characters, comma separated, no spaces after commas, nothing already in the name or subtitle.",
+      "description: the first two lines are the whole pitch, because only they show before 'more'. Name the reader's problem or the result, not the app.",
+      "description: then 3 to 5 short feature bullets using only features the offer says exist, and one closing line that says who it is for.",
+    ],
+    hooks: [],
+    focus: "desire",
+    avoid: ["Never invent a feature, a rating, an award or a press quote.", "No words like 'best', '#1' or 'revolutionary'. Apple can reject them."],
+  }),
+
+  "video-demo": P({
+    id: "video-demo",
+    name: "Video: show the app",
+    job: "Show the app solving the problem in under a minute, so people want it on their phone.",
+    beats: [
+      "titles: 3 title ideas, each a different angle (the problem, the result, a first look). Each under 70 characters.",
+      "summary: 2 to 3 plain sentences: what the video shows and what the viewer will want to do after.",
+      "bullets: 5 to 6 beats in order: the hook (the problem in one line), the app on screen in the first 3 seconds, the 2 or 3 taps that solve it, the result, who it is for, how to get it (App Store or the list).",
+    ],
+    hooks: ["I built an app to <result>", "Watch this take 10 seconds", "A first look at <app>"],
+    focus: "desire",
+    avoid: ["Do not write a word-for-word script.", "Only show or claim features the offer says exist."],
+  }),
+
+  "post-community": P({
+    id: "post-community",
+    name: "Community post",
+    job: "Share the app where makers and users gather, ask for real feedback and sell nothing hard.",
+    beats: [
+      "First line: the honest reason you built it, in your own words. Sounds like a person, not a launch.",
+      "2 to 3 short lines: what it does and who it is for, no hype.",
+      "One thing you are unsure about and want feedback on. Real communities respond to that.",
+      "A plain link line. Say you read every reply.",
+    ],
+    hooks: ["I built <thing> because <real reason>", "Looking for feedback on a small app", "Would this be useful to you?"],
+    focus: "story",
+    avoid: ["Never beg for upvotes or installs.", "Never invent numbers, users or reviews."],
+  }),
+
+  "post-app-live": P({
+    id: "post-app-live",
+    name: "It's on the App Store",
+    job: "Say it is live, what it does and where to get it, in a few lines.",
+    beats: [
+      "First line: it is live, and what it does in a few words.",
+      "2 to 3 short lines: who it is for and the one thing it makes easy.",
+      "One call to action with the App Store link.",
+    ],
+    hooks: ["It's live on the App Store", "<App> is out", "Out today: <app>"],
+    focus: "offer",
+  }),
+
+  "email-beta-invite": P({
+    id: "email-beta-invite",
+    name: "Early access invite",
+    job: "Get the list to try the app first and tell you what they think.",
+    beats: [
+      "Open on the problem the app solves, in one specific moment.",
+      "What it is, one plain sentence, and that they can try it before anyone else.",
+      "What early users get (use only real perks, otherwise [EARLY PERK]) and what you ask in return: honest feedback.",
+      "One call to action: join with [LINK] (the early access or TestFlight link). Say what happens when they click.",
+    ],
+    hooks: ["Want to try it first?", "You're early", "Be one of the first to use <app>"],
+    focus: "offer",
+    avoid: ["Do not invent a spot count."],
+  }),
+
+  "email-app-live": P({
+    id: "email-app-live",
+    name: "The app is live",
+    job: "Tell the list it is live and get the first installs.",
+    beats: [
+      "Lead with the news: it is on the App Store today.",
+      "What it does in one line, then 3 short bullets of what they can do with it.",
+      "Who it is for in one line.",
+      "One call to action with the App Store link. Say it takes under a minute to try.",
+      "One line asking them to reply with their first impression.",
+    ],
+    hooks: ["It's live", "<App> is on the App Store", "Today's the day"],
+    focus: "offer",
+  }),
+
+  "email-review-ask": P({
+    id: "email-review-ask",
+    name: "A small favor",
+    job: "Ask people who have used the app for an honest rating, politely.",
+    beats: [
+      "Thank them for trying it, in your own words.",
+      "Say what a rating does for a small app, in one honest line.",
+      "Ask for an honest rating or review, whatever they think. Never ask for 5 stars.",
+      "One line: if something is broken or missing, reply and you will fix it. Link to the App Store review page with [LINK].",
+    ],
+    hooks: ["A small favor", "Quick question about <app>", "How is it going?"],
+    focus: "story",
+    avoid: ["Never ask for a 5 star rating or offer a reward for one."],
+  }),
+
+  "post-update": P({
+    id: "post-update",
+    name: "What's new",
+    job: "Show the app is alive and listening.",
+    beats: [
+      "First line: what changed, in a few words.",
+      "2 to 3 short lines: what it fixes or adds and who asked for it, only if real.",
+      "One call to action: update, or tell me what you want next.",
+    ],
+    hooks: ["You asked, we built it", "What's new in <app>", "A small update"],
+    focus: "proof",
+    avoid: ["Never invent a change or a request."],
+  }),
+
+  "post-problem": P({
+    id: "post-problem",
+    name: "The problem moment",
+    job: "Make the right person feel seen in the first line.",
+    beats: [
+      "First line: one specific moment of the problem, in the reader's own words from the brief. It has to work before 'more'.",
+      "3 to 4 short lines that make the moment feel real.",
+      "One line: if that is you, you are not alone.",
+      "One light call to action: follow along, or comment if it is you.",
+    ],
+    hooks: ["If you've ever <specific moment>", "It's 11 PM and you're still <pain>", "Nobody talks about this part of <topic>"],
+    focus: "pain",
+  }),
+
+  "post-myth": P({
+    id: "post-myth",
+    name: "Myth buster",
+    job: "Challenge one belief so you look like the person who sees it clearly.",
+    beats: [
+      "First line: the myth, stated bluntly (the enemy from the brief).",
+      "2 to 3 short lines on why it is wrong, in plain words.",
+      "One line with the truth.",
+      "One call to action: save this, or send it to someone who needs it.",
+    ],
+    hooks: ["Stop believing <myth>", "Unpopular opinion: <myth> is wrong", "The lie about <topic>"],
+    focus: "enemy",
+    avoid: ["Never invent a statistic or a study."],
+  }),
+
+  "post-tip": P({
+    id: "post-tip",
+    name: "One quick win",
+    job: "Give something useful for free so they trust you before you ask for anything.",
+    beats: [
+      "First line: the small result this tip gives, specific.",
+      "2 to 4 short numbered steps they can do today. Only advice that is true and that you can stand behind.",
+      "One line on what they will notice.",
+      "One call to action: save it, or follow for more.",
+    ],
+    hooks: ["Do this today to <result>", "A 2 minute fix for <pain>", "The easiest way to <result>"],
+    focus: "desire",
+    avoid: ["Never invent a number or a result."],
+  }),
+
+  "post-story-mini": P({
+    id: "post-story-mini",
+    name: "A short story",
+    job: "Let people see the person behind the offer.",
+    beats: [
+      "First line: a specific scene, no setup.",
+      "3 to 4 short lines: the struggle, the turn. Use ONE [YOUR STORY] placeholder for personal details.",
+      "One line: what it taught you, which is the reader's lesson too.",
+      "One soft call to action.",
+    ],
+    hooks: ["I almost quit when <moment>", "The day I <moment>", "What nobody sees behind <result>"],
+    focus: "story",
+    avoid: ["Never invent personal life events, dates or numbers. Use [YOUR STORY]."],
+  }),
+
+  "post-question": P({
+    id: "post-question",
+    name: "Conversation starter",
+    job: "Get replies, and learn what your audience really thinks.",
+    beats: [
+      "First line: a real question the audience cares about.",
+      "1 to 2 lines on why you are asking.",
+      "2 to 3 short answer options, so replying takes five seconds.",
+      "One call to action: reply or comment with yours.",
+    ],
+    hooks: ["Which one are you?", "Quick question for <audience>", "Be honest: <question>?"],
+    focus: "curiosity",
+  }),
+
+  "post-countdown": P({
+    id: "post-countdown",
+    name: "Days to go",
+    job: "Keep the date in front of people and make the wait feel worth it.",
+    beats: [
+      "First line: the days left and the real date.",
+      "2 to 3 short lines on what happens on the day and why it matters to them.",
+      "One call to action: join the list or follow so they do not miss it.",
+    ],
+    hooks: ["<n> days to go", "Tomorrow", "<n> days until <day>"],
+    focus: "urgency",
+  }),
+
   /* ------------------------------------------------------------ */
   /* Short channels: texts, posts, ads                              */
   /* ------------------------------------------------------------ */

@@ -233,6 +233,13 @@ export function buildStepCopyPrompt(
       if (step.channel === "email" && f.key === "body") {
         return `- "${f.key}": ${f.label} (formatted as real email copy, NOT a solid block paragraph — see the formatting rule below. Where a picture would help the reader, put it on a line of its own as [IMAGE: what to show], e.g. [IMAGE: you on stage holding the workbook]. Use 0 to 2 of these, only where they help, never inside a sentence. A suggestion only, never a claim about a real photo.)`;
       }
+      if (step.channel === "store") {
+        if (f.key === "appName") return `- "${f.key}": ${f.label} (the app's name, at most 30 characters. Use the real app name from the offer, plus a few plain words only if there is room)`;
+        if (f.key === "subtitle") return `- "${f.key}": ${f.label} (what the app does for the user, at most 30 characters, plain words, no hype)`;
+        if (f.key === "promo") return `- "${f.key}": ${f.label} (at most 170 characters: the one thing worth knowing right now, can change without a new release)`;
+        if (f.key === "keywords") return `- "${f.key}": ${f.label} (at most 100 characters in total, comma separated with NO spaces after commas, no repeats of words already in the name or subtitle, no competitor names)`;
+        return `- "${f.key}": ${f.label} (plain App Store description: a strong first two lines because only they show before 'more', then short sections with line breaks and "-" bullets for features, then a closing line. Only features the offer says exist; never invent a feature, a rating or a press quote. The standard terms link is added for you, so do not write one)`;
+      }
       if (step.channel === "video") {
         if (f.key === "titles") return `- "${f.key}": ${f.label} (exactly 3 title ideas, one per line, each a different angle, each under 70 characters, plain words, no clickbait the video can't pay off)`;
         if (f.key === "summary") return `- "${f.key}": ${f.label} (2 to 3 plain sentences: what this video is about and what the viewer gets from it)`;
