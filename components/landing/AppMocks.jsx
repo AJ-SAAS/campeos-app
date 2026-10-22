@@ -598,7 +598,7 @@ const WINNERS = [
   ['Deadlines', 'that make people act', 'Seats close Friday at midnight'],
 ];
 
-export function WinnersLibrary() {
+export function WinnersLibrary({ fast }) {
   const ref = useRef(null);
   const seen = useInView(ref);
   const [done, setDone] = useState(0);
@@ -609,10 +609,10 @@ export function WinnersLibrary() {
     if (!seen || reduced || done >= WINNERS.length) return;
     const text = WINNERS[done][2];
     if (chars < text.length) {
-      const t = setTimeout(() => setChars((c) => c + 1), 24);
+      const t = setTimeout(() => setChars((c) => c + 1), fast ? 12 : 24);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => { setDone((d) => d + 1); setChars(0); }, 480);
+    const t = setTimeout(() => { setDone((d) => d + 1); setChars(0); }, fast ? 240 : 480);
     return () => clearTimeout(t);
   }, [seen, reduced, done, chars]);
 
@@ -660,31 +660,34 @@ const JOURNEY = [
     ms: 10500,
     label: 'Tell it',
     title: 'Tell it what you sell. That\'s all you do.',
-    text: 'Paste your page link or type a few lines. Campeos finds your offer, your price and your buyers\' words. No blank page, no starting from scratch.',
+    text: 'Paste your page link. Campeos finds your hook, offer, price and testimonials. No blank page.',
   },
   {
     id: 'write',
+    ms: 7500,
     label: 'Write',
     title: 'Your whole launch, written for you',
-    text: 'Every email, text, ad and post, in your voice. The writing that used to eat your nights is done before you finish your coffee.',
+    text: 'Every email, text, ad and post in your voice, done before you finish your coffee.',
   },
   {
     id: 'schedule',
+    ms: 7500,
     label: 'Schedule',
     title: 'Every message gets a day and a time',
-    text: 'In the right order, from the first invite to the last call. You see your whole launch on one calendar and turn any message on or off.',
+    text: 'From the first invite to the last call, on one calendar. Turn any message on or off.',
   },
   {
     id: 'improve',
+    ms: 9500,
     label: 'Improve',
     title: 'Your next launch starts ahead',
-    text: 'Save the lines your buyers responded to. Campeos builds your next launch from your winners, so it gets sharper every time.',
+    text: 'Save what your buyers respond to. Campeos builds your next launch from your winners.',
   },
 ];
 
-function JourneyIcon({ id, active }) {
-  const c = active ? '#FFFFFF' : '#6D28D9';
-  const common = { width: 34, height: 34, viewBox: '0 0 24 24', fill: 'none', stroke: c, strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
+function JourneyIcon({ id, active, size = 34 }) {
+  const c = '#6D28D9';
+  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: c, strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
   if (id === 'tell') {
     return (
       <svg {...common} className={active ? 'cps-jic cps-jic-write' : 'cps-jic'}>
@@ -723,7 +726,71 @@ function JourneyIcon({ id, active }) {
 }
 
 
-/* Step one of the journey: a link types in, the page is scanned, then what was found ticks in. */
+/* ------------------------------------------------------------------ */
+/* The journey: one full app window per step, like a product tour      */
+/* ------------------------------------------------------------------ */
+
+const prefersReduced = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** How many of the `times` (ms from mount) have passed. Starts finished for reduced motion. */
+function useStage(times) {
+  const [n, setN] = useState(() => (prefersReduced() ? times.length : 0));
+  useEffect(() => {
+    if (prefersReduced()) return;
+    const ids = times.map((t, i) => setTimeout(() => setN(i + 1), t));
+    return () => ids.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return n;
+}
+
+/** `text` typed out after `start` ms. */
+function useTyped(text, start, speed) {
+  const [c, setC] = useState(() => (prefersReduced() ? text.length : 0));
+  useEffect(() => {
+    if (prefersReduced()) return;
+    let id;
+    const st = setTimeout(() => {
+      id = setInterval(() => setC((x) => { if (x >= text.length) { clearInterval(id); return x; } return x + 1; }), speed);
+    }, start);
+    return () => { clearTimeout(st); clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return [text.slice(0, c), c < text.length];
+}
+
+function Tick({ size = 22, pop }) {
+  return (
+    <span className={pop ? 'cps-tickpop' : ''} style={{ display: 'inline-flex', width: `${size}px`, height: `${size}px`, flexShrink: 0, borderRadius: '50%', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+      <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
+    </span>
+  );
+}
+
+function AppWindow({ url, children }) {
+  return (
+    <Window style={{ borderRadius: '22px', boxShadow: '0 60px 120px -60px rgba(59,31,209,.45), 0 24px 48px -34px rgba(23,19,31,.35)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 16px', borderBottom: `1px solid ${LINE}`, background: '#FCFCFD' }}>
+        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E9E6EE' }} />
+        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E9E6EE' }} />
+        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E9E6EE' }} />
+        <span style={{ flex: 1, textAlign: 'center', fontFamily: MONO, fontSize: '12px', color: '#8A8494' }}>{url}</span>
+      </div>
+      <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', minHeight: '470px' }}>{children}</div>
+    </Window>
+  );
+}
+
+function Side({ on }) {
+  return (
+    <div className="cps-hx-side" style={{ width: '190px', flexShrink: 0, borderRight: `1px solid ${LINE}`, padding: '18px 12px', flexDirection: 'column', gap: '2px' }}>
+      <img src="/campeos-logo-full.png" alt="" style={{ height: '18px', width: 'auto', margin: '0 8px 18px', alignSelf: 'flex-start' }} />
+      {['Home', 'Campaigns', 'Offers', 'Winning copy', 'Buyer insights'].map((l) => <NavItem key={l} label={l} on={l === on} />)}
+    </div>
+  );
+}
+
+/* 1. Tell it: the onboarding screen. A link types in, the page is scanned, the finds tick in. */
 const SCAN_URL = 'yourpage.com/class';
 const SCAN_FOUND = [
   ['Hook', 'Posting every day and still no clients?'],
@@ -731,142 +798,190 @@ const SCAN_FOUND = [
   ['Price', '$97'],
   ['Audience', 'Coaches who want more clients'],
   ['Testimonials', '3 found'],
-  ['Also found', 'Deadline, bonus, guarantee'],
+  ['Extras', 'Deadline, bonus, guarantee'],
 ];
 
-function TellPanel({ card }) {
-  const reduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const [chars, setChars] = useState(reduced ? SCAN_URL.length : 0);
-  const [phase, setPhase] = useState(reduced ? 'found' : 'typing'); // typing -> scanning -> found
-  const [shown, setShown] = useState(reduced ? SCAN_FOUND.length : 0);
-
-  useEffect(() => {
-    if (reduced) return;
-    if (phase === 'typing') {
-      if (chars < SCAN_URL.length) {
-        const t = setTimeout(() => setChars((c) => c + 1), 55);
-        return () => clearTimeout(t);
-      }
-      const t = setTimeout(() => setPhase('scanning'), 500);
-      return () => clearTimeout(t);
-    }
-    if (phase === 'scanning') {
-      const t = setTimeout(() => setPhase('found'), 2300);
-      return () => clearTimeout(t);
-    }
-    if (shown < SCAN_FOUND.length) {
-      const t = setTimeout(() => setShown((n) => n + 1), shown === 0 ? 250 : 520);
-      return () => clearTimeout(t);
-    }
-  }, [reduced, phase, chars, shown]);
-
-  const scanning = phase === 'scanning';
-  const pressing = phase === 'scanning' || (phase === 'typing' && chars === SCAN_URL.length);
+function ScreenTell() {
+  const [typed, typing] = useTyped(SCAN_URL, 500, 60);
+  const n = useStage([2100, 4500, 4800, 5300, 5800, 6300, 6800, 7300]);
+  const scanning = n === 1;
+  const found = n >= 2;
+  const shown = Math.max(0, n - 2);
   return (
-    <div className="cps-fu" style={card}>
-      <div style={{ fontSize: '12px', color: MUTED }}>Your sales page</div>
-      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 12px', borderRadius: '12px', border: `1px solid ${phase === 'typing' ? '#C9B6F2' : LINE}`, background: '#FAF9FC', fontFamily: MONO, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9B91AA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" /></svg>
-          <span>{SCAN_URL.slice(0, chars)}</span>
-          {phase === 'typing' && <span className="cps-caret" aria-hidden="true" />}
+    <AppWindow url="campeos.com/onboarding">
+      <div style={{ flex: '1 1 320px', minWidth: 0, padding: 'clamp(20px, 3vw, 36px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: MUTED }}>STEP 2 OF 6</div>
+        <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: 'clamp(26px, 3vw, 36px)', letterSpacing: '-.025em', lineHeight: 1.08, marginTop: '10px' }}>Do you have a sales page?</div>
+        <div style={{ fontSize: '15px', color: MUTED, marginTop: '8px', lineHeight: 1.5 }}>Paste the link. We&apos;ll fill in the rest.</div>
+        <div style={{ fontSize: '13px', fontWeight: 600, marginTop: '22px' }}>Link, or words from the page</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', padding: '13px 14px', borderRadius: '12px', border: `1.5px solid ${typing || n === 0 ? '#9B1FD6' : LINE}`, boxShadow: typing ? '0 0 0 4px rgba(155,31,214,.12)' : 'none', background: '#FFFFFF', fontFamily: MONO, fontSize: '14px', minHeight: '24px', transition: 'box-shadow .2s, border-color .2s' }}>
+          <span>{typed}</span>
+          {typing && <span className="cps-caret" aria-hidden="true" />}
         </div>
-        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0 14px', borderRadius: '12px', background: GRAD, color: '#FFFFFF', fontSize: '13px', fontWeight: 700, transform: pressing && !scanning ? 'scale(.94)' : 'none', transition: 'transform .2s', opacity: chars === 0 && phase === 'typing' ? 0.5 : 1 }}>Scan</span>
+        <div style={{ marginTop: '14px', display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: '8px', padding: '12px 18px', borderRadius: '12px', background: INK, color: '#FFFFFF', fontSize: '14px', fontWeight: 700, transform: !typing && n === 0 && typed.length === SCAN_URL.length ? 'scale(.95)' : 'none', transition: 'transform .2s', opacity: typed.length === 0 ? 0.55 : 1 }}>
+          Fill it in for me
+        </div>
+        <div style={{ marginTop: '22px', height: '6px', borderRadius: '999px', background: '#EFECF5', overflow: 'hidden', opacity: n === 0 ? 0 : 1, transition: 'opacity .3s' }}>
+          <div style={{ height: '100%', borderRadius: '999px', background: GRAD, width: found ? '100%' : scanning ? '92%' : '0%', transition: scanning ? 'width 2.3s ease-out' : 'width .4s' }} />
+        </div>
+        <div style={{ fontSize: '13px', color: MUTED, marginTop: '8px', minHeight: '18px' }}>{found ? 'Done. Found 6 things.' : scanning ? 'Reading your page...' : ''}</div>
       </div>
 
-      <div style={{ position: 'relative', marginTop: '16px', minHeight: '262px' }}>
-        {phase !== 'found' && (
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, borderRadius: '14px', border: `1px solid ${LINE}`, background: '#FFFFFF', padding: '14px', overflow: 'hidden', opacity: phase === 'typing' ? 0.55 : 1, transition: 'opacity .3s' }}>
-            {[['62%', 14], ['94%', 8], ['88%', 8], ['40%', 8], ['100%', 46], ['76%', 8], ['90%', 8], ['55%', 8]].map(([w, h], i) => (
-              <div key={i} className="cps-skel" style={{ width: w, height: `${h}px`, borderRadius: '6px', background: '#EFECF5', marginTop: i === 0 ? 0 : i === 4 ? 14 : 9 }} />
-            ))}
-            {scanning && <span className="cps-scanline" />}
-          </div>
-        )}
-        {scanning && (
-          <div role="status" style={{ position: 'absolute', left: 0, right: 0, bottom: '10px', display: 'flex', justifyContent: 'center' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '7px 14px', borderRadius: '999px', background: '#17131F', color: '#FFFFFF', fontSize: '13px', fontWeight: 600 }}>
-              <svg className="cps-tspin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6" /></svg>
-              Reading your page...
-            </span>
-          </div>
-        )}
-        {phase === 'found' && (
-          <div style={{ display: 'grid', gap: '2px' }}>
-            <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: MUTED, padding: '0 4px 4px' }}>FOUND ON YOUR PAGE</div>
-            {SCAN_FOUND.map(([label, value], i) => {
-              const on = i < shown;
-              return (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 4px', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .35s, transform .35s' }}>
-                  <span className={on ? 'cps-tickpop' : ''} style={{ display: 'inline-flex', width: '22px', height: '22px', flexShrink: 0, borderRadius: '50%', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
-                  </span>
-                  <span style={{ width: '88px', flexShrink: 0, fontSize: '12px', color: MUTED }}>{label === 'Also found' ? 'Extras' : label}</span>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 600, lineHeight: 1.35 }}>{value}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function JourneyPanel({ id }) {
-  const card = { background: '#FFFFFF', border: '1px solid #E8E6EE', borderRadius: '20px', boxShadow: '0 24px 48px -34px rgba(23,19,31,.4)', padding: '22px', width: '100%', maxWidth: '520px' };
-  if (id === 'tell') return <TellPanel key="t" card={card} />;
-  if (id === 'write') {
-    return (
-      <div key="w" className="cps-fu" style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: MUTED }}>
-          <Logos list={['email']} size={16} /> Email · Day 1
-        </div>
-        <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '26px', letterSpacing: '-.02em', marginTop: '10px' }}>
-          <span className="cps-type" style={{ animationDuration: '1.4s' }}>You're invited: free class</span>
-        </div>
-        {['Hey Sarah,', 'You posted at lunch. Nobody booked.', 'Thursday at 7, I show you the 3 steps that fixed it.'].map((l, i) => (
-          <div key={l} className="cps-fu" style={{ animationDelay: `${0.5 + i * 0.5}s`, fontSize: '15px', lineHeight: 1.6, color: '#3D3747', marginTop: '10px' }}>{l}</div>
-        ))}
-        <div className="cps-fu" style={{ animationDelay: '2.1s', display: 'inline-block', marginTop: '14px', padding: '9px 16px', borderRadius: '10px', background: GRAD, color: '#FFFFFF', fontSize: '14px', fontWeight: 700 }}>Save my seat</div>
-      </div>
-    );
-  }
-  if (id === 'schedule') {
-    const days = [['Mon', 'Email', 'email'], ['Tue', 'Text', 'sms'], ['Wed', 'Ad', 'facebook'], ['Thu', 'Live', 'email'], ['Fri', 'Post', 'instagram']];
-    return (
-      <div key="s" className="cps-fu" style={card}>
-        <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: MUTED }}>THIS WEEK</div>
-        <div style={{ display: 'grid', gap: '8px', marginTop: '12px' }}>
-          {days.map(([d, t, logo], i) => (
-            <div key={d} className="cps-fu" style={{ animationDelay: `${i * 0.25}s`, display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', border: `1px solid ${LINE}`, background: i === 3 ? '#F6F1FE' : '#FFFFFF' }}>
-              <span style={{ width: '38px', fontFamily: MONO, fontSize: '12px', fontWeight: 700, color: i === 3 ? '#6D28D9' : MUTED }}>{d}</span>
-              <Logos list={[logo]} size={16} />
-              <span style={{ flex: 1, fontSize: '14px', fontWeight: 600 }}>{t}{i === 3 ? ': webinar goes live' : ''}</span>
-              <span style={{ fontFamily: MONO, fontSize: '11px', color: MUTED }}>{['9:00 AM', '12:00 PM', '5:00 PM', '7:00 PM', '8:00 AM'][i]}</span>
+      <div style={{ flex: '1 1 300px', minWidth: 0, padding: 'clamp(20px, 3vw, 32px)', background: '#F8F8F8', borderLeft: `1px solid ${LINE}`, borderTop: `1px solid ${LINE}`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ position: 'relative', minHeight: '330px', borderRadius: '16px', border: `1px solid ${LINE}`, background: '#FFFFFF', padding: '18px', overflow: 'hidden' }}>
+          <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: MUTED }}>{found ? 'FOUND ON YOUR PAGE' : 'YOUR PAGE'}</div>
+          {!found && (
+            <div aria-hidden="true" style={{ marginTop: '14px', opacity: n === 0 ? 0.5 : 1, transition: 'opacity .3s' }}>
+              {[['62%', 14], ['94%', 8], ['88%', 8], ['40%', 8], ['100%', 56], ['76%', 8], ['90%', 8], ['55%', 8], ['82%', 8]].map(([w, h], i) => (
+                <div key={i} className="cps-skel" style={{ width: w, height: `${h}px`, borderRadius: '6px', background: '#EFECF5', marginTop: i === 0 ? 0 : i === 4 ? 16 : 10 }} />
+              ))}
+              {scanning && <span className="cps-scanline" />}
             </div>
-          ))}
+          )}
+          {found && (
+            <div style={{ display: 'grid', gap: '2px', marginTop: '8px' }}>
+              {SCAN_FOUND.map(([label, value], i) => {
+                const on = i < shown;
+                return (
+                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 2px', borderTop: i ? '1px solid #F5F4F7' : '0', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .35s, transform .35s' }}>
+                    <Tick pop={on} />
+                    <span style={{ width: '88px', flexShrink: 0, fontSize: '12px', color: MUTED }}>{label}</span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: '14px', fontWeight: 600, lineHeight: 1.35 }}>{value}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
-    );
-  }
-  return (
-    <div key="i" className="cps-fu" style={card}>
-      <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '.1em', color: MUTED }}>WHAT WORKED</div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '96px', marginTop: '14px' }}>
-        {[34, 52, 44, 78, 92].map((h, i) => (
-          <span key={i} className="cps-grow" style={{ flex: 1, height: `${h}%`, borderRadius: '8px 8px 4px 4px', background: i === 4 ? GRAD_ICON : '#E4D7FA', animationDelay: `${i * 0.12}s` }} />
-        ))}
-      </div>
-      <div className="cps-fu" style={{ animationDelay: '.9s', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', padding: '12px 14px', borderRadius: '14px', background: '#F6FFF8', border: '1px solid #BBF7D0' }}>
-        <span style={{ display: 'inline-flex', width: '22px', height: '22px', borderRadius: '50%', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
-        </span>
-        <span style={{ fontSize: '14px', fontWeight: 600 }}>Saved as a winner: &ldquo;Nobody booked.&rdquo;</span>
-      </div>
-    </div>
+    </AppWindow>
   );
 }
+
+/* 2. Write: the builder. Messages write themselves, one after another. */
+const WRITE_LINES = [
+  'Hey Sarah,',
+  'My free class is Thursday at 7 PM. I\'ll show you the 3 steps that fill your calendar.',
+  'Seats are limited, so grab yours now.',
+];
+
+function ScreenWrite() {
+  const [subject, typing] = useTyped('You\'re invited: free class', 400, 45);
+  const n = useStage([1700, 2500, 3300, 4000, 4300, 5600]);
+  const written = 1 + (n >= 4 ? 1 : 0) + (n >= 6 ? 1 : 0);
+  const rows = [
+    { logos: ['email'], title: 'You\'re invited: free class', meta: 'Email · Day 1', status: n >= 4 ? 'Ready' : 'Writing...' },
+    { logos: ['sms'], title: 'Quick reminder', meta: 'Text · Day 3', status: n >= 6 ? 'Ready' : n >= 5 ? 'Writing...' : 'Not written' },
+    { logos: ['instagram', 'facebook'], title: 'We go live soon', meta: 'Social post · Day 4', status: n >= 6 ? 'Writing...' : 'Not written' },
+    { logos: ['facebook'], title: 'Last seats ad', meta: 'Facebook ad · Day 4', status: 'Not written' },
+  ];
+  return (
+    <AppWindow url="campeos.com/builder">
+      <Side on="Campaigns" />
+      <div style={{ flex: 1, minWidth: 0, padding: 'clamp(16px, 2.4vw, 24px)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '26px', letterSpacing: '-.02em' }}>Webinar Launch</span>
+          <span style={{ marginLeft: 'auto', fontSize: '13px', fontWeight: 600, padding: '5px 12px', borderRadius: '999px', background: '#F3EEFF', color: '#5B21B6' }}>{written} of 9 written</span>
+        </div>
+        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', flex: 1 }}>
+          <div style={{ flex: '1 1 250px', minWidth: 0, border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', alignSelf: 'flex-start', width: '100%' }}>
+            {rows.map((r, i) => (
+              <div key={r.title} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderTop: i ? '1px solid #F5F4F7' : '0', background: i === 0 ? '#FBF8FF' : '#FFFFFF' }}>
+                <Logos list={r.logos} size={15} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: '14px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
+                  <span style={{ display: 'block', fontSize: '12px', color: MUTED }}>{r.meta}</span>
+                </span>
+                <Pill status={r.status} />
+              </div>
+            ))}
+          </div>
+          <div style={{ flex: '1.3 1 300px', minWidth: 0, border: `1px solid ${LINE}`, borderRadius: '16px', padding: '18px 20px', background: '#FFFFFF' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: MUTED }}><Logos list={['email']} size={15} /> Email · Day 1</div>
+            <div style={{ fontSize: '12px', color: MUTED, marginTop: '14px' }}>Subject</div>
+            <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '24px', letterSpacing: '-.02em', minHeight: '30px' }}>
+              {subject}{typing && <span className="cps-caret" aria-hidden="true" />}
+            </div>
+            <div style={{ borderTop: `1px solid ${LINE}`, marginTop: '12px', paddingTop: '4px' }}>
+              {WRITE_LINES.map((l, i) => (
+                <div key={l} style={{ fontSize: '15px', lineHeight: 1.6, color: '#3D3747', marginTop: '10px', opacity: n > i ? 1 : 0, transform: n > i ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>{l}</div>
+              ))}
+              <div style={{ display: 'inline-block', marginTop: '16px', padding: '10px 18px', borderRadius: '10px', background: GRAD, color: '#FFFFFF', fontSize: '14px', fontWeight: 700, opacity: n >= 4 ? 1 : 0, transform: n >= 4 ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>Save my seat</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppWindow>
+  );
+}
+
+/* 3. Schedule: the whole launch on one calendar. */
+const CAL = [
+  { day: 'Mon', logos: ['email'], title: 'You\'re invited: free class', time: '9:00 AM' },
+  { day: 'Tue', logos: ['sms'], title: 'Quick reminder', time: '12:00 PM' },
+  { day: 'Wed', logos: ['instagram', 'facebook'], title: 'We go live soon', time: '5:00 PM' },
+  { day: 'Thu', logos: ['email'], title: 'Webinar goes live', time: '7:00 PM', live: true },
+  { day: 'Fri', logos: ['facebook'], title: 'Last seats ad', time: '8:00 AM' },
+];
+
+function ScreenSchedule() {
+  const n = useStage([300, 800, 1300, 1800, 2300, 3200]);
+  return (
+    <AppWindow url="campeos.com/campaigns">
+      <Side on="Campaigns" />
+      <div style={{ flex: 1, minWidth: 0, padding: 'clamp(16px, 2.4vw, 24px)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '26px', letterSpacing: '-.02em' }}>Your launch calendar</span>
+          <span style={{ marginLeft: 'auto', fontSize: '13px', fontWeight: 600, padding: '5px 12px', borderRadius: '999px', background: '#DCFCE7', color: '#166534' }}>Webinar Thu 7:00 PM</span>
+        </div>
+        <div style={{ opacity: n >= 6 ? 1 : 0, transform: n >= 6 ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '14px', background: '#F6F1FE', border: '1px solid #E9DDFB', order: 2 }}>
+          <span style={{ width: '28px', height: '28px', borderRadius: '9px', background: GRAD_ICON, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Spark size={13} /></span>
+          <span style={{ fontSize: '14px', lineHeight: 1.45 }}><b>Best time to send.</b> Your buyers open most around 7 PM, so the big messages land then.</span>
+        </div>
+        <div style={{ border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden' }}>
+          {CAL.map((r, i) => {
+            const on = n > i;
+            return (
+              <div key={r.day} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderTop: i ? '1px solid #F5F4F7' : '0', background: r.live ? '#F6F1FE' : '#FFFFFF', opacity: on ? 1 : 0, transform: on ? 'none' : 'translateY(8px)', transition: 'opacity .45s, transform .45s' }}>
+                <span style={{ width: '38px', fontFamily: MONO, fontSize: '12px', fontWeight: 700, color: r.live ? '#6D28D9' : MUTED }}>{r.day}</span>
+                <span style={{ width: '40px', flexShrink: 0, display: 'flex' }}><Logos list={r.logos} size={16} /></span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: '15px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
+                <span className="cps-hx-time" style={{ fontFamily: MONO, fontSize: '12px', color: MUTED }}>{r.time}</span>
+                <Toggle on />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </AppWindow>
+  );
+}
+
+/* 4. Improve: winners get saved, and the next launch starts from them. */
+function ScreenImprove() {
+  const n = useStage([4800, 6200]);
+  return (
+    <AppWindow url="campeos.com/winning-copy">
+      <Side on="Winning copy" />
+      <div style={{ flex: 1, minWidth: 0, padding: 'clamp(16px, 2.4vw, 24px)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: '26px', letterSpacing: '-.02em' }}>Winning copy</span>
+        </div>
+        <WinnersLibrary fast />
+        <div style={{ opacity: n >= 2 ? 1 : 0, transform: n >= 2 ? 'none' : 'translateY(8px)', transition: 'opacity .5s, transform .5s', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '14px', background: '#F6F1FE', border: '1px solid #E9DDFB' }}>
+          <span style={{ width: '28px', height: '28px', borderRadius: '9px', background: GRAD_ICON, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Spark size={13} /></span>
+          <span style={{ fontSize: '14px', lineHeight: 1.45 }}><b>Your next launch starts here.</b> Campeos builds it from these winners.</span>
+        </div>
+      </div>
+      <div role="status" style={{ position: 'absolute', right: '18px', top: '18px', maxWidth: '300px', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '14px', background: '#17131F', color: '#FFFFFF', boxShadow: '0 20px 40px -20px rgba(23,19,31,.6)', opacity: n >= 1 ? 1 : 0, transform: n >= 1 ? 'none' : 'translateY(12px)', transition: 'opacity .4s, transform .4s' }}>
+        <Tick pop={n >= 1} />
+        <span style={{ fontSize: '13px', lineHeight: 1.4 }}><b>Saved as a winner</b><br />&ldquo;Seats close Friday at midnight&rdquo;</span>
+      </div>
+    </AppWindow>
+  );
+}
+
+const SCREENS = { tell: ScreenTell, write: ScreenWrite, schedule: ScreenSchedule, improve: ScreenImprove };
 
 export function JourneyTabs() {
   const ref = useRef(null);
@@ -877,42 +992,42 @@ export function JourneyTabs() {
   // Rolls through the steps on its own until someone taps one.
   useEffect(() => {
     if (!seen || paused) return;
-    const t = setTimeout(() => setTab((n) => (n + 1) % JOURNEY.length), JOURNEY[tab].ms || 5200);
+    const t = setTimeout(() => setTab((n) => (n + 1) % JOURNEY.length), JOURNEY[tab].ms || 7500);
     return () => clearTimeout(t);
   }, [seen, paused, tab]);
 
   const cur = JOURNEY[tab];
+  const Screen = SCREENS[cur.id];
   return (
-    <div ref={ref} style={{ marginTop: '56px' }}>
-      <div role="tablist" aria-label="How Campeos works" className="cps-jtabs" style={{ display: 'grid', gridTemplateColumns: `repeat(${JOURNEY.length}, minmax(0, 1fr))`, gap: '14px' }}>
-        {JOURNEY.map((j, i) => {
-          const on = i === tab;
-          return (
-            <button
-              key={j.id}
-              role="tab"
-              aria-selected={on}
-              onClick={() => { setTab(i); setPaused(true); }}
-              className="cps-jtab"
-              style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', borderRadius: '20px', border: on ? '1.5px solid transparent' : '1px solid #E8E4F0', background: on ? 'linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#E0109F)' : '#FFFFFF', color: on ? '#FFFFFF' : INK, font: 'inherit', textAlign: 'left', cursor: 'pointer', boxShadow: on ? '0 22px 40px -24px rgba(155,31,214,.8)' : 'none', transition: 'transform .25s, box-shadow .25s' }}
-            >
-              <span style={{ width: '56px', height: '56px', flexShrink: 0, borderRadius: '16px', background: on ? 'rgba(255,255,255,.18)' : '#F6F1FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <JourneyIcon id={j.id} active={on} />
-              </span>
-              <span style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.01em' }}>{j.label}</span>
-              {on && !paused && seen && <span className="cps-jprog" key={`p${tab}`} aria-hidden="true" style={{ animationDuration: `${j.ms || 5200}ms` }} />}
-            </button>
-          );
-        })}
+    <div ref={ref} style={{ marginTop: '44px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div role="tablist" aria-label="How Campeos works" className="cps-jpill">
+          {JOURNEY.map((j, i) => {
+            const on = i === tab;
+            return (
+              <button
+                key={j.id}
+                role="tab"
+                aria-selected={on}
+                onClick={() => { setTab(i); setPaused(true); }}
+                className={on ? 'cps-jt cps-jt-on' : 'cps-jt'}
+              >
+                <JourneyIcon id={j.id} active={on} size={22} />
+                <span>{j.label}</span>
+                {on && !paused && seen && <span className="cps-jprog" key={`p${tab}`} aria-hidden="true" style={{ animationDuration: `${j.ms || 7500}ms` }} />}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <div className="cps-jbody" style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'center', marginTop: '28px', padding: 'clamp(22px, 3vw, 40px)', borderRadius: '28px', background: '#F8F8F8', border: '1px solid #F0F0F0' }}>
-        <div style={{ flex: '1 1 300px', minWidth: 0 }}>
-          <div key={cur.id} className="cps-fu" style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: 'clamp(28px, 3.4vw, 40px)', letterSpacing: '-.025em', lineHeight: 1.1 }}>{cur.title}</div>
-          <p key={`t${cur.id}`} className="cps-fu" style={{ animationDelay: '.1s', margin: '14px 0 0', fontSize: '18px', lineHeight: 1.6, color: MUTED, maxWidth: '460px' }}>{cur.text}</p>
+      <div className="cps-tilt" style={{ maxWidth: '1080px', margin: '28px auto 0', animationDelay: '.35s' }}>
+        <div key={cur.id} className="cps-fu">
+          <Screen />
         </div>
-        <div style={{ flex: '1 1 340px', minWidth: 0, display: 'flex', justifyContent: 'center' }}>
-          <JourneyPanel id={cur.id} />
-        </div>
+      </div>
+      <div key={`c${cur.id}`} className="cps-fu" style={{ maxWidth: '560px', margin: '26px auto 0', textAlign: 'center' }}>
+        <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 500, fontSize: 'clamp(24px, 3vw, 32px)', letterSpacing: '-.025em', lineHeight: 1.12 }}>{cur.title}</div>
+        <p style={{ margin: '10px 0 0', fontSize: '17px', lineHeight: 1.55, color: MUTED }}>{cur.text}</p>
       </div>
     </div>
   );

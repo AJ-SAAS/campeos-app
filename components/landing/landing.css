@@ -192,3 +192,14 @@
 @media (prefers-reduced-motion:reduce){.cps-scanline,.cps-skel{animation:none}}
 .cps-tspin{animation:cps-tspin .8s linear infinite}
 @keyframes cps-tspin{to{transform:rotate(360deg)}}
+
+/* Journey tabs: a compact pill, like a product tour */
+.cps-jpill{display:inline-flex;gap:4px;padding:6px;border-radius:999px;background:#F1F0F4;border:1px solid #E8E6EE}
+.cps-jt{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:10px;padding:11px 20px;border:0;border-radius:999px;background:transparent;color:#6B6577;font:inherit;font-size:16px;font-weight:600;cursor:pointer;transition:background .25s,color .25s,box-shadow .25s}
+.cps-jt:hover{color:#17131F}
+.cps-jt-on{background:#FFFFFF;color:#17131F;box-shadow:0 2px 10px -2px rgba(23,19,31,.18)}
+.cps-jt .cps-jprog{left:18px;right:18px;bottom:4px;height:3px;border-radius:3px;background:linear-gradient(90deg,#3B1FD1,#E0109F)}
+@media (max-width:620px){
+  .cps-jpill{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;gap:2px;padding:4px}
+  .cps-jt{flex-direction:column;gap:4px;padding:9px 2px 11px;font-size:12px}
+}

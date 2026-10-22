@@ -6,7 +6,7 @@
 
 import React from 'react';
 import './landing.css';
-import { AgentMock, CheckList, HeroApp, JourneyTabs, OfferMock, SalesDates, TimelineMock, WinnerLoopList, WinnersLibrary } from './AppMocks';
+import { AgentMock, CheckList, JourneyTabs, OfferMock, SalesDates, TimelineMock, WinnerLoopList, WinnersLibrary } from './AppMocks';
 
 export default class LandingPage extends React.Component {
   componentDidMount() {
@@ -192,7 +192,7 @@ export default class LandingPage extends React.Component {
 <span style={{ width: '32px', height: '32px', flexShrink: '0', borderRadius: '50%', background: '#FCE7F3', color: '#9D174D', fontWeight: '800', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>OA</span>
 <span>“You over-delivered.” <b>Olivia Alexa</b>, 434K on YouTube</span>
 </div>
-<HeroApp now={v.now} />
+<JourneyTabs />
 
 </div>
 </section>
@@ -229,7 +229,6 @@ export default class LandingPage extends React.Component {
 <section id="features" data-live="tick" style={{ padding: '112px 24px' }}>
 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
 <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: '500', fontSize: 'clamp(40px, 5.6vw, 72px)', letterSpacing: '-.035em', lineHeight: '1.02', margin: '0 auto', textAlign: 'center', maxWidth: '820px' }}>Everything you need to run a launch</h2>
-<JourneyTabs />
 <div data-reveal="f" className={`cps-bento cps-rg ${v.inF}`} style={{ marginTop: '64px' }}>
 <div className="cps-s7" style={{ background: '#F8F8F8', border: '1px solid #F0F0F0', borderRadius: '28px', padding: 'clamp(24px, 3.2vw, 44px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 <a href="#features" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', alignSelf: 'flex-start', color: '#17131F', textDecoration: 'none', fontSize: '22px', fontWeight: '600', letterSpacing: '-.01em' }}>Campaign templates<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
