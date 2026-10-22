@@ -1401,6 +1401,106 @@ export const PLAYS: Record<string, Play> = {
     avoid: ["This email is only for people who bought. Write it that way.", "Never invent a number of readers."],
   }),
 
+  "last-minute-gift": P({
+    id: "last-minute-gift",
+    name: "Still time",
+    job: "Win the buyer who left it late, by making it easy and fast.",
+    beats: [
+      "Lead with the good news: there is still time.",
+      "Why this works when time is short. If the offer is digital or arrives right away, say so. If it ships, give the real last order date, otherwise [ORDER-BY DATE].",
+      "One line of what they get and who it is for.",
+      "One call to action with [LINK]. Say how fast it is.",
+    ],
+    hooks: ["Still time", "Last minute? Good", "It arrives today"],
+    focus: "urgency",
+    avoid: ["Never promise delivery by a date that was not given."],
+  }),
+
+  "holiday-thanks": P({
+    id: "holiday-thanks",
+    name: "Thank you and happy holidays",
+    job: "Warm the list with a real thank you. No pitch.",
+    beats: [
+      "Subject: a short, warm line like a note from a person.",
+      "Thank them for being here this year, in your own words and one specific thing you appreciate.",
+      "Wish them a good holiday in one line.",
+      "No offer, no price, no link to buy. Sign off like a person.",
+    ],
+    hooks: ["Thank you", "Happy holidays", "Before the year ends"],
+    focus: "story",
+    avoid: ["No offer in this email."],
+  }),
+
+  "post-holiday-thanks": P({
+    id: "post-holiday-thanks",
+    name: "Holiday thank you post",
+    job: "Say thank you to followers and customers. No pitch.",
+    beats: [
+      "First line: thank you, in your own words.",
+      "2 to 3 short lines: one specific thing you appreciate about the people who follow you.",
+      "One warm wish for the holiday. No link, no offer.",
+    ],
+    hooks: ["Thank you", "Happy holidays", "Grateful for you"],
+    focus: "story",
+    avoid: ["No offer in this post."],
+  }),
+
+  "post-gift-idea": P({
+    id: "post-gift-idea",
+    name: "Gift idea post",
+    job: "Make a follower picture the person they are buying for.",
+    beats: [
+      "First line: a gift question or a 'perfect for' line that works alone.",
+      "2 to 3 short lines: who it is perfect for and how it feels to receive it.",
+      "One call to action with the link and the real end date.",
+    ],
+    hooks: ["Hard to buy for?", "Perfect for the person who has everything", "A gift that does not need wrapping"],
+    focus: "desire",
+  }),
+
+  "love-angles": P({
+    id: "love-angles",
+    name: "Three ways to love this",
+    job: "Make the offer fit whoever the reader loves, including themselves.",
+    beats: [
+      "Open on the idea that Valentine's Day is not only for couples.",
+      "Three short angles, each 2 lines: for the person you love, for a friend, for yourself. Each says what they get.",
+      "The price and the real end date in one line.",
+      "One call to action with [LINK].",
+    ],
+    hooks: ["Not just for couples", "Three ways to say I love you", "A gift for you, too"],
+    focus: "desire",
+  }),
+
+  "post-deal-of-day": P({
+    id: "post-deal-of-day",
+    name: "Today's deal post",
+    job: "One deal, today only, in a few lines.",
+    beats: [
+      "First line: today's deal and the price or discount. If the offer lists more than one product, use a different one each day; if it lists one, vary the angle (bundle, starter, premium). Use [TODAY'S DEAL] for any detail not given.",
+      "2 short lines: who it is perfect for.",
+      "Ends tonight at the real time or [END TIME]. One link.",
+    ],
+    hooks: ["Today only: <deal>", "Deal of the day", "Tomorrow it is gone"],
+    focus: "offer",
+    avoid: ["Never invent a product or a price."],
+  }),
+
+  "deals-recap": P({
+    id: "deals-recap",
+    name: "What you missed",
+    job: "Bring back people who missed the first deals while there is still time.",
+    beats: [
+      "Open on the idea that a deal a day is easy to miss, and you do not want them to.",
+      "A short list of the deals so far, one line each, using only deals that were really sent.",
+      "What is still open and when it ends.",
+      "One call to action with [LINK].",
+    ],
+    hooks: ["What you missed", "Catch up on this week's deals", "Still open"],
+    focus: "urgency",
+    avoid: ["Never list a deal that was not sent."],
+  }),
+
   /* ------------------------------------------------------------ */
   /* Short channels: texts, posts, ads                              */
   /* ------------------------------------------------------------ */

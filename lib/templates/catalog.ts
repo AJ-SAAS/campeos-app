@@ -86,7 +86,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 week",
     description: "A festive seasonal push around Christmas.",
     category: "seasonal",
-    status: "soon",
+    status: "available",
   },
   {
     id: "valentines-day",
@@ -94,7 +94,7 @@ export const catalog: CatalogEntry[] = [
     length: "1 week",
     description: "A seasonal push built around Valentine's Day.",
     category: "seasonal",
-    status: "soon",
+    status: "available",
   },
 
   // Flash & urgency sales
@@ -125,10 +125,10 @@ export const catalog: CatalogEntry[] = [
   {
     id: "daily-deals",
     title: "Daily Deals Campaign",
-    length: "Ongoing",
+    length: "1 week",
     description: "A new deal each day to keep buyers coming back.",
     category: "flash",
-    status: "soon",
+    status: "available",
   },
 
   // Launches

@@ -9,7 +9,7 @@ import { templateChannelsFor } from "../lib/onboarding/answers";
 import { finishCopy, STANDARD_EULA_URL } from "../lib/ai/generateStepCopy";
 import { lintCopy } from "../lib/ai/quality";
 
-const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser", "lead-magnet", "giveaway", "ebook-low-ticket"];
+const NEW = ["flash-sale-48h", "cart-close", "cash-injection", "black-friday", "cyber-monday", "holiday-sale", "social-blast-30", "app-launch-30", "mini-launch", "product-launch", "win-back", "book-a-call", "hand-raiser", "lead-magnet", "giveaway", "ebook-low-ticket", "xmas-holidays", "valentines-day", "daily-deals"];
 const offer: OfferContext = { name: "Candle Club", price: "$40", audience: "Candle lovers", whatTheyGet: "A box of 3 candles", tone: "Friendly" };
 
 for (const id of NEW) {
@@ -179,4 +179,24 @@ test("ebook: sample and proof come before any deadline, and the buyers-only emai
   assert.ok(next.purpose.includes("only to the people who bought"));
   const idx = (id: string) => t.steps.find((s) => s.id === id)!.offsetHours;
   assert.ok(idx("email-sample") < idx("email-countdown"));
+});
+
+test("daily deals: a different deal every day for seven days, never inventing products", () => {
+  const t = templates["daily-deals"];
+  const emails = t.steps.filter((s) => s.id.startsWith("email-deal-"));
+  assert.equal(emails.length, 7);
+  assert.equal(new Set(emails.map((s) => s.angle)).size, 7, "each day has its own angle");
+  assert.ok(emails.every((s) => s.purpose.includes("[TODAY'S DEAL]")));
+  assert.ok(getPlay("post-deal-of-day")!.avoid!.join(" ").includes("Never invent a product"));
+  assert.ok(getPlay("deals-recap")!.avoid!.join(" ").includes("Never list a deal that was not sent"));
+});
+
+test("xmas ends with a no-pitch thank you; valentine's has three angles and an order-by date", () => {
+  const x = templates["xmas-holidays"];
+  const last = x.steps.reduce((a, b) => (b.offsetHours > a.offsetHours ? b : a));
+  assert.ok(last.playId === "holiday-thanks" || last.playId === "post-holiday-thanks");
+  assert.ok(getPlay("holiday-thanks")!.avoid!.join(" ").includes("No offer"));
+  const v = templates["valentines-day"];
+  assert.ok(v.steps.some((s) => s.playId === "love-angles"));
+  assert.ok(v.steps.some((s) => s.playId === "order-by"));
 });
