@@ -2,10 +2,11 @@
 
 import { MergeText } from "@/components/MergeText";
 import { useMemo, useState } from "react";
-import { CampaignPhase } from "@/lib/templates/types";
+import { CampaignPhase, Channel } from "@/lib/templates/types";
 import { UIStep } from "@/components/builder/Timeline";
 import { missingDetailsLabel, needsInput } from "@/lib/dashboard";
 import { channelInfo, LogoStack, PlatformLogo } from "@/components/builder/channels";
+import { ADDABLE_CHANNELS } from "@/lib/engine/customStep";
 
 // The campaign as a sequence (approved "Campaign builder" design): read
 // top to bottom in chapters (the template's phases), one line per day on
@@ -28,6 +29,10 @@ export interface SequenceProps {
   userPlatforms: string[];
   /** How many pictures each message has, by templateStepId. */
   imageCounts?: Record<string, number>;
+  /** Adds a blank user-made post for this one channel, outside the
+   * template's own plan (see lib/engine/customStep.ts). Omit the prop to
+   * hide the "+ Add a post" button entirely. */
+  onAddStep?: (channel: Channel) => void;
 }
 
 export function statusOf(s: UIStep, on: boolean, locked: boolean, generating: boolean): StepStatus {
@@ -51,7 +56,7 @@ const dayLabel = (d: Date) => `${d.toLocaleDateString(undefined, { weekday: "sho
 const timeLabel = (d: Date) => d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
 export function SequenceView(props: SequenceProps) {
-  const { steps, phases, eventDate, selectedId } = props;
+  const { steps, phases, eventDate, selectedId, onAddStep, userPlatforms } = props;
   const [openDays, setOpenDays] = useState<Record<string, boolean>>({});
 
   // phase -> ordered day groups. The webinar itself goes after the last
@@ -122,6 +127,60 @@ export function SequenceView(props: SequenceProps) {
           </div>
         </section>
       ))}
+      {onAddStep && <AddStepRow onAdd={onAddStep} userPlatforms={userPlatforms} />}
+    </div>
+  );
+}
+
+// A quiet "+ Add a post" pill at the end of the sequence. Click it to
+// pick a channel, which adds a blank post for that channel to this
+// campaign only and opens it straight in the editor (see
+// app/builder/page.tsx's addCustomStep). Minimalist on purpose — this
+// should look like a natural continuation of the list, not a feature
+// calling attention to itself.
+function AddStepRow({ onAdd, userPlatforms }: { onAdd: (channel: Channel) => void; userPlatforms: string[] }) {
+  const [open, setOpen] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-1 inline-flex items-center gap-2 h-11 px-4 rounded-full border border-dashed border-[#D4D1DB] text-[14px] font-semibold text-muted hover:text-slate hover:border-slate transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add a post
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-2 animate-step-in">
+      <span className="text-[13px] text-muted mr-0.5">Add a</span>
+      {ADDABLE_CHANNELS.map((ch) => {
+        const info = channelInfo(ch, userPlatforms);
+        return (
+          <button
+            key={ch}
+            onClick={() => {
+              onAdd(ch);
+              setOpen(false);
+            }}
+            className="inline-flex items-center gap-2 h-10 pl-2 pr-3.5 rounded-full border border-line bg-paper text-sm font-semibold hover:border-slate"
+          >
+            {info.platforms.length > 1 ? (
+              <LogoStack platforms={info.platforms.slice(0, 3)} size={14} />
+            ) : (
+              <PlatformLogo platform={info.platforms[0]} size={18} />
+            )}
+            {info.short}
+          </button>
+        );
+      })}
+      <button onClick={() => setOpen(false)} className="h-10 px-3 text-sm text-muted">
+        Cancel
+      </button>
     </div>
   );
 }

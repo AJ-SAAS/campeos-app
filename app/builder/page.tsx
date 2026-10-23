@@ -35,8 +35,12 @@ import {
   saveCampaignOffer,
   saveStepCopy,
   saveCampaignBrief,
+  addCustomStep as saveCustomStepDoc,
+  deleteCampaignStep,
+  saveCustomStepTitle,
   CampaignStepDoc,
 } from "@/lib/firebase/campaigns";
+import { makeCustomStep } from "@/lib/engine/customStep";
 import {
   addWinningCopy,
   addSalesCall,
@@ -251,9 +255,16 @@ function BuilderInner() {
   }, [existingId, isFirst, user, router]);
 
   // Load an existing campaign's saved steps and copy when ?id= is present.
+  // Also clears addedSteps/customTitles — otherwise a custom post added
+  // on one campaign would still show up after navigating straight to a
+  // different one without a full page reload, since those two bits of
+  // state (unlike the others here) aren't rebuilt from what this load
+  // returns.
   useEffect(() => {
     if (!existingId) return;
     setLoadingCampaign(true);
+    setAddedSteps([]);
+    setCustomTitles({});
     getCampaignWithSteps(existingId)
       .then((result) => {
         if (!result) return;
@@ -295,9 +306,22 @@ function BuilderInner() {
     return kept.length > 0 ? kept : all;
   }, [activeTemplate, eventDate, allowedChannels]);
 
-  const scheduledSteps: ScheduledStep[] = loadedSteps
-    ? loadedSteps.map((s) => ({ ...s, scheduledAt: new Date(s.scheduledAt) }))
-    : freshSteps;
+  // Posts added from the builder's "+ Add a post" button (see
+  // lib/engine/customStep.ts), this session. Once a custom step has been
+  // saved, reloading the campaign reads it back from Firestore as part of
+  // loadedSteps like any other step, same as the rest of this page's data
+  // — this only carries ones added since the page opened.
+  const [addedSteps, setAddedSteps] = useState<ScheduledStep[]>([]);
+  // Renames for user-added posts, keyed by templateStepId — kept apart
+  // from addedSteps so a rename still applies after the step has become
+  // part of loadedSteps (a reload) rather than only existing in
+  // addedSteps (this session).
+  const [customTitles, setCustomTitles] = useState<Record<string, string>>({});
+
+  const scheduledSteps: ScheduledStep[] = [
+    ...(loadedSteps ? loadedSteps.map((s) => ({ ...s, scheduledAt: new Date(s.scheduledAt) })) : freshSteps),
+    ...addedSteps,
+  ].map((s) => (customTitles[s.templateStepId] ? { ...s, title: customTitles[s.templateStepId] } : s));
 
   const [copyByStep, setCopyByStep] = useState<Record<string, Record<string, string>>>({});
 
@@ -475,6 +499,66 @@ function BuilderInner() {
     else next.add(ch);
     setSkippedChannels(next);
     persistSkips(skippedSteps, next);
+  }
+
+  // "+ Add a post": a blank post for one channel, on top of whatever the
+  // template already plans, saved to this campaign only (see
+  // lib/engine/customStep.ts and lib/firebase/campaigns.ts). Scheduled a
+  // day out by default — nothing in the builder lets the send time be
+  // edited yet, same as every other step.
+  // Custom posts carry phaseName "Your own posts" (see
+  // lib/engine/customStep.ts), which matches no phase in the template —
+  // SequenceView would otherwise fold them quietly into the template's
+  // last chapter. Giving them a real, matching phase of their own puts
+  // them in a clearly labeled chapter instead.
+  const hasCustomStep = scheduledSteps.some((s) => s.phaseName === "Your own posts");
+  const sequencePhases = hasCustomStep
+    ? [
+        ...activeTemplate.phases,
+        { id: "custom", name: "Your own posts", objective: "Posts you added yourself, outside the campaign's built-in plan." },
+      ]
+    : activeTemplate.phases;
+
+  function addCustomStep(channel: Channel) {
+    const step = makeCustomStep(channel, new Date(Date.now() + 24 * 60 * 60 * 1000));
+    setAddedSteps((prev) => [...prev, step]);
+    setSelectedId(step.templateStepId);
+    setStepModalOpen(true);
+    if (campaignId) {
+      saveCustomStepDoc(campaignId, {
+        templateStepId: step.templateStepId,
+        channel: step.channel,
+        title: step.title,
+        purpose: step.purpose,
+        angle: step.angle,
+        goals: step.goals,
+        persuasionElements: step.persuasionElements,
+        phaseName: step.phaseName,
+        phaseObjective: step.phaseObjective,
+        fields: step.fields,
+        scheduledAt: step.scheduledAt.toISOString(),
+        copy: null,
+      }).catch(() => {});
+    }
+    // No campaign saved yet: it rides along in addedSteps and gets
+    // written for the first time in generateCampaign()'s initial
+    // createCampaign() call, same as every template step.
+  }
+
+  function updateCustomStepTitle(templateStepId: string, title: string) {
+    setCustomTitles((prev) => ({ ...prev, [templateStepId]: title }));
+    if (campaignId) saveCustomStepTitle(campaignId, templateStepId, title).catch(() => {});
+  }
+
+  function removeCustomStep(templateStepId: string) {
+    setAddedSteps((prev) => prev.filter((s) => s.templateStepId !== templateStepId));
+    setCopyByStep((prev) => {
+      const next = { ...prev };
+      delete next[templateStepId];
+      return next;
+    });
+    setStepModalOpen(false);
+    if (campaignId) deleteCampaignStep(campaignId, templateStepId).catch(() => {});
   }
 
   async function generateCampaign() {
@@ -1028,7 +1112,7 @@ function BuilderInner() {
               )}
               <SequenceView
                 steps={steps}
-                phases={activeTemplate.phases}
+                phases={sequencePhases}
                 eventDate={eventDate}
                 selectedId={stepModalOpen ? selectedId : ""}
                 onSelect={(id) => (lockedIds?.has(id) && !copyByStep[id] ? setPlanOpen(true) : select(id))}
@@ -1038,6 +1122,7 @@ function BuilderInner() {
                 generating={generating}
                 userPlatforms={userPlatforms}
                 imageCounts={Object.fromEntries(Object.entries(imagesByStep).map(([id, m]) => [id, Object.keys(m).length]))}
+                onAddStep={addCustomStep}
               />
             </section>
           </div>
@@ -1073,6 +1158,12 @@ function BuilderInner() {
                 else delete cur[slot];
                 return { ...prev, [id]: cur };
               });
+            }}
+            onTitleChange={(title) => {
+              if (selected) updateCustomStepTitle(selected.templateStepId, title);
+            }}
+            onRemove={() => {
+              if (selected) removeCustomStep(selected.templateStepId);
             }}
           />
         </div>

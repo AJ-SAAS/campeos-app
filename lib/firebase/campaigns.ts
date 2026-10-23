@@ -104,6 +104,29 @@ export async function saveStepCopy(
   );
 }
 
+/**
+ * Saves a post the user added themselves from the builder's "+ Add a
+ * post" button (see lib/engine/customStep.ts) — a full step doc, written
+ * the same way as the ones createCampaign writes up front. Scoped to this
+ * one campaign's own "steps" subcollection, same as every other step, so
+ * it only ever shows up here.
+ */
+export async function addCustomStep(campaignId: string, step: CampaignStepDoc): Promise<void> {
+  await setDoc(doc(db, "campaigns", campaignId, "steps", step.templateStepId), step);
+}
+
+/** Removes one step doc — used to delete a user-added post. Template
+ * steps are never deleted this way, only left out via saveCampaignSkips. */
+export async function deleteCampaignStep(campaignId: string, templateStepId: string): Promise<void> {
+  await deleteDoc(doc(db, "campaigns", campaignId, "steps", templateStepId));
+}
+
+/** Renames a user-added post (its title is editable; a template step's
+ * isn't, so nothing else calls this). */
+export async function saveCustomStepTitle(campaignId: string, templateStepId: string, title: string): Promise<void> {
+  await updateDoc(doc(db, "campaigns", campaignId, "steps", templateStepId), { title });
+}
+
 /** Saves the campaign's own copy of the offer after it's edited in setup. */
 export async function saveCampaignOffer(campaignId: string, offer: OfferContext): Promise<void> {
   const clean = Object.fromEntries(Object.entries(offer).filter(([, v]) => v !== undefined));

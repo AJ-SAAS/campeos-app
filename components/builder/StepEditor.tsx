@@ -7,6 +7,7 @@ import { ImageSlot } from "./ImageSlot";
 import { imageSlots, shapesFor, StepImage } from "@/lib/images";
 import { fillPlaceholders, FillChange, scanPlaceholders } from "@/lib/insights/logic";
 import { ProofItem } from "@/lib/insights/types";
+import { isCustomStepId } from "@/lib/engine/customStep";
 
 interface StepEditorProps {
   step: UIStep | undefined;
@@ -40,6 +41,12 @@ interface StepEditorProps {
   /** Real testimonials from Buyer insights, for "Fill from your proof". */
   proof?: ProofItem[];
   proofResults?: string[];
+  /** For a post the user added themselves (see lib/engine/customStep.ts)
+   * only: renames it, and permanently removes it from this campaign.
+   * Left out for the campaign's own template steps, which can only be
+   * switched off, never deleted. */
+  onTitleChange?: (title: string) => void;
+  onRemove?: () => void;
 }
 
 const LANE_STYLE: Record<string, { label: string; fg: string; bg: string }> = {
@@ -77,6 +84,8 @@ export function StepEditor({
   onImageChange,
   proof = [],
   proofResults = [],
+  onTitleChange,
+  onRemove,
 }: StepEditorProps) {
   const [instruction, setInstruction] = useState("");
   const [whyOpen, setWhyOpen] = useState(false);
@@ -106,6 +115,7 @@ export function StepEditor({
   if (!isOpen || !step) return null;
 
   const lane = LANE_STYLE[step.channel] ?? LANE_STYLE.ad;
+  const isCustom = isCustomStepId(step.templateStepId);
   const needs = needsInput(step);
   const shapes = shapesFor(step.channel, userPlatforms);
   const slots = imageSlots(step.channel, step.copy);
@@ -188,6 +198,16 @@ export function StepEditor({
                 </span>
               )}
             </span>
+            {isCustom && onRemove && (
+              <button
+                onClick={() => {
+                  if (window.confirm("Remove this post? This only removes it from this campaign.")) onRemove();
+                }}
+                className="hidden sm:inline text-[13px] font-semibold text-muted hover:text-[#B4342A]"
+              >
+                Remove this post
+              </button>
+            )}
             <button
               aria-label="Close"
               onClick={onClose}
@@ -202,9 +222,29 @@ export function StepEditor({
         <div className="flex-grow min-h-0 overflow-y-auto flex justify-center px-5 sm:px-10 pt-9 sm:pt-12">
           <div className="w-full max-w-[680px] flex flex-col items-center text-center gap-9 sm:gap-10 pb-12">
             <div className="flex flex-col items-center gap-3.5">
-              <h1 className="font-display text-[28px] sm:text-[34px] font-bold leading-[1.15] tracking-tight">
-                {step.title}
-              </h1>
+              {isCustom && onTitleChange ? (
+                <input
+                  value={step.title}
+                  onChange={(e) => onTitleChange(e.target.value)}
+                  placeholder="Name this post"
+                  aria-label="Post name"
+                  className="font-display text-[28px] sm:text-[34px] font-bold leading-[1.15] tracking-tight text-center bg-transparent border-b border-dashed border-line focus:border-slate outline-none px-1 max-w-full"
+                />
+              ) : (
+                <h1 className="font-display text-[28px] sm:text-[34px] font-bold leading-[1.15] tracking-tight">
+                  {step.title}
+                </h1>
+              )}
+              {isCustom && onRemove && (
+                <button
+                  onClick={() => {
+                    if (window.confirm("Remove this post? This only removes it from this campaign.")) onRemove();
+                  }}
+                  className="sm:hidden text-[13px] font-semibold text-muted"
+                >
+                  Remove this post
+                </button>
+              )}
               <span className="inline-flex items-center gap-1.5 text-[13px] text-muted">
                 <ClockIcon />
                 Suggested send time:{" "}
