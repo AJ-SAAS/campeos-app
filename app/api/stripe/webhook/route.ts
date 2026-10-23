@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripeClient, PlanKey, BillingInterval } from "@/lib/stripe/client";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { markCustomerInMailerLite } from "@/lib/mailerlite";
 
 // Stripe needs the raw request body to verify the signature — Next.js
 // would otherwise parse it as JSON first, which breaks verification.
@@ -67,6 +68,11 @@ export async function POST(req: Request) {
           stripeSubscriptionId:
             typeof session.subscription === "string" ? session.subscription : session.subscription?.id ?? null,
         });
+
+        // Tag them Customer in MailerLite and take them out of the
+        // "Signed Up - Unpaid" group. Best-effort — never blocks or fails
+        // the webhook itself (see lib/mailerlite.ts).
+        await markCustomerInMailerLite(session.customer_details?.email ?? session.customer_email);
         break;
       }
 
