@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AgentPanel, AgentPanelCampaignContext } from "./AgentPanel";
+import { Mascot } from "@/components/mascot/Mascot";
+import type { OrbMood } from "@/lib/mascot/orb";
+import { AGENT_NAME } from "@/lib/brand";
 
 interface AgentLauncherProps {
   /** Present when the agent should be able to edit the campaign
@@ -16,6 +19,11 @@ interface AgentLauncherProps {
 // in that campaign — see lib/ai/agent.ts and components/agent/AgentPanel.tsx.
 export function AgentLauncher({ campaign }: AgentLauncherProps) {
   const [open, setOpen] = useState(false);
+  // What the agent is doing right now, reported by the panel (thinking
+  // while it writes, happy when it's done). Shown on the mascot button.
+  const [agentMood, setAgentMood] = useState<OrbMood>("idle");
+  // Goes up on every open/close so the mascot hops.
+  const [hop, setHop] = useState(0);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Three ways to dismiss: the FAB itself (toggle), clicking outside the
@@ -43,13 +51,28 @@ export function AgentLauncher({ campaign }: AgentLauncherProps) {
 
   return (
     <div ref={wrapperRef}>
+      {/* The mascot IS the button. No circle behind it: a soft purple glow
+          under it instead (a CSS shadow, because the glow the orb draws
+          for itself would be cut off at the edge of a small canvas). */}
       <button
-        onClick={() => setOpen((o) => !o)}
-        aria-label={open ? "Close the agent" : "Ask the agent"}
+        onClick={() => {
+          setOpen((o) => !o);
+          setHop((h) => h + 1);
+        }}
+        aria-label={open ? `Close ${AGENT_NAME}` : `Ask ${AGENT_NAME}`}
         aria-expanded={open}
-        className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-clay to-pink text-white shadow-[0_10px_28px_-4px_rgba(124,58,237,0.4)] flex items-center justify-center transition-transform duration-150 hover:scale-105 active:scale-95"
+        className="fixed bottom-20 right-3 sm:bottom-5 sm:right-5 z-40 w-[84px] h-[84px] rounded-full flex items-center justify-center transition-transform duration-150 hover:scale-105 active:scale-95"
+        style={{ filter: "drop-shadow(0 10px 16px rgba(124,58,237,0.45))" }}
       >
-        {open ? <CloseIcon /> : <SparkIcon />}
+        <Mascot
+          size={84}
+          fit={0.64}
+          glow={false}
+          restless={false}
+          mood={open && agentMood === "idle" ? "happy" : agentMood}
+          hopKey={hop}
+          label={`${AGENT_NAME}`}
+        />
       </button>
 
       {/* Mobile: a near-full-screen sheet, since a fixed 380px popover
@@ -73,18 +96,10 @@ export function AgentLauncher({ campaign }: AgentLauncherProps) {
           >
             <CloseIcon small />
           </button>
-          <AgentPanel campaign={campaign} />
+          <AgentPanel campaign={campaign} mascot="static" onMoodChange={setAgentMood} />
         </div>
       </div>
     </div>
-  );
-}
-
-function SparkIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="#FFFFFF" aria-hidden="true">
-      <path d="M12 2l1.8 6.4L20 10l-6.2 1.6L12 18l-1.8-6.4L4 10l6.2-1.6z" />
-    </svg>
   );
 }
 

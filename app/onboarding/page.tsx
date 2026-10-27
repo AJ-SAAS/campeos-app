@@ -32,6 +32,9 @@ import {
 } from "@/lib/onboarding/answers";
 import { catalog } from "@/lib/templates/catalog";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { Mascot } from "@/components/mascot/Mascot";
+import type { OrbMood } from "@/lib/mascot/orb";
+import { AGENT_NAME } from "@/lib/brand";
 import { CurrencyPicker } from "@/components/CurrencyPicker";
 import "@/components/onboarding/onboarding.css";
 import { firstName } from "@/lib/signOff";
@@ -58,6 +61,17 @@ import { authFetch } from "@/lib/firebase/authFetch";
 // left blank for the user to fill.
 
 const STEP_COUNT = 6;
+
+// What the mascot says at each step. Short and plain, like a friend sitting
+// next to you. Step 1 changes while it reads a sales page (see below).
+const GREETER: { mood: OrbMood; say: string }[] = [
+  { mood: "happy", say: `Hi! I'm ${AGENT_NAME}. I'll help you get set up. It takes about a minute.` },
+  { mood: "idle", say: "Got a sales page? I can read it for you. No page? Just skip this." },
+  { mood: "idle", say: "Tell me who it's for. I write better when I know who I'm talking to." },
+  { mood: "wink", say: "Where do you talk to your people? Pick all that fit." },
+  { mood: "happy", say: "Now the fun part. What are you launching?" },
+  { mood: "love", say: "Last one! How often do you run a sale or promo?" },
+];
 
 const EXAMPLES = ["Beginner Yoga Course", "Business Coaching", "Summer Candle Sale", "10 Clients in 30 Days"];
 
@@ -392,6 +406,14 @@ export default function OnboardingPage() {
   const ph = (empty: boolean) => (empty ? "cob-ph" : "");
   const picked = PLATFORMS.filter((p) => channels.includes(p.id));
 
+  // The mascot reacts to what's happening, not only to the step number.
+  const greeter =
+    step === 1 && scan === "scanning"
+      ? { mood: "thinking" as OrbMood, say: "Reading your page now. One moment..." }
+      : step === 1 && scan === "failed"
+        ? { mood: "surprised" as OrbMood, say: "Hmm, I couldn't read that page. No problem, you can type it in." }
+        : GREETER[Math.min(step, GREETER.length - 1)];
+
   return (
     <div className="cob-root">
       <div className="cob-left" style={{ flexBasis: 540 }}>
@@ -426,8 +448,35 @@ export default function OnboardingPage() {
               </div>
             </div>
 
+            {/* The mascot walks you through. It stays on screen from step to
+                step (so it can change faces and hop) instead of reloading. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 20, marginLeft: -10 }}>
+              <Mascot size={92} fit={0.74} glow={false} mood={greeter.mood} hopKey={step} follow label={AGENT_NAME} />
+              <div
+                aria-live="polite"
+                style={{
+                  position: "relative",
+                  flex: 1,
+                  minWidth: 0,
+                  padding: "11px 15px",
+                  borderRadius: 16,
+                  background: "#F6F1FF",
+                  border: "1px solid #E4D9FA",
+                  color: "#2A1F4D",
+                  fontSize: 15,
+                  lineHeight: 1.4,
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{ position: "absolute", left: -6, top: "50%", width: 11, height: 11, marginTop: -6, background: "#F6F1FF", borderLeft: "1px solid #E4D9FA", borderBottom: "1px solid #E4D9FA", transform: "rotate(45deg)" }}
+                />
+                {greeter.say}
+              </div>
+            </div>
+
             {step === 0 && (
-              <div key="s0" className="cob-rise" style={{ marginTop: 36 }}>
+              <div key="s0" className="cob-rise" style={{ marginTop: 28 }}>
                 <h1 className="cob-h1">What do you sell?</h1>
                 <p className="cob-sub">A course, coaching, a product or a service. Just give it a name. You can change it later.</p>
                 <label htmlFor="f-name" className="cob-label">What it&apos;s called</label>

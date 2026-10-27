@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { addAgentMessage, listAgentMessages } from "@/lib/firebase/agentThreads";
@@ -12,6 +12,10 @@ import { webinarTemplate } from "@/lib/templates/webinar";
 import { OfferContext, StepContext } from "@/lib/ai/prompts";
 import { authFetch } from "@/lib/firebase/authFetch";
 import { resolveSignOff } from "@/lib/signOff";
+import { Mascot } from "@/components/mascot/Mascot";
+import { MascotStatic } from "@/components/mascot/MascotStatic";
+import type { OrbMood } from "@/lib/mascot/orb";
+import { AGENT_NAME } from "@/lib/brand";
 
 interface DisplayMessage {
   role: "user" | "assistant";
@@ -42,6 +46,13 @@ interface AgentPanelProps {
   /** Fill the parent's height (the dashboard's side column) instead of
    * capping the chat at 380px. */
   fill?: boolean;
+  /** "live" = the animated 3D mascot in the header. "static" = a flat
+   * picture, used when the floating launcher already shows the live one
+   * (so a page never has more than a couple of 3D orbs). */
+  mascot?: "live" | "static";
+  /** Tells the parent what the agent is doing (idle, thinking, happy...),
+   * so the launcher button can show the same mood. */
+  onMoodChange?: (mood: OrbMood) => void;
 }
 
 // The dashboard's primary surface — from the "Agent" panel in
@@ -54,7 +65,7 @@ interface AgentPanelProps {
 // Loads the user's saved business profile (lib/firebase/businessProfile.ts)
 // so a second campaign doesn't start the conversation from zero — the
 // agent already knows the offer and only asks what's actually new.
-export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
+export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChange }: AgentPanelProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -64,6 +75,33 @@ export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The mascot's mood follows what the agent is doing. "Happy" is a short
+  // moment after it finishes something; `hop` makes it jump with it.
+  const [happy, setHappy] = useState(false);
+  const [hop, setHop] = useState(0);
+  const happyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const celebrate = useCallback(() => {
+    setHappy(true);
+    setHop((h) => h + 1);
+    if (happyTimer.current) clearTimeout(happyTimer.current);
+    happyTimer.current = setTimeout(() => setHappy(false), 2400);
+  }, []);
+  useEffect(
+    () => () => {
+      if (happyTimer.current) clearTimeout(happyTimer.current);
+    },
+    []
+  );
+  const mood: OrbMood = error
+    ? "surprised"
+    : sending || buildTrace
+      ? "thinking"
+      : happy
+        ? "happy"
+        : "idle";
+  useEffect(() => {
+    onMoodChange?.(mood);
+  }, [mood, onMoodChange]);
 
   useEffect(() => {
     if (!user) {
@@ -135,6 +173,7 @@ export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
       if (!res.ok) throw new Error(data.error ?? "The agent didn't respond.");
 
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      if (!data.toolCall) celebrate();
       await addAgentMessage(user.uid, "assistant", data.reply);
 
       if (data.toolCall?.name === "create_campaign") {
@@ -187,6 +226,7 @@ export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
             ? `Done. The schedule is saved and the first step is written. The other ${result.stepCount - result.writtenCount} are ready whenever you want them. Want to take a look?`
             : `Done. All ${result.stepCount} steps are ready. Want to take a look?`;
       setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
+      celebrate();
       await addAgentMessage(uid, "assistant", doneMessage);
       setProfile((prev) => ({
         name: args.offerName,
@@ -250,6 +290,7 @@ export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
       const changedFragment = result.changed?.replace(/^changed\s+/i, "");
       const doneMessage = changedFragment ? `Done. I changed ${changedFragment}.` : "Done. Take a look.";
       setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
+      celebrate();
       await addAgentMessage(uid, "assistant", doneMessage);
     } catch (err) {
       const message =
@@ -269,8 +310,8 @@ export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
     return (
       <section className="flex flex-col bg-paper border border-line rounded-2xl overflow-hidden min-h-[280px] sm:min-h-[320px]">
         <div className="bg-gradient-to-r from-clay to-pink flex items-center gap-2.5 px-5 py-4">
-          <AgentIcon />
-          <span className="font-display text-base font-semibold text-white">Agent</span>
+          <MascotStatic size={28} />
+          <span className="font-display text-base font-semibold text-white">{AGENT_NAME}</span>
         </div>
         <div className="flex-grow flex items-center justify-center text-sm text-faint px-6 text-center">
           Sign in to talk to the agent and build a campaign.
@@ -292,10 +333,12 @@ export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
       className={`flex flex-col min-h-0 bg-paper border border-[#ECEAF0] rounded-[22px] overflow-hidden ${fill ? "lg:h-full" : ""}`}
     >
       <div className="shrink-0 flex items-center gap-2.5 px-5 py-4 border-b border-[#F0F0F0]">
-        <span className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center" style={{ background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)" }}>
-          <AgentIcon />
-        </span>
-        <span className="flex-grow text-base font-semibold">Agent</span>
+        {mascot === "live" ? (
+          <Mascot size={64} fit={0.7} glow={false} restless={false} mood={mood} hopKey={hop} label={AGENT_NAME} className="-my-3 -ml-2" />
+        ) : (
+          <MascotStatic size={34} mood={mood} />
+        )}
+        <span className="flex-grow text-base font-semibold">{AGENT_NAME}</span>
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#15803D]">
           <span className="w-1.5 h-1.5 rounded-full bg-lime" />
           Online
@@ -313,9 +356,7 @@ export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
             </div>
           ) : (
             <div key={i} className="flex gap-2.5 items-start max-w-[90%] sm:max-w-[440px]">
-              <span className="w-[26px] h-[26px] rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)" }}>
-                <AgentIcon small />
-              </span>
+              <MascotStatic size={28} className="shrink-0 mt-0.5" />
               <div className="bg-paper border border-[#ECEAF0] rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-line">
                 {m.content}
               </div>
@@ -324,9 +365,7 @@ export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
         )}
         {sending && !buildTrace && (
           <div className="flex gap-2.5 items-start">
-            <span className="w-[26px] h-[26px] rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)" }}>
-              <AgentIcon small />
-            </span>
+            <MascotStatic size={28} className="shrink-0 mt-0.5" />
             <div className="bg-paper border border-line rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono">
               ...
             </div>
@@ -334,9 +373,7 @@ export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
         )}
         {buildTrace && (
           <div className="flex gap-2.5 items-start">
-            <span className="w-[26px] h-[26px] rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#FF00B8)" }}>
-              <AgentIcon small />
-            </span>
+            <MascotStatic size={28} className="shrink-0 mt-0.5" />
             <div className="bg-paper border border-line rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono flex flex-col gap-1">
               {buildTrace.map((line, i) => (
                 <div key={i} className="flex items-center gap-1.5">
@@ -405,14 +442,5 @@ export function AgentPanel({ campaign, fill = false }: AgentPanelProps) {
         </button>
       </div>
     </section>
-  );
-}
-
-function AgentIcon({ small }: { small?: boolean }) {
-  const size = small ? 13 : 16;
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="#FFFFFF" aria-hidden="true">
-      <path d="M12 2l1.8 6.4L20 10l-6.2 1.6L12 18l-1.8-6.4L4 10l6.2-1.6z" />
-    </svg>
   );
 }
