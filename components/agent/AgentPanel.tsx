@@ -59,6 +59,11 @@ interface AgentPanelProps {
   /** Fill the parent's height (the dashboard's side column) instead of
    * capping the chat at 380px. */
   fill?: boolean;
+  /** Fit exactly inside a box that has a set height (the floating popover):
+   * the message list scrolls and the input stays in view. */
+  contained?: boolean;
+  /** Shows a close button in the header (for the floating popover). */
+  onClose?: () => void;
   /** "live" = the animated 3D mascot in the header. "static" = a flat
    * picture, used when the floating launcher already shows the live one
    * (so a page never has more than a couple of 3D orbs). */
@@ -78,7 +83,7 @@ interface AgentPanelProps {
 // Loads the user's saved business profile (lib/firebase/businessProfile.ts)
 // so a second campaign doesn't start the conversation from zero — the
 // agent already knows the offer and only asks what's actually new.
-export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChange }: AgentPanelProps) {
+export function AgentPanel({ campaign, fill = false, contained = false, onClose, mascot = "live", onMoodChange }: AgentPanelProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -355,7 +360,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
     <section
       aria-label={AGENT_NAME}
       id="agent"
-      className={`flex flex-col min-h-0 bg-paper border border-[#ECEAF0] rounded-[22px] overflow-hidden ${fill ? "lg:h-full" : ""}`}
+      className={`flex flex-col min-h-0 bg-paper border border-[#ECEAF0] rounded-[22px] overflow-hidden ${fill ? "lg:h-full" : ""} ${contained ? "h-full" : ""}`}
     >
       <div className="shrink-0 flex items-center gap-2.5 px-5 py-3 border-b border-[#F0F0F0]">
         {mascot === "live" ? (
@@ -381,9 +386,20 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
           <span className="w-1.5 h-1.5 rounded-full bg-lime" />
           Online
         </span>
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label={`Close ${AGENT_NAME}`}
+            className="shrink-0 w-8 h-8 rounded-full bg-[#F2F1F5] text-slate flex items-center justify-center hover:bg-[#E9E7EF]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        )}
       </div>
 
-      <div ref={scrollRef} className={`flex-grow min-h-[180px] max-h-[380px] ${fill ? "lg:max-h-none lg:min-h-0" : ""} overflow-y-auto flex flex-col gap-3 px-4 sm:px-5 py-5 bg-[#FAFAFA]`}>
+      <div ref={scrollRef} className={`flex-grow ${contained ? "min-h-0" : "min-h-[180px] max-h-[380px]"} ${fill ? "lg:max-h-none lg:min-h-0" : ""} overflow-y-auto flex flex-col gap-3 px-4 sm:px-5 py-5 bg-[#FAFAFA]`}>
         {messages.length === 0 && <div className="text-sm text-faint">{emptyStateText}</div>}
         {messages.map((m, i) => (
           <Fragment key={i}>

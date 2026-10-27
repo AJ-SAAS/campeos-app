@@ -92,31 +92,15 @@ export function AgentLauncher({ campaign, openOnDesktop = false }: AgentLauncher
         aria-label={AGENT_NAME}
         aria-hidden={!open}
         className={`fixed z-40 rounded-2xl shadow-[0_24px_64px_-12px_rgba(19,23,26,0.3)] transition-all duration-200
-          inset-x-3 bottom-20 top-16 sm:inset-x-auto sm:top-auto sm:bottom-24 sm:right-6 sm:w-[380px] sm:max-h-[min(70vh,560px)]
+          inset-x-3 bottom-[11.5rem] top-16 sm:inset-x-auto sm:top-auto sm:bottom-[7.5rem] sm:right-6 sm:w-[380px] sm:h-[min(70vh,560px)]
           origin-bottom-right ${
           open ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
         }`}
       >
         <div className="relative h-full">
-          <button
-            onClick={() => setOpen(false)}
-            aria-label={`Close ${AGENT_NAME}`}
-            className="absolute top-3.5 right-4 z-10 w-7 h-7 rounded-full bg-[rgba(255,255,255,0.16)] text-white flex items-center justify-center hover:bg-[rgba(255,255,255,0.26)]"
-          >
-            <CloseIcon small />
-          </button>
-          <AgentPanel campaign={campaign} mascot="static" onMoodChange={setAgentMood} />
+          <AgentPanel campaign={campaign} contained mascot="static" onClose={() => setOpen(false)} onMoodChange={setAgentMood} />
         </div>
       </div>
     </div>
-  );
-}
-
-function CloseIcon({ small }: { small?: boolean }) {
-  const size = small ? 14 : 20;
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
   );
 }
