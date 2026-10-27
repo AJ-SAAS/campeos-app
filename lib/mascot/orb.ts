@@ -28,8 +28,10 @@ export interface OrbOptions {
   glow?: boolean;
   /** The ring that orbits it. */
   ring?: boolean;
-  /** How much of the canvas the orb fills. 1 = the original framing.
-   * Below 1 = bigger orb. */
+  /** How much room the orb has in its canvas. 1 = the original framing.
+   * Below 1 = bigger orb, tighter fit. Never goes below MIN_FIT, because
+   * any tighter and the bottom of the orb is cut off. For the thinking
+   * bubble to show at full size, use 1 or more. */
   fit?: number;
   /** Reduce motion (set from the user's system setting). */
   reducedMotion?: boolean;
@@ -73,6 +75,43 @@ function rnd(a: number, b: number): number {
   return a + Math.random() * (b - a);
 }
 
+/** The smallest `fit` that still shows the whole orb. Any tighter and the
+ * bottom of the orb (and its glow) is cut off by the edge of the canvas. */
+export const MIN_FIT = 0.8;
+
+export function clampFit(fit: number): number {
+  return Math.max(MIN_FIT, fit);
+}
+
+export interface BubbleBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Where the "thinking" bubble goes, in the orb's own units. It normally sits
+ * up and to the right of the orb. When the canvas is small and that would
+ * poke out past the edge, it shrinks and slides in so it's never cut off.
+ *  - halfW / halfH: how much the camera can see either side of centre
+ *  - lookY: the height the camera is aimed at
+ *  - rootY: the orb's current height (it moves when it hops)
+ *  - pop: 0..1, how far the bubble has popped open
+ */
+export function bubbleLayout(halfW: number, halfH: number, lookY: number, rootY: number, pop: number, bob: number): BubbleBox {
+  const W = 1.4;
+  const H = 0.98;
+  const LEFT = 0.45;
+  const PAD = 0.06;
+  const fitK = clamp((halfW - PAD - LEFT) / W, 0.15, 1);
+  const w = W * pop * fitK;
+  const h = H * pop * fitK;
+  const x = LEFT + w / 2;
+  const y = Math.min(rootY + 1.3 + bob, lookY + halfH - PAD - h / 2);
+  return { x, y, w, h };
+}
+
 interface CanvasTex {
   c: HTMLCanvasElement;
   x: CanvasRenderingContext2D;
@@ -84,7 +123,7 @@ export function createOrb(T: Three, canvas: HTMLCanvasElement, opts: OrbOptions 
   const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, premultipliedAlpha: true });
 
   const RM = !!opts.reducedMotion;
-  const fit = opts.fit ?? 1;
+  const fit = clampFit(opts.fit ?? 1);
 
   function lin(h: number): ThreeNS.Color {
     return new T.Color(h).convertSRGBToLinear();
@@ -879,6 +918,10 @@ export function createOrb(T: Three, canvas: HTMLCanvasElement, opts: OrbOptions 
   }
 
   /* ---------- sizing ---------- */
+  // How much the camera can see either side of the middle, in orb units.
+  // Filled in by resize().
+  const view = { halfW: 2, halfH: 2 };
+  const LOOK_Y = 0.25;
   function resize(w: number, h: number) {
     const W = Math.max(40, w);
     const H = Math.max(40, h);
@@ -886,6 +929,8 @@ export function createOrb(T: Three, canvas: HTMLCanvasElement, opts: OrbOptions 
     camera.aspect = W / H;
     camera.position.z = 6.3 * fit * Math.max(1, 0.96 / camera.aspect);
     camera.updateProjectionMatrix();
+    view.halfH = camera.position.z * Math.tan((camera.fov * Math.PI) / 360);
+    view.halfW = view.halfH * camera.aspect;
   }
   resize(canvas.clientWidth || 200, canvas.clientHeight || 200);
 
@@ -1107,9 +1152,10 @@ export function createOrb(T: Three, canvas: HTMLCanvasElement, opts: OrbOptions 
     const ths = Math.max(0, st.th);
     if (ths > 0.02) {
       drawBubble(t);
+      const bb = bubbleLayout(view.halfW, view.halfH, LOOK_Y, root.position.y, ths, Math.sin(t * 2) * 0.04);
       bubSp.visible = true;
-      bubSp.scale.set(1.4 * ths, 0.98 * ths, 1);
-      bubSp.position.set(root.position.x + 1.15, root.position.y + 1.3 + Math.sin(t * 2) * 0.04, 0.8);
+      bubSp.scale.set(bb.w, bb.h, 1);
+      bubSp.position.set(root.position.x + bb.x, bb.y, 0.8);
     } else bubSp.visible = false;
 
     // sparks

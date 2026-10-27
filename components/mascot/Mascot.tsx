@@ -15,6 +15,9 @@ interface MascotProps extends Omit<OrbOptions, "reducedMotion"> {
   /** Read out by screen readers. Leave out when the orb is just decoration. */
   label?: string;
   className?: string;
+  /** Extra styles for the wrapper, e.g. negative margins to pull in the
+   * empty room around the orb. */
+  style?: React.CSSProperties;
 }
 
 // The live 3D mascot. Three.js (~600 KB) is only downloaded when one of
@@ -31,6 +34,7 @@ export function Mascot({
   active = true,
   label,
   className,
+  style,
   interactive = false,
   follow = true,
   alive = true,
@@ -120,7 +124,7 @@ export function Mascot({
     <div
       ref={wrapRef}
       className={className}
-      style={{ position: "relative", width: size, height: size, flex: "none" }}
+      style={{ position: "relative", width: size, height: size, flex: "none", ...style }}
       role={label ? "img" : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}

@@ -450,8 +450,22 @@ export default function OnboardingPage() {
 
             {/* The mascot walks you through. It stays on screen from step to
                 step (so it can change faces and hop) instead of reloading. */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 20, marginLeft: -10 }}>
-              <Mascot size={92} fit={0.74} glow={false} mood={greeter.mood} hopKey={step} follow label={AGENT_NAME} />
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 30 }}>
+              {/* The orb's canvas is bigger than the orb itself, so the
+                  bubble and the hop have room and nothing is cut off. The
+                  negative margins pull the empty space back so the page
+                  doesn't get taller. The canvas is transparent and ignores
+                  the mouse, so it can safely overlap what's around it. */}
+              <Mascot
+                size={144}
+                fit={1.05}
+                glow={false}
+                mood={greeter.mood}
+                hopKey={step}
+                follow
+                label={AGENT_NAME}
+                style={{ margin: "-50px -22px -18px -34px" }}
+              />
               <div
                 aria-live="polite"
                 style={{

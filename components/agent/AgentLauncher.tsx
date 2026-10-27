@@ -61,12 +61,12 @@ export function AgentLauncher({ campaign }: AgentLauncherProps) {
         }}
         aria-label={open ? `Close ${AGENT_NAME}` : `Ask ${AGENT_NAME}`}
         aria-expanded={open}
-        className="fixed bottom-20 right-3 sm:bottom-5 sm:right-5 z-40 w-[84px] h-[84px] rounded-full flex items-center justify-center transition-transform duration-150 hover:scale-105 active:scale-95"
+        className="fixed bottom-20 right-3 sm:bottom-5 sm:right-5 z-40 w-[96px] h-[96px] rounded-full flex items-center justify-center transition-transform duration-150 hover:scale-105 active:scale-95"
         style={{ filter: "drop-shadow(0 10px 16px rgba(124,58,237,0.45))" }}
       >
         <Mascot
-          size={84}
-          fit={0.64}
+          size={96}
+          fit={0.88}
           glow={false}
           restless={false}
           mood={open && agentMood === "idle" ? "happy" : agentMood}
