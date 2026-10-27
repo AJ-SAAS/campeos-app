@@ -20,6 +20,9 @@ interface MascotProps extends Omit<OrbOptions, "reducedMotion"> {
   /** Extra styles for the wrapper, e.g. negative margins to pull in the
    * empty room around the orb. */
   style?: React.CSSProperties;
+  /** Show nothing (not the flat picture) while the 3D one is loading.
+   * The flat picture still appears if the 3D one can't run at all. */
+  noFlat?: boolean;
 }
 
 // The live 3D mascot. Three.js (~600 KB) is only downloaded when one of
@@ -47,6 +50,7 @@ export function Mascot({
   bubble = true,
   fit = 1,
   centered = false,
+  noFlat = false,
 }: MascotProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -149,7 +153,7 @@ export function Mascot({
       aria-label={label}
       aria-hidden={label ? undefined : true}
     >
-      {status !== "ready" && (
+      {(status === "failed" || (status === "loading" && !noFlat)) && (
         <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
           <MascotStatic size={Math.round(size * 0.62)} mood={mood} />
         </div>

@@ -8,9 +8,9 @@ import { LOADING_STEPS, LOADING_STEP_MS, nextLoadingStep } from "@/lib/loadingSt
 // used to be a blank white page for up to ten seconds, which looked broken.
 //
 // Eos (the live 3D one) spins and looks busy while a few short lines walk
-// through what is being got ready. The flat picture shows underneath until
-// the 3D one is ready, so a fast load never shows a blank. The words fade in
-// after a moment so a fast load doesn't flash text.
+// through what is being got ready. There is no flat picture first: the page is
+// plain white until the 3D one fades in, so nothing swaps or flickers. The
+// words fade in after a moment so a fast load doesn't flash text.
 //
 // `steps` is the list of lines. Pages where the account's offers and
 // campaigns don't exist yet (sign-in, onboarding) pass their own.
@@ -37,7 +37,7 @@ export function LoadingScreen({ steps = LOADING_STEPS }: { steps?: string[] }) {
         @media (prefers-reduced-motion:reduce){.cps-ld-line{animation:none !important}}
       `}</style>
       <div style={{ filter: "drop-shadow(0 10px 14px rgba(124,58,237,0.35))" }}>
-        <Mascot size={150} fit={1.05} centered bubble={false} ring glow={false} restless={false} mood="thinking" spinKey={stage} label="Eos" style={{ margin: -14 }} />
+        <Mascot noFlat size={150} fit={1.05} centered bubble={false} ring glow={false} restless={false} mood="thinking" spinKey={stage} label="Eos" style={{ margin: -14 }} />
       </div>
       <div style={{ textAlign: "center", opacity: 0, animation: "cps-ld-in .4s .5s ease forwards", minHeight: 52 }}>
         <div key={line} className="cps-ld-line" style={{ fontSize: 17, fontWeight: 600, animation: "cps-ld-line .35s ease both" }}>

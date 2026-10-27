@@ -29,7 +29,7 @@ export const SettingUp = forwardRef<HTMLDivElement, Props>(function SettingUp({ 
       <div className="cps-su-grid" aria-hidden="true" />
       <div className="cps-su-inner">
         <div ref={orbRef} className="cps-su-orb">
-          <Mascot
+          <Mascot noFlat
             size={220}
             fit={0.95}
             centered
