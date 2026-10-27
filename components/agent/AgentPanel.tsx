@@ -170,7 +170,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "The agent didn't respond.");
+      if (!res.ok) throw new Error(data.error ?? `${AGENT_NAME} didn't respond.`);
 
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
       if (!data.toolCall) celebrate();
@@ -314,21 +314,21 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
           <span className="font-display text-base font-semibold text-white">{AGENT_NAME}</span>
         </div>
         <div className="flex-grow flex items-center justify-center text-sm text-faint px-6 text-center">
-          Sign in to talk to the agent and build a campaign.
+          Sign in to talk to {AGENT_NAME} and build a campaign.
         </div>
       </section>
     );
   }
 
   const emptyStateText = campaign
-    ? "Ask the agent to change a step in this campaign, or build a new one."
+    ? `Ask ${AGENT_NAME} to change a step in this campaign, or build a new one.`
     : profile
-      ? `Tell the agent what you need. It already knows ${profile.name}.`
-      : 'Tell the agent what you need, like "Build me a webinar promo for Thursday".';
+      ? `Tell ${AGENT_NAME} what you need. ${AGENT_NAME} already knows ${profile.name}.`
+      : `Tell ${AGENT_NAME} what you need, like "Build me a webinar promo for Thursday".`;
 
   return (
     <section
-      aria-label="Agent"
+      aria-label={AGENT_NAME}
       id="agent"
       className={`flex flex-col min-h-0 bg-paper border border-[#ECEAF0] rounded-[22px] overflow-hidden ${fill ? "lg:h-full" : ""}`}
     >
@@ -425,7 +425,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
             }
           }}
           placeholder={
-            campaign ? "Ask the agent to change something..." : "Tell the agent what to build or change..."
+            campaign ? `Ask ${AGENT_NAME} to change something...` : `Tell ${AGENT_NAME} what to build or change...`
           }
           disabled={sending || !!buildTrace}
           className="flex-grow min-w-0 h-[46px] border border-[#D4D1DB] rounded-xl px-3.5 text-[14px] font-body text-slate bg-paper focus:outline-none focus:border-[#9B1FD6] focus:shadow-[0_0_0_4px_rgba(155,31,214,.12)] disabled:opacity-60"

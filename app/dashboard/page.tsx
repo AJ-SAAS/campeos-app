@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { PlanModal } from "@/components/PlanModal";
 import { AgentPanel } from "@/components/agent/AgentPanel";
+import { AGENT_NAME } from "@/lib/brand";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
 import { useSubscription } from "@/lib/firebase/useSubscription";
@@ -247,7 +248,7 @@ function PaidView({
             <div className="px-5 py-8 text-center">
               <div className="text-[15px] font-semibold">Nothing goes out today</div>
               <div className="text-sm text-muted mt-1">
-                {laterDays.length ? "Your next posts are below." : "Start a campaign, or ask the agent to build one."}
+                {laterDays.length ? "Your next posts are below." : `Start a campaign, or ask ${AGENT_NAME} to build one.`}
               </div>
             </div>
           ) : (
@@ -468,7 +469,7 @@ function CampaignList({
           <Link href="/campaigns" className="font-semibold text-slate underline underline-offset-2">
             Pick a template
           </Link>{" "}
-          or ask the agent.
+          or ask {AGENT_NAME}.
         </div>
       ) : (
         shownGroups.map((group) => {

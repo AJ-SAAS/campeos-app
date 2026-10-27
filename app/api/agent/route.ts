@@ -3,6 +3,7 @@ import { requireVerifiedUser } from "@/lib/serverAuth";
 import { isAdminUid, claimDaily, DAILY_LIMIT_MESSAGE } from "@/lib/access";
 import { z } from "zod";
 import { runAgentTurn } from "@/lib/ai/agent";
+import { AGENT_NAME } from "@/lib/brand";
 
 // One turn of the agent conversation. Stateless — the client sends the
 // whole history back each time (same pattern as /api/generate-step's
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("agent turn failed", err);
     return NextResponse.json(
-      { error: "The agent didn't answer that time. Try sending it again." },
+      { error: `${AGENT_NAME} didn't answer that time. Try sending it again.` },
       { status: 500 }
     );
   }

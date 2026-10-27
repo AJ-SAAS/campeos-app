@@ -80,7 +80,7 @@ export function AgentLauncher({ campaign }: AgentLauncherProps) {
           anchored popover. */}
       <div
         role="dialog"
-        aria-label="Agent"
+        aria-label={AGENT_NAME}
         aria-hidden={!open}
         className={`fixed z-40 rounded-2xl shadow-[0_24px_64px_-12px_rgba(19,23,26,0.3)] transition-all duration-200
           inset-x-3 bottom-20 top-16 sm:inset-x-auto sm:top-auto sm:bottom-24 sm:right-6 sm:w-[380px] sm:max-h-[min(70vh,560px)]
@@ -91,7 +91,7 @@ export function AgentLauncher({ campaign }: AgentLauncherProps) {
         <div className="relative h-full">
           <button
             onClick={() => setOpen(false)}
-            aria-label="Close the agent"
+            aria-label={`Close ${AGENT_NAME}`}
             className="absolute top-3.5 right-4 z-10 w-7 h-7 rounded-full bg-[rgba(255,255,255,0.16)] text-white flex items-center justify-center hover:bg-[rgba(255,255,255,0.26)]"
           >
             <CloseIcon small />
