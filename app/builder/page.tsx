@@ -1,5 +1,6 @@
 "use client";
 
+import { writingPercent, writingTarget } from "@/lib/builder/writingProgress";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -878,6 +879,8 @@ function BuilderInner() {
     }
   }
 
+  const writeTarget = writingTarget(onSteps.length, lockedIds?.size ?? 0);
+  const writePct = writingPercent(writtenCount, writeTarget);
   const writingLine = useWritingLine(generating, onSteps.map((x) => x.channel));
 
   if (!ready) {
@@ -944,6 +947,7 @@ function BuilderInner() {
               <BackIcon />
             </Link>
             <div className="flex-[1_1_320px] min-w-0">
+              {offer.name && <div className="text-[11px] font-bold uppercase tracking-wider text-muted">Campaign for</div>}
               <div className="flex items-center gap-2.5">
                 <h1 className="font-serif text-[26px] sm:text-[30px] font-medium tracking-tight leading-tight truncate">
                   {offer.name || "Untitled campaign"}
@@ -1019,10 +1023,14 @@ function BuilderInner() {
                 <button
                   onClick={generateCampaign}
                   disabled={generating}
-                  className="h-11 px-4 rounded-xl text-white text-[15px] font-bold disabled:opacity-60 inline-flex items-center gap-2"
-                  style={{ background: "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)" }}
+                  className={`h-11 px-4 rounded-xl text-white text-[15px] font-bold inline-flex items-center gap-2 tabular-nums ${generating ? "disabled:cursor-wait motion-safe:animate-sweep" : "disabled:opacity-60"}`}
+                  style={
+                    generating
+                      ? { background: "linear-gradient(110deg,#3B1FD1 20%,#B04BE8 40%,#E0109F 50%,#B04BE8 60%,#3B1FD1 80%)", backgroundSize: "200% 100%" }
+                      : { background: "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)" }
+                  }
                 >
-                  {generating ? "Writing..." : `Write ${writableCount} ${writableCount === 1 ? "post" : "posts"}`}
+                  {generating ? `Writing ${writePct}%` : `Write ${writableCount} ${writableCount === 1 ? "post" : "posts"}`}
                 </button>
               )}
               {unwrittenCount > 0 && writableCount === 0 && lockedIds && lockedIds.size > 0 && !(showFirstRun && !generating) && (
@@ -1058,14 +1066,34 @@ function BuilderInner() {
           )}
 
           {generating && (
-            <div role="status" aria-live="polite" className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 sm:px-7 py-3 bg-agentWash border-b border-[#F0F0F0] text-sm">
-              <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B1FD6" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
-                <path d="M21 12a9 9 0 1 1-6.2-8.6" />
-              </svg>
-              <span className="font-semibold">{writingLine}</span>
-              <span className="text-muted">
-                {writtenCount > 0 ? `${writtenCount} of ${onSteps.length} written so far.` : "This takes about a minute. You can watch the posts appear."}
-              </span>
+            <div role="status" aria-live="polite" className="shrink-0 relative overflow-hidden border-b border-[#E9DDFB] text-sm">
+              {/* Soft moving light, so you can see it's working. */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 motion-safe:animate-sweep"
+                style={{
+                  background: "linear-gradient(110deg,#F4EEFE 25%,#E6D6FC 40%,#FBE3F3 50%,#E6D6FC 60%,#F4EEFE 75%)",
+                  backgroundSize: "200% 100%",
+                }}
+              />
+              {/* The real progress: grows as each post appears. */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 transition-[width] duration-700 ease-out"
+                style={{ width: `${writePct}%`, background: "linear-gradient(90deg,rgba(59,31,209,.16),rgba(224,16,159,.16))" }}
+              />
+              <div className="relative flex flex-wrap items-center gap-x-3 gap-y-1 px-4 sm:px-7 py-3">
+                <span className="min-w-[48px] text-center px-2 py-0.5 rounded-full bg-white/80 text-[#5B21B6] text-[13px] font-bold tabular-nums">
+                  {writePct}%
+                </span>
+                <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B1FD6" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+                  <path d="M21 12a9 9 0 1 1-6.2-8.6" />
+                </svg>
+                <span className="font-semibold">{writingLine}</span>
+                <span className="text-muted">
+                  {writtenCount > 0 ? `${writtenCount} of ${writeTarget} written so far.` : "This takes about a minute. You can watch the posts appear."}
+                </span>
+              </div>
             </div>
           )}
 

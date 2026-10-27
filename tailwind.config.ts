@@ -90,6 +90,12 @@ const config: Config = {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-50%)" },
         },
+        // The builder's "writing your campaign" banner and button: a soft
+        // band of light that keeps sliding, so you can see it's working.
+        sweep: {
+          "0%": { backgroundPosition: "200% 0" },
+          "100%": { backgroundPosition: "-200% 0" },
+        },
       },
       animation: {
         drift: "drift 13s ease-in-out infinite",
@@ -98,6 +104,7 @@ const config: Config = {
         "gradient-move": "gradient-move 10s ease-in-out infinite",
         "step-in": "step-in 0.32s cubic-bezier(0.16,1,0.3,1) both",
         marquee: "marquee 42s linear infinite",
+        sweep: "sweep 2.6s linear infinite",
       },
     },
   },

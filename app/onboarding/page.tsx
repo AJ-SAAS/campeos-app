@@ -535,9 +535,9 @@ export default function OnboardingPage() {
 
             {step === 0 && (
               <div key="s0" className="cob-rise" style={{ marginTop: 28 }}>
-                <h1 className="cob-h1">What do you sell?</h1>
-                <p className="cob-sub">A course, coaching, a product or a service. Just give it a name. You can change it later.</p>
-                <label htmlFor="f-name" className="cob-label">What it&apos;s called</label>
+                <h1 className="cob-h1">What&apos;s your product or offer called?</h1>
+                <p className="cob-sub">This is the name you give it, like the title of a course or product. It shows at the top of your campaign. You can change it later.</p>
+                <label htmlFor="f-name" className="cob-label">Product or offer name</label>
                 <input
                   id="f-name"
                   autoFocus

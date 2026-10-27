@@ -65,8 +65,10 @@ export function AgentLauncher({ campaign }: AgentLauncherProps) {
         style={{ filter: "drop-shadow(0 10px 16px rgba(124,58,237,0.45))" }}
       >
         <Mascot
-          size={96}
-          fit={0.88}
+          size={124}
+          fit={0.9}
+          centered
+          style={{ margin: -14 }}
           glow={false}
           restless={false}
           mood={open && agentMood === "idle" ? "happy" : agentMood}

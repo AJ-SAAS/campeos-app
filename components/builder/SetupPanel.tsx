@@ -75,7 +75,7 @@ export function SetupPanel({
       </div>
 
       <div className="shrink-0 rounded-2xl border border-line divide-y divide-line overflow-hidden">
-        <SheetField label="Offer name" value={offer.name} onChange={(v) => set("name", v)} />
+        <SheetField label="Product or offer name" value={offer.name} placeholder="e.g. Beginner Yoga Course" onChange={(v) => set("name", v)} />
         <SheetField label="Price" value={offer.price} onChange={(v) => set("price", v)} />
         <SheetField label="Who it's for (one line)" value={offer.audience} onChange={(v) => set("audience", v)} />
         <SheetField label="What they get" value={offer.whatTheyGet} onChange={(v) => set("whatTheyGet", v)} />
