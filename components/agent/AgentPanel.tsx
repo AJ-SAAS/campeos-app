@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { addAgentMessage, clearAgentMessages, listAgentMessages, pruneAgentMessages } from "@/lib/firebase/agentThreads";
-import { SAVED_HISTORY_LIMIT, recentForModel } from "@/lib/agentHistory";
+import { SAVED_HISTORY_LIMIT, recentForModel, sessionLabel, startsNewSession } from "@/lib/agentHistory";
 import { getBusinessProfile, BusinessProfile } from "@/lib/firebase/businessProfile";
 import { executeCreateCampaign, executeEditStep, UsageLimitError, SubscriptionRequiredError } from "@/lib/ai/agentActions";
 import { AgentChatMessage, CreateCampaignArgs, EditStepArgs } from "@/lib/ai/agent";
@@ -18,9 +18,21 @@ import { MascotStatic } from "@/components/mascot/MascotStatic";
 import type { OrbMood } from "@/lib/mascot/orb";
 import { AGENT_NAME } from "@/lib/brand";
 
+function SessionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 my-1" role="separator" aria-label={label}>
+      <span className="flex-grow h-px bg-[#E3E1E8]" />
+      <span className="font-mono text-[11px] uppercase tracking-wider text-muted">{label}</span>
+      <span className="flex-grow h-px bg-[#E3E1E8]" />
+    </div>
+  );
+}
+
 interface DisplayMessage {
   role: "user" | "assistant";
   content: string;
+  /** When it was sent (ms). Used for the divider between old and new chats. */
+  at?: number;
 }
 
 /** One step of the campaign currently open in the builder, as the agent
@@ -111,7 +123,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
       return;
     }
     listAgentMessages(user.uid).then((history) => {
-      setMessages(history.slice(-SAVED_HISTORY_LIMIT).map((m) => ({ role: m.role, content: m.content })));
+      setMessages(history.slice(-SAVED_HISTORY_LIMIT).map((m) => ({ role: m.role, content: m.content, at: m.createdAt?.toMillis() })));
       // Keep the saved thread short. Best effort, never blocks the chat.
       if (history.length > SAVED_HISTORY_LIMIT) pruneAgentMessages(user.uid).catch(() => {});
     });
@@ -132,7 +144,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
     // Only the last few messages go to the AI: every message sent is paid
     // for, and recent turns are all it needs (the campaign is sent apart).
     const history: AgentChatMessage[] = recentForModel(messages).map((m) => ({ role: m.role, content: m.content }));
-    setMessages((prev) => [...prev, { role: "user", content: text }]);
+    setMessages((prev) => [...prev, { role: "user", content: text, at: Date.now() }]);
 
     try {
       await addAgentMessage(user.uid, "user", text);
@@ -169,7 +181,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `${AGENT_NAME} didn't respond.`);
 
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply, at: Date.now() }]);
       if (!data.toolCall) celebrate();
       await addAgentMessage(user.uid, "assistant", data.reply);
 
@@ -222,7 +234,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
           : result.writtenCount < result.stepCount
             ? `Done. The schedule is saved and the first step is written. The other ${result.stepCount - result.writtenCount} are ready whenever you want them. Want to take a look?`
             : `Done. All ${result.stepCount} steps are ready. Want to take a look?`;
-      setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: doneMessage, at: Date.now() }]);
       celebrate();
       await addAgentMessage(uid, "assistant", doneMessage);
       setProfile((prev) => ({
@@ -241,7 +253,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
           : err instanceof Error
             ? `I ran into a problem building that: ${err.message}`
             : "I ran into a problem building that.";
-      setMessages((prev) => [...prev, { role: "assistant", content: message }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: message, at: Date.now() }]);
       await addAgentMessage(uid, "assistant", message);
     } finally {
       setBuildTrace(null);
@@ -252,7 +264,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
     const step = ctx.steps.find((s) => s.templateStepId === args.templateStepId);
     if (!step) {
       const message = "I picked a step that isn't in this campaign. Try asking again.";
-      setMessages((prev) => [...prev, { role: "assistant", content: message }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: message, at: Date.now() }]);
       await addAgentMessage(uid, "assistant", message);
       return;
     }
@@ -286,7 +298,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
       // it echoes the word back anyway — avoids "Done — changed Changed...".
       const changedFragment = result.changed?.replace(/^changed\s+/i, "");
       const doneMessage = changedFragment ? `Done. I changed ${changedFragment}.` : "Done. Take a look.";
-      setMessages((prev) => [...prev, { role: "assistant", content: doneMessage }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: doneMessage, at: Date.now() }]);
       celebrate();
       await addAgentMessage(uid, "assistant", doneMessage);
     } catch (err) {
@@ -296,7 +308,7 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
           : err instanceof Error
             ? `I ran into a problem with that: ${err.message}`
             : "I ran into a problem with that.";
-      setMessages((prev) => [...prev, { role: "assistant", content: message }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: message, at: Date.now() }]);
       await addAgentMessage(uid, "assistant", message);
     } finally {
       setBuildTrace(null);
@@ -316,6 +328,22 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
       </section>
     );
   }
+
+  const renderMessage = (m: DisplayMessage, _i: number) =>
+    m.role === "user" ? (
+      <div className="flex justify-end">
+        <div className="bg-slate text-white rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-[13.5px] leading-relaxed max-w-[85%] sm:max-w-[420px]">
+          {m.content}
+        </div>
+      </div>
+    ) : (
+      <div className="flex gap-2.5 items-start max-w-[90%] sm:max-w-[440px]">
+        <MascotStatic size={28} className="shrink-0 mt-0.5" />
+        <div className="bg-paper border border-[#ECEAF0] rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-line">
+          {m.content}
+        </div>
+      </div>
+    );
 
   const emptyStateText = campaign
     ? `Ask ${AGENT_NAME} to change a step in this campaign, or build a new one.`
@@ -357,21 +385,15 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
 
       <div ref={scrollRef} className={`flex-grow min-h-[180px] max-h-[380px] ${fill ? "lg:max-h-none lg:min-h-0" : ""} overflow-y-auto flex flex-col gap-3 px-4 sm:px-5 py-5 bg-[#FAFAFA]`}>
         {messages.length === 0 && <div className="text-sm text-faint">{emptyStateText}</div>}
-        {messages.map((m, i) =>
-          m.role === "user" ? (
-            <div key={i} className="flex justify-end">
-              <div className="bg-slate text-white rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-[13.5px] leading-relaxed max-w-[85%] sm:max-w-[420px]">
-                {m.content}
-              </div>
-            </div>
-          ) : (
-            <div key={i} className="flex gap-2.5 items-start max-w-[90%] sm:max-w-[440px]">
-              <MascotStatic size={28} className="shrink-0 mt-0.5" />
-              <div className="bg-paper border border-[#ECEAF0] rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-line">
-                {m.content}
-              </div>
-            </div>
-          )
+        {messages.map((m, i) => (
+          <Fragment key={i}>
+            {i > 0 && startsNewSession(messages[i - 1].at, m.at) && <SessionDivider label={sessionLabel(m.at ?? Date.now())} />}
+            {renderMessage(m, i)}
+          </Fragment>
+        ))}
+        {/* Old chat on screen: a line marks where today's talk starts. */}
+        {messages.length > 0 && messages[messages.length - 1].at != null && startsNewSession(messages[messages.length - 1].at, Date.now()) && (
+          <SessionDivider label="Today" />
         )}
         {sending && !buildTrace && (
           <div className="flex gap-2.5 items-start">
@@ -406,10 +428,12 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
         <div className="shrink-0 px-4 sm:px-5 pt-3.5">
           <div className="font-mono text-[11px] uppercase tracking-wider text-muted">Try asking</div>
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {(campaign
-              ? ["Make the subject lines shorter", "Add more urgency to the last email", "Give me 3 new ad hooks"]
-              : ["Build a webinar launch for next Thursday", "Write just the first email", "What do you know about my offer?"]
-            ).map((t) => (
+            {[
+              ...(messages.length > 0 ? ["Pick up where we left off"] : []),
+              ...(campaign
+                ? ["Make the subject lines shorter", "Add more urgency to the last email", "Give me 3 new ad hooks"]
+                : ["Build a webinar launch for next Thursday", "Write just the first email", "What do you know about my offer?"]),
+            ].map((t) => (
               <button
                 key={t}
                 type="button"
