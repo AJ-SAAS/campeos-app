@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { getBusinessProfile, hasOnboarded } from "@/lib/firebase/businessProfile";
 import { LoadingScreen } from "@/components/LoadingScreen";
+
+// Signing in: there are no offers or campaigns to talk about yet.
+const SIGNIN_STEPS = ["Signing you in"];
 import "@/components/onboarding/onboarding.css";
 
 // The one sign-in / create-account page (approved "Sign in to Campeos"
@@ -181,8 +184,8 @@ function AuthInner() {
     setTimeout(() => document.getElementById("email")?.focus(), 0);
   }
 
-  if (authLoading || (user && !needsVerification)) return <LoadingScreen />;
-  if (user && needsVerification) return <LoadingScreen />;
+  if (authLoading || (user && !needsVerification)) return <LoadingScreen steps={SIGNIN_STEPS} />;
+  if (user && needsVerification) return <LoadingScreen steps={SIGNIN_STEPS} />;
 
   return (
     <div className="cob-root">

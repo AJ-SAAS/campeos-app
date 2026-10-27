@@ -415,7 +415,7 @@ export default function OnboardingPage() {
   }
 
   if (authLoading || checkingProfile) {
-    return <LoadingScreen />;
+    return <LoadingScreen steps={["Setting up your account"]} />;
   }
 
   // ---- preview values ----
