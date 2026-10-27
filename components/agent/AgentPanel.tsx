@@ -376,8 +376,7 @@ export function AgentPanel({ campaign, fill = false, contained = false, visible 
         </div>
       </div>
     ) : (
-      <div className="flex gap-2.5 items-start max-w-[90%] sm:max-w-[440px]">
-        <MascotStatic size={28} className="shrink-0 mt-0.5" />
+      <div className="flex items-start max-w-[90%] sm:max-w-[440px]">
         <div className="bg-paper border border-[#ECEAF0] rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-line">
           {m.content}
         </div>
@@ -397,8 +396,8 @@ export function AgentPanel({ campaign, fill = false, contained = false, visible 
       className={`flex flex-col min-h-0 bg-paper border border-[#ECEAF0] rounded-[22px] overflow-hidden ${fill ? "lg:h-full" : ""} ${contained ? "h-full" : ""}`}
     >
       <div className="shrink-0 flex items-center gap-2.5 px-5 py-3 border-b border-[#F0F0F0]">
-        {mascot === "live" ? (
-          <Mascot size={96} fit={0.9} centered interactive ring={mood === "thinking"} active={visible} glow={false} restless={false} mood={mood} hopKey={hop} spinKey={spin} label={AGENT_NAME} style={{ margin: -16 }} />
+        {mascot === "live" && visible ? (
+          <Mascot size={108} fit={1.05} centered interactive bubble={false} ring={mood === "thinking"} glow={false} restless={false} mood={mood} hopKey={hop} spinKey={spin} label={AGENT_NAME} style={{ margin: -22 }} />
         ) : (
           <MascotStatic size={34} mood={mood} />
         )}
@@ -446,16 +445,20 @@ export function AgentPanel({ campaign, fill = false, contained = false, visible 
           <SessionDivider label="Today" />
         )}
         {sending && !buildTrace && (
-          <div className="flex gap-2.5 items-start">
-            <MascotStatic size={28} className="shrink-0 mt-0.5" />
-            <div className="bg-paper border border-line rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono">
-              ...
+          <div className="flex items-start" role="status" aria-label={`${AGENT_NAME} is typing`}>
+            <div className="bg-paper border border-[#ECEAF0] rounded-[14px_14px_14px_4px] px-4 py-3.5 flex items-center gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-[#9B7BE8] motion-safe:animate-bounce"
+                  style={{ animationDelay: `${i * 0.15}s`, animationDuration: "0.9s" }}
+                />
+              ))}
             </div>
           </div>
         )}
         {buildTrace && (
-          <div className="flex gap-2.5 items-start">
-            <MascotStatic size={28} className="shrink-0 mt-0.5" />
+          <div className="flex items-start">
             <div className="bg-paper border border-line rounded-[14px_14px_14px_4px] px-3.5 py-2.5 text-[12.5px] text-faint font-mono flex flex-col gap-1">
               {buildTrace.map((line, i) => (
                 <div key={i} className="flex items-center gap-1.5">

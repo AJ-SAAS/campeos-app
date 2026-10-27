@@ -44,6 +44,7 @@ export function Mascot({
   restless = true,
   glow = true,
   ring = false,
+  bubble = true,
   fit = 1,
   centered = false,
 }: MascotProps) {
@@ -71,7 +72,7 @@ export function Mascot({
         const canvas = canvasRef.current;
         if (cancelled || !canvas) return;
         const reducedMotion = !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-        orb = createOrb(T, canvas, { interactive, follow, restless, glow, ring: ringRef.current, fit, centered, alive: aliveRef.current, reducedMotion });
+        orb = createOrb(T, canvas, { interactive, follow, restless, glow, ring: ringRef.current, bubble, fit, centered, alive: aliveRef.current, reducedMotion });
         orb.setMood(moodRef.current);
         orbRef.current = orb;
         setStatus("ready");
@@ -85,7 +86,7 @@ export function Mascot({
       orbRef.current = null;
       orb?.dispose();
     };
-  }, [interactive, follow, restless, glow, fit, centered]);
+  }, [interactive, follow, restless, glow, fit, centered, bubble]);
 
   useEffect(() => {
     orbRef.current?.setMood(mood);

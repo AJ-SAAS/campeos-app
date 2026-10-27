@@ -28,6 +28,9 @@ export interface OrbOptions {
   glow?: boolean;
   /** The ring that orbits it. */
   ring?: boolean;
+  /** The little thought bubble in the "thinking" mood. Turn off where it
+   * can't fit, or where something else (like typing dots) says the same. */
+  bubble?: boolean;
   /** How much room the orb has in its canvas. 1 = the original framing.
    * Below 1 = bigger orb, tighter fit. Never goes below MIN_FIT, because
    * any tighter and the bottom of the orb is cut off. For the thinking
@@ -1158,7 +1161,7 @@ export function createOrb(T: Three, canvas: HTMLCanvasElement, opts: OrbOptions 
     st.thv += ((thT - st.th) * 260 - st.thv * 18) * dt;
     st.th += st.thv * dt;
     const ths = Math.max(0, st.th);
-    if (ths > 0.02) {
+    if (opts.bubble !== false && ths > 0.02) {
       drawBubble(t);
       const bb = bubbleLayout(view.halfW, view.halfH, LOOK_Y, root.position.y, ths, Math.sin(t * 2) * 0.04);
       bubSp.visible = true;

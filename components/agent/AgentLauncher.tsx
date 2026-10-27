@@ -71,17 +71,45 @@ export function AgentLauncher({ campaign, openOnDesktop = false }: AgentLauncher
         className="fixed bottom-20 right-3 sm:bottom-5 sm:right-5 z-40 w-[96px] h-[96px] rounded-full flex items-center justify-center transition-transform duration-150 hover:scale-105 active:scale-95"
         style={{ filter: "drop-shadow(0 10px 16px rgba(124,58,237,0.45))" }}
       >
-        <Mascot
-          size={124}
-          fit={0.9}
-          centered
-          style={{ margin: -14 }}
-          glow={false}
-          restless={false}
-          mood={open && agentMood === "idle" ? "happy" : agentMood}
-          hopKey={hop}
-          label={`${AGENT_NAME}`}
-        />
+        {/* One live Eos at a time: this button while the chat is closed,
+            the chat's header while it is open (then this is a close button). */}
+        {open ? (
+          <span className="w-[52px] h-[52px] rounded-full bg-slate text-white flex items-center justify-center" style={{ filter: "none" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </span>
+        ) : (
+          <>
+            <Mascot
+              size={124}
+              fit={1.0}
+              centered
+              bubble={false}
+              style={{ margin: -14 }}
+              glow={false}
+              restless={false}
+              ring={agentMood === "thinking"}
+              mood={agentMood}
+              hopKey={hop}
+              label={`${AGENT_NAME}`}
+            />
+            {agentMood === "thinking" && (
+              <span
+                className="absolute -top-1 right-1 flex items-center gap-1 rounded-full bg-white px-2.5 py-2 shadow-[0_4px_12px_rgba(19,23,26,0.18)]"
+                aria-hidden="true"
+              >
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="w-1.5 h-1.5 rounded-full bg-[#9B7BE8] motion-safe:animate-bounce"
+                    style={{ animationDelay: `${i * 0.15}s`, animationDuration: "0.9s" }}
+                  />
+                ))}
+              </span>
+            )}
+          </>
+        )}
       </button>
 
       {/* Mobile: a near-full-screen sheet, since a fixed 380px popover
