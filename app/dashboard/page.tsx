@@ -8,7 +8,6 @@ import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { PlanModal } from "@/components/PlanModal";
-import { AgentPanel } from "@/components/agent/AgentPanel";
 import { AGENT_NAME } from "@/lib/brand";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
@@ -42,8 +41,8 @@ import {
 // - Paying users: "Good morning", the next big sales dates (Black Friday
 //   and Cyber Monday together when they're close), today's messages as a
 //   short list (the same rows as the campaign schedule), the rest of the
-//   week folded into one row per day, their campaigns, and the
-//   agent beside it all. Only the newest version of each campaign counts.
+//   week folded into one row per day, their campaigns, and
+//   the floating agent (Eos) on top of it all. Only the newest version of each campaign counts.
 // - No plan yet (new users out of onboarding): "Welcome", their first
 //   launch with the free steps written and the rest locked behind
 //   "Unlock my launch". The Get started list floats bottom-right (it
@@ -202,7 +201,7 @@ function PaidView({
           }`;
 
   return (
-    <div className="max-w-[1180px] grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 lg:gap-8 items-start">
+    <div className="max-w-[860px] grid grid-cols-1 gap-6 items-start">
       <div className="flex flex-col gap-6 min-w-0">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -271,10 +270,6 @@ function PaidView({
         <CampaignList now={now} campaigns={campaigns} stepsById={stepsById} deletingId={deletingId} onDelete={onDelete} />
       </div>
 
-      {/* The agent sits beside the day, always in reach */}
-      <div className="min-w-0 lg:sticky lg:top-0 lg:h-[calc(100dvh-80px)] flex flex-col">
-        <AgentPanel fill />
-      </div>
     </div>
   );
 }
