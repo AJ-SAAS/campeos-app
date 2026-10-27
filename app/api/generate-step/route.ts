@@ -70,6 +70,10 @@ const generateRequestSchema = z.object({
   /** The campaign's saved buyer brief, if the client has one for this
    * exact offer. Built fresh (and returned) when missing. */
   brief: z.unknown().optional(),
+  /** Send each step back the moment it is written (one JSON line each),
+   * so the page can show real progress. Without it, everything comes
+   * back together at the end. */
+  stream: z.boolean().optional(),
 });
 
 const variationRequestSchema = z.object({
@@ -137,7 +141,10 @@ export async function POST(req: NextRequest) {
 
   try {
     if (parsed.data.mode === "generate") {
-      const { offer, steps, source, templateId } = parsed.data;
+      const { offer, steps, source, templateId, stream, brief: savedBrief } = parsed.data;
+      const encoder = new TextEncoder();
+      let emit: (line: object) => void = () => {};
+      const run = async () => {
       const template = templateId ? templates[templateId] : undefined;
 
       // 1. The buyer brief: reuse the client's saved one, or research it
@@ -145,7 +152,7 @@ export async function POST(req: NextRequest) {
       //    less), so a hiccup never blocks a campaign.
       let brief: CampaignBrief | undefined;
       let briefIsNew = false;
-      const saved = briefSchema.safeParse(parsed.data.brief);
+      const saved = briefSchema.safeParse(savedBrief);
       if (saved.success) {
         brief = saved.data;
       } else {
@@ -210,10 +217,10 @@ export async function POST(req: NextRequest) {
       //    prompt (offer, brief, rules) cached before the rest start, and
       //    bills it at a 90% discount for all of them.
       const writeOne = (i: number) =>
-        generateStepCopy(offer, enriched[i], source).then((copy) => ({
-          templateStepId: steps[i].templateStepId,
-          copy,
-        }));
+        generateStepCopy(offer, enriched[i], source).then((copy) => {
+          emit({ type: "step", templateStepId: steps[i].templateStepId, copy });
+          return { templateStepId: steps[i].templateStepId, copy };
+        });
       const head = steps.length > 2 ? await Promise.allSettled([writeOne(0)]) : [];
       const tail = await Promise.allSettled(steps.slice(head.length).map((_, k) => writeOne(head.length + k)));
       const results = [...head, ...tail];
@@ -235,12 +242,36 @@ export async function POST(req: NextRequest) {
       if (freeClaimed > 0 && failed.length > 0) {
         await refundFreeSteps(uid, failed.length).catch(() => {});
       }
-      return NextResponse.json({
+      return {
         results: succeeded,
         failed,
         free: freeClaimed > 0,
         // Sent back so the client can save it on the campaign and reuse it.
         brief: briefIsNew ? brief : undefined,
+      };
+      };
+
+      if (!stream) return NextResponse.json(await run());
+
+      // Streamed: one JSON line per finished step, then a last "done" line
+      // with the failures and the brief. Errors travel in the stream too,
+      // since the response has already started by then.
+      const body = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          emit = (line) => controller.enqueue(encoder.encode(JSON.stringify(line) + "\n"));
+          try {
+            const out = await run();
+            emit({ type: "done", failed: out.failed, free: out.free, brief: out.brief });
+          } catch (err) {
+            if (freeClaimed > 0) await refundFreeSteps(uid, freeClaimed).catch(() => {});
+            console.error("generate-step failed", err);
+            emit({ type: "error", error: "Writing that didn't work. Try again in a minute." });
+          }
+          controller.close();
+        },
+      });
+      return new Response(body, {
+        headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" },
       });
     }
 

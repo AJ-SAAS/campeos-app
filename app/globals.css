@@ -38,3 +38,23 @@ a:hover .campaign-icon::after{animation:campaign-shine .8s ease-out}
 .del-check-path{stroke-dasharray:24;stroke-dashoffset:24;animation:del-draw .35s .15s ease-out forwards}
 .toast-in{animation:toast-up .32s cubic-bezier(.2,.7,.2,1) both}
 @media (prefers-reduced-motion:reduce){.del-check-circle,.del-check-path,.toast-in{animation-duration:.01ms !important;animation-delay:0s !important}}
+
+/* Nudge for the main "Write posts" button: a small wiggle every few
+   seconds plus a soft purple ring, so it's clear what to press next. */
+@keyframes write-nudge {
+  0%, 62%, 100% { transform: translateY(0) scale(1); }
+  68% { transform: translateY(-4px) scale(1.06); }
+  74% { transform: translateY(0) scale(0.98); }
+  80% { transform: translateY(-2px) scale(1.03); }
+  88% { transform: translateY(0) scale(1); }
+}
+@keyframes write-ring {
+  0% { box-shadow: 0 0 0 0 rgba(155, 31, 214, 0.45); }
+  70%, 100% { box-shadow: 0 0 0 12px rgba(155, 31, 214, 0); }
+}
+.write-nudge {
+  animation: write-nudge 3.6s ease-in-out infinite, write-ring 1.8s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .write-nudge { animation: write-ring 2.4s ease-out infinite; }
+}

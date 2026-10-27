@@ -1,6 +1,7 @@
 "use client";
 
 import { writingPercent, writingTarget } from "@/lib/builder/writingProgress";
+import { readStepStream } from "@/lib/builder/stepStream";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -129,7 +130,7 @@ type MobilePanel = "setup" | "timeline";
 /** What we're doing while the campaign writes. There's one request, so these
  * advance on a timer, in the order the work really happens: read the offer,
  * plan, then write each channel. They stop on the last line rather than loop. */
-function useWritingLine(generating: boolean, channels: string[]): string {
+function useWritingLine(generating: boolean, channels: string[], percent: number): string {
   const [n, setN] = useState(0);
   useEffect(() => {
     if (!generating) {
@@ -153,7 +154,9 @@ function useWritingLine(generating: boolean, channels: string[]): string {
     "Checking every post sounds like you...",
     "Almost done...",
   ];
-  return lines[Math.min(n, lines.length - 1)];
+  // "Almost done" is only true once most posts are in.
+  const last = percent >= 70 ? lines.length - 1 : lines.length - 2;
+  return lines[Math.min(n, last)];
 }
 
 function BuilderInner() {
@@ -679,22 +682,29 @@ function BuilderInner() {
           source: { winningCopy: writeWinning, callThemes: writeThemes, salesPage: salesPage || undefined },
           templateId: activeTemplate.id,
           brief: brief?.key === briefKey ? brief.brief : undefined,
+          stream: true,
         }),
       });
-      const data = await res.json();
+      // Plan and limit problems come back as ordinary JSON; a good run
+      // comes back as one line per written post.
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 402) {
+          setPlanOpen(true);
+          throw new Error(data.error ?? "Pick a plan to write the rest of your campaign.");
+        }
+        throw new Error(data.error ?? "Generation failed.");
+      }
+
+      // Each post lands on screen as it is written, so the percent in the
+      // banner is real and climbs while you watch.
+      const next: Record<string, Record<string, string>> = { ...copyByStep };
+      const data = await readStepStream(res, (templateStepId, copy) => {
+        next[templateStepId] = copy;
+        setCopyByStep((prev) => ({ ...prev, [templateStepId]: copy }));
+      });
       const newBrief = data.brief as CampaignBrief | undefined;
       if (newBrief) setBrief({ brief: newBrief, key: briefKey });
-      if (res.status === 402) {
-        setPlanOpen(true);
-        throw new Error(data.error ?? "Pick a plan to write the rest of your campaign.");
-      }
-      if (!res.ok) throw new Error(data.error ?? "Generation failed.");
-
-      const next: Record<string, Record<string, string>> = { ...copyByStep };
-      for (const r of data.results as { templateStepId: string; copy: Record<string, string> }[]) {
-        next[r.templateStepId] = r.copy;
-      }
-      setCopyByStep(next);
 
       // Save to Firestore: create the campaign the first time, or update
       // each step's copy if it already exists.
@@ -741,7 +751,7 @@ function BuilderInner() {
         );
       }
 
-      if (data.failed?.length) {
+      if (data.failed.length) {
         const failedList = (data.failed as { templateStepId: string; error: string }[])
           .map((f) => {
             const title = scheduledSteps.find((s) => s.templateStepId === f.templateStepId)?.title;
@@ -884,7 +894,7 @@ function BuilderInner() {
 
   const writeTarget = writingTarget(onSteps.length, lockedIds?.size ?? 0);
   const writePct = writingPercent(writtenCount, writeTarget);
-  const writingLine = useWritingLine(generating, onSteps.map((x) => x.channel));
+  const writingLine = useWritingLine(generating, onSteps.map((x) => x.channel), writePct);
 
   if (!ready) {
     return <LoadingScreen />;
@@ -1031,7 +1041,7 @@ function BuilderInner() {
                 <button
                   onClick={generateCampaign}
                   disabled={generating}
-                  className={`h-11 px-4 rounded-xl text-white text-[15px] font-bold inline-flex items-center gap-2 tabular-nums ${generating ? "disabled:cursor-wait motion-safe:animate-sweep" : "disabled:opacity-60"}`}
+                  className={`h-11 px-4 rounded-xl text-white text-[15px] font-bold inline-flex items-center gap-2 tabular-nums ${generating ? "disabled:cursor-wait motion-safe:animate-sweep" : writtenCount === 0 ? "write-nudge" : "disabled:opacity-60"}`}
                   style={
                     generating
                       ? { background: "linear-gradient(110deg,#3B1FD1 20%,#B04BE8 40%,#E0109F 50%,#B04BE8 60%,#3B1FD1 80%)", backgroundSize: "200% 100%" }
