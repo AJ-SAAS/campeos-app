@@ -17,7 +17,7 @@ import { listOffers, Offer } from "@/lib/firebase/offers";
 // between lg and xl, hidden below lg, no mobile bars (the builder has its
 // own mobile header).
 
-type Active = "dashboard" | "campaigns" | "offers" | "winning-copy" | "buyer-insights" | "settings" | null;
+type Active = "dashboard" | "daily" | "campaigns" | "offers" | "winning-copy" | "buyer-insights" | "settings" | null;
 
 export function Sidebar({ active, inBuilder = false }: { active: Active; inBuilder?: boolean }) {
   const { user, loading, signIn } = useAuth();
@@ -49,6 +49,7 @@ export function Sidebar({ active, inBuilder = false }: { active: Active; inBuild
 
         <nav aria-label="Main" className="flex flex-col gap-0.5">
           <NavItem href="/dashboard" label="Home" active={active === "dashboard"}><GridIcon /></NavItem>
+          <NavItem href="/daily" label="Daily Reset" active={active === "daily"}><BoltIcon /></NavItem>
           <NavItem href="/campaigns" label="Campaigns" active={active === "campaigns"}><CampaignsIcon /></NavItem>
           <NavItem href="/offers" label="Offers" active={active === "offers"}><OffersIcon /></NavItem>
           <NavItem href="/winning-copy" label="Best performers" active={active === "winning-copy"}><TrophyIcon /></NavItem>
@@ -104,6 +105,7 @@ export function Sidebar({ active, inBuilder = false }: { active: Active; inBuild
             className="md:hidden fixed bottom-0 inset-x-0 z-30 flex items-stretch justify-around h-16 bg-paper border-t border-[#F0F0F0] pb-[env(safe-area-inset-bottom)]"
           >
             <MobileNavItem href="/dashboard" label="Home" active={active === "dashboard"}><GridIcon /></MobileNavItem>
+            <MobileNavItem href="/daily" label="Daily" active={active === "daily"}><BoltIcon /></MobileNavItem>
             <MobileNavItem href="/campaigns" label="Campaigns" active={active === "campaigns"}><CampaignsIcon /></MobileNavItem>
             <MobileNavItem href="/offers" label="Offers" active={active === "offers"}><OffersIcon /></MobileNavItem>
             <MobileNavItem href="/winning-copy" label="Winners" active={active === "winning-copy"}><TrophyIcon /></MobileNavItem>
@@ -260,6 +262,13 @@ function GridIcon() {
     <svg {...ICON} aria-hidden="true">
       <rect x="4" y="4" width="7" height="7" rx="2" /><rect x="13" y="4" width="7" height="7" rx="2" />
       <rect x="4" y="13" width="7" height="7" rx="2" /><rect x="13" y="13" width="7" height="7" rx="2" />
+    </svg>
+  );
+}
+function BoltIcon() {
+  return (
+    <svg {...ICON} aria-hidden="true">
+      <path d="M13 3L5 13.5h6L10 21l8-10.5h-6L13 3z" />
     </svg>
   );
 }
