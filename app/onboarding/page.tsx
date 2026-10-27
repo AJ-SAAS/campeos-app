@@ -33,6 +33,9 @@ import {
 import { catalog } from "@/lib/templates/catalog";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { Mascot } from "@/components/mascot/Mascot";
+import { SettingUp } from "@/components/onboarding/SettingUp";
+import { burstConfetti } from "@/lib/confetti";
+import { remainingDwell, setupStages } from "@/lib/onboarding/setupSteps";
 import type { OrbMood } from "@/lib/mascot/orb";
 import { AGENT_NAME } from "@/lib/brand";
 import { CurrencyPicker } from "@/components/CurrencyPicker";
@@ -128,6 +131,9 @@ export default function OnboardingPage() {
   const [testimonials, setTestimonials] = useState<string[]>([]);
 
   const [saving, setSaving] = useState(false);
+  const [setupStage, setSetupStage] = useState(0);
+  const [setupDone, setSetupDone] = useState(false);
+  const setupOrb = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
   const scanToken = useRef(0);
@@ -342,38 +348,68 @@ export default function OnboardingPage() {
       readingLevel: "5th grade",
       fromName: signOff.trim() || undefined,
     };
+    setSetupStage(0);
+    setSetupDone(false);
+    // Runs one stage and keeps it on screen long enough to read.
+    const stage = async (i: number, work: () => Promise<void>) => {
+      setSetupStage(i);
+      const started = Date.now();
+      await work();
+      const wait = remainingDwell(started, Date.now());
+      if (wait > 0) await sleep(wait);
+    };
+    const stages = setupStages({ testimonialCount: testimonials.length, offerName: offer.name });
+    const at = (id: string) => stages.findIndex((x) => x.id === id);
     try {
-      await saveBusinessProfile(user.uid, {
-        ...offer,
-        signOffName: signOff.trim() || undefined,
-        channels,
-        frequency,
-        suggestedPlan: suggestedPlan(frequency),
-        campaignType: launchIsLive ? launchType : LIVE_LAUNCH_TYPE,
-        launchDate,
-        launchDateGuess: dateGuess || undefined,
-        currency,
-        salesPage: page.trim().slice(0, 2000) || undefined,
-        onboardedAt: new Date().toISOString(),
-      });
+      await stage(at("profile"), () =>
+        saveBusinessProfile(user.uid, {
+          ...offer,
+          signOffName: signOff.trim() || undefined,
+          channels,
+          frequency,
+          suggestedPlan: suggestedPlan(frequency),
+          campaignType: launchIsLive ? launchType : LIVE_LAUNCH_TYPE,
+          launchDate,
+          launchDateGuess: dateGuess || undefined,
+          currency,
+          salesPage: page.trim().slice(0, 2000) || undefined,
+          onboardedAt: new Date().toISOString(),
+        })
+      );
       // Best-effort extras: a failure here shouldn't stop them launching.
-      try {
-        await createOffer(user.uid, offer);
-      } catch {}
+      await stage(at("offer"), async () => {
+        try {
+          await createOffer(user.uid, offer);
+        } catch {}
+      });
       // Testimonials found on their page go into Buyer insights as real
       // testimonials (quote, and the name when the page gave one), where
       // they can be edited or deleted and the copy writer can use them.
-      for (const t of testimonials) {
-        try {
-          const p = parseScannedTestimonial(t);
-          if (!p.quote) continue;
-          await addInsight(testimonialInsight(user.uid, { ...p, source: "scan" }));
-        } catch {}
+      if (at("insights") >= 0) {
+        await stage(at("insights"), async () => {
+          for (const t of testimonials) {
+            try {
+              const p = parseScannedTestimonial(t);
+              if (!p.quote) continue;
+              await addInsight(testimonialInsight(user.uid, { ...p, source: "scan" }));
+            } catch {}
+          }
+        });
       }
+      await stage(at("plan"), async () => {});
       // Home first: one clear card and button, then the builder.
+      await stage(at("home"), async () => {
+        try {
+          router.prefetch("/dashboard");
+        } catch {}
+      });
+      setSetupDone(true);
+      burstConfetti(setupOrb.current);
+      await sleep(1500);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that. Try again.");
+      setSetupDone(false);
       setSaving(false);
     }
   }
@@ -416,6 +452,14 @@ export default function OnboardingPage() {
 
   return (
     <div className="cob-root">
+      {saving && (
+        <SettingUp
+          ref={setupOrb}
+          stages={setupStages({ testimonialCount: testimonials.length, offerName: name })}
+          active={setupStage}
+          done={setupDone}
+        />
+      )}
       <div className="cob-left" style={{ flexBasis: 540 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}

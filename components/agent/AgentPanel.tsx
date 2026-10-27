@@ -332,9 +332,9 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
       id="agent"
       className={`flex flex-col min-h-0 bg-paper border border-[#ECEAF0] rounded-[22px] overflow-hidden ${fill ? "lg:h-full" : ""}`}
     >
-      <div className="shrink-0 flex items-center gap-2.5 px-5 py-4 border-b border-[#F0F0F0]">
+      <div className="shrink-0 flex items-center gap-2.5 px-5 py-3 border-b border-[#F0F0F0]">
         {mascot === "live" ? (
-          <Mascot size={80} fit={0.88} glow={false} restless={false} mood={mood} hopKey={hop} label={AGENT_NAME} style={{ margin: "-24px -16px -5px -12px" }} />
+          <Mascot size={80} fit={0.9} centered glow={false} restless={false} mood={mood} hopKey={hop} label={AGENT_NAME} style={{ margin: "-12px -12px -12px -12px" }} />
         ) : (
           <MascotStatic size={34} mood={mood} />
         )}

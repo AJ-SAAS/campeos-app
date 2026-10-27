@@ -10,6 +10,8 @@ interface MascotProps extends Omit<OrbOptions, "reducedMotion"> {
   size?: number;
   /** Make it hop whenever this number changes (not on the first render). */
   hopKey?: number;
+  /** Make it spin once around whenever this number changes. */
+  spinKey?: number;
   /** Pass false to stop drawing, e.g. when the orb is hidden behind something. */
   active?: boolean;
   /** Read out by screen readers. Leave out when the orb is just decoration. */
@@ -31,6 +33,7 @@ export function Mascot({
   mood = "idle",
   size = 120,
   hopKey,
+  spinKey,
   active = true,
   label,
   className,
@@ -42,17 +45,20 @@ export function Mascot({
   glow = true,
   ring = false,
   fit = 1,
+  centered = false,
 }: MascotProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const orbRef = useRef<Orb | null>(null);
   const moodRef = useRef(mood);
   const aliveRef = useRef(alive);
+  const ringRef = useRef(ring);
   const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
   const [onScreen, setOnScreen] = useState(true);
 
   moodRef.current = mood;
   aliveRef.current = alive;
+  ringRef.current = ring;
 
   // Build the orb once Three.js has loaded. Rebuilt only if a setting that
   // can't be changed on the fly (see createOrb) changes.
@@ -65,7 +71,7 @@ export function Mascot({
         const canvas = canvasRef.current;
         if (cancelled || !canvas) return;
         const reducedMotion = !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-        orb = createOrb(T, canvas, { interactive, follow, restless, glow, ring, fit, alive: aliveRef.current, reducedMotion });
+        orb = createOrb(T, canvas, { interactive, follow, restless, glow, ring: ringRef.current, fit, centered, alive: aliveRef.current, reducedMotion });
         orb.setMood(moodRef.current);
         orbRef.current = orb;
         setStatus("ready");
@@ -79,7 +85,7 @@ export function Mascot({
       orbRef.current = null;
       orb?.dispose();
     };
-  }, [interactive, follow, restless, glow, ring, fit]);
+  }, [interactive, follow, restless, glow, fit, centered]);
 
   useEffect(() => {
     orbRef.current?.setMood(mood);
@@ -88,6 +94,19 @@ export function Mascot({
   useEffect(() => {
     orbRef.current?.setAlive(alive);
   }, [alive, status]);
+
+  useEffect(() => {
+    orbRef.current?.setRing(ring);
+  }, [ring, status]);
+
+  // Spin once when spinKey changes. Same rule as hopKey: the first value doesn't count.
+  const lastSpin = useRef(spinKey);
+  useEffect(() => {
+    if (spinKey !== lastSpin.current) {
+      lastSpin.current = spinKey;
+      orbRef.current?.spin();
+    }
+  }, [spinKey]);
 
   // Hop when hopKey changes. The first value is the starting point, not a hop.
   const lastHop = useRef(hopKey);

@@ -33,6 +33,11 @@ export interface OrbOptions {
    * any tighter and the bottom of the orb is cut off. For the thinking
    * bubble to show at full size, use 1 or more. */
   fit?: number;
+  /** Put the orb in the middle of the canvas. By default it sits a little
+   * low, which leaves extra room above for hops and the thinking bubble.
+   * Use this when the canvas has to line up with other things, like a
+   * header, and nothing can poke out of it. */
+  centered?: boolean;
   /** Reduce motion (set from the user's system setting). */
   reducedMotion?: boolean;
 }
@@ -46,6 +51,8 @@ export interface Orb {
   nod(): void;
   shake(): void;
   setAlive(on: boolean): void;
+  /** Shows or hides the ring that orbits the orb. */
+  setRing(on: boolean): void;
   /** Stops drawing (offscreen, hidden). */
   setPaused(paused: boolean): void;
   resize(width: number, height: number): void;
@@ -148,8 +155,10 @@ export function createOrb(T: Three, canvas: HTMLCanvasElement, opts: OrbOptions 
 
   const scene = new T.Scene();
   const camera = new T.PerspectiveCamera(34, 1, 0.1, 50);
-  camera.position.set(0, 0.25, 7.2);
-  camera.lookAt(0, 0.25, 0);
+  // The height the camera is aimed at. -0.2 is the middle of the orb.
+  const LOOK_Y = opts.centered ? -0.2 : 0.25;
+  camera.position.set(0, LOOK_Y, 7.2);
+  camera.lookAt(0, LOOK_Y, 0);
 
   /* ---------- reflections: a tiny studio of coloured light panels ---------- */
   const envScene = new T.Scene();
@@ -921,7 +930,6 @@ export function createOrb(T: Three, canvas: HTMLCanvasElement, opts: OrbOptions 
   // How much the camera can see either side of the middle, in orb units.
   // Filled in by resize().
   const view = { halfW: 2, halfH: 2 };
-  const LOOK_Y = 0.25;
   function resize(w: number, h: number) {
     const W = Math.max(40, w);
     const H = Math.max(40, h);
@@ -1218,6 +1226,9 @@ export function createOrb(T: Three, canvas: HTMLCanvasElement, opts: OrbOptions 
     shake: shakeOnce,
     setAlive(on) {
       st.alive = on && !RM;
+    },
+    setRing(on) {
+      st.ringOn = on;
     },
     setPaused(p) {
       if (disposed || p === paused) return;
