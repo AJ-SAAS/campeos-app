@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { addAgentMessage, clearAgentMessages, listAgentMessages, pruneAgentMessages } from "@/lib/firebase/agentThreads";
+import { TIPS_KEY, dayKey, shouldShowTips } from "@/lib/agentTips";
 import { SAVED_HISTORY_LIMIT, recentForModel, sessionLabel, startsNewSession } from "@/lib/agentHistory";
 import { getBusinessProfile, BusinessProfile } from "@/lib/firebase/businessProfile";
 import { executeCreateCampaign, executeEditStep, UsageLimitError, SubscriptionRequiredError } from "@/lib/ai/agentActions";
@@ -62,6 +63,9 @@ interface AgentPanelProps {
   /** Fit exactly inside a box that has a set height (the floating popover):
    * the message list scrolls and the input stays in view. */
   contained?: boolean;
+  /** False while the panel is tucked away (the closed popover). Pauses the
+   * 3D orb, and the chat jumps to the newest message when it shows again. */
+  visible?: boolean;
   /** Shows a close button in the header (for the floating popover). */
   onClose?: () => void;
   /** "live" = the animated 3D mascot in the header. "static" = a flat
@@ -83,7 +87,7 @@ interface AgentPanelProps {
 // Loads the user's saved business profile (lib/firebase/businessProfile.ts)
 // so a second campaign doesn't start the conversation from zero — the
 // agent already knows the offer and only asks what's actually new.
-export function AgentPanel({ campaign, fill = false, contained = false, onClose, mascot = "live", onMoodChange }: AgentPanelProps) {
+export function AgentPanel({ campaign, fill = false, contained = false, visible = true, onClose, mascot = "live", onMoodChange }: AgentPanelProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -97,10 +101,22 @@ export function AgentPanel({ campaign, fill = false, contained = false, onClose,
   // moment after it finishes something; `hop` makes it jump with it.
   const [happy, setHappy] = useState(false);
   const [hop, setHop] = useState(0);
+  // "Try asking" shows once a day. Starts hidden until we've read the browser's note.
+  const [showTips, setShowTips] = useState(false);
+  useEffect(() => {
+    try {
+      setShowTips(shouldShowTips(localStorage.getItem(TIPS_KEY)));
+    } catch {
+      setShowTips(true);
+    }
+  }, []);
+  // Eos does a spin when it finishes something.
+  const [spin, setSpin] = useState(0);
   const happyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const celebrate = useCallback(() => {
     setHappy(true);
     setHop((h) => h + 1);
+    setSpin((n) => n + 1);
     if (happyTimer.current) clearTimeout(happyTimer.current);
     happyTimer.current = setTimeout(() => setHappy(false), 2400);
   }, []);
@@ -135,9 +151,21 @@ export function AgentPanel({ campaign, fill = false, contained = false, onClose,
     getBusinessProfile(user.uid).then(setProfile);
   }, [user]);
 
+  // Always follow the newest message: when one arrives, while Eos is
+  // typing, and when the popover is opened. Waits a frame so the new
+  // content has been laid out first.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages, buildTrace]);
+    if (!visible) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const id = requestAnimationFrame(() => el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }));
+    // The popover is still growing in when `visible` flips: jump after it settles.
+    const id2 = setTimeout(() => el.scrollTo({ top: el.scrollHeight }), 260);
+    return () => {
+      cancelAnimationFrame(id);
+      clearTimeout(id2);
+    };
+  }, [messages, buildTrace, sending, visible]);
 
   async function send() {
     const text = input.trim();
@@ -149,6 +177,12 @@ export function AgentPanel({ campaign, fill = false, contained = false, onClose,
     // Only the last few messages go to the AI: every message sent is paid
     // for, and recent turns are all it needs (the campaign is sent apart).
     const history: AgentChatMessage[] = recentForModel(messages).map((m) => ({ role: m.role, content: m.content }));
+    setHop((h) => h + 1);
+    // Used up for today: hide "Try asking" until tomorrow.
+    setShowTips(false);
+    try {
+      localStorage.setItem(TIPS_KEY, dayKey());
+    } catch {}
     setMessages((prev) => [...prev, { role: "user", content: text, at: Date.now() }]);
 
     try {
@@ -364,7 +398,7 @@ export function AgentPanel({ campaign, fill = false, contained = false, onClose,
     >
       <div className="shrink-0 flex items-center gap-2.5 px-5 py-3 border-b border-[#F0F0F0]">
         {mascot === "live" ? (
-          <Mascot size={80} fit={0.9} centered glow={false} restless={false} mood={mood} hopKey={hop} label={AGENT_NAME} style={{ margin: "-12px -12px -12px -12px" }} />
+          <Mascot size={96} fit={0.9} centered interactive ring={mood === "thinking"} active={visible} glow={false} restless={false} mood={mood} hopKey={hop} spinKey={spin} label={AGENT_NAME} style={{ margin: -16 }} />
         ) : (
           <MascotStatic size={34} mood={mood} />
         )}
@@ -440,7 +474,7 @@ export function AgentPanel({ campaign, fill = false, contained = false, onClose,
 
       {error && <div className="px-5 pt-2 text-xs text-dangerFg">{error}</div>}
 
-      {!sending && !buildTrace && (
+      {showTips && !sending && !buildTrace && (
         <div className="shrink-0 px-4 sm:px-5 pt-3.5">
           <div className="font-mono text-[11px] uppercase tracking-wider text-muted">Try asking</div>
           <div className="flex flex-wrap gap-1.5 mt-2">

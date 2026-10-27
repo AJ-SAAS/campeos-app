@@ -98,7 +98,7 @@ export function AgentLauncher({ campaign, openOnDesktop = false }: AgentLauncher
         }`}
       >
         <div className="relative h-full">
-          <AgentPanel campaign={campaign} contained mascot="static" onClose={() => setOpen(false)} onMoodChange={setAgentMood} />
+          <AgentPanel campaign={campaign} contained visible={open} onClose={() => setOpen(false)} onMoodChange={setAgentMood} />
         </div>
       </div>
     </div>
