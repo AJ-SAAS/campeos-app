@@ -44,9 +44,12 @@ import { makeCustomStep } from "@/lib/engine/customStep";
 import {
   addWinningCopy,
   addSalesCall,
-  listWinningCopy,
+  deleteWinningCopy,
+  listWinningCopyEntries,
   listCallThemes,
+  markAsWinner,
 } from "@/lib/firebase/library";
+import { findWinner, winnersForPrompt, WinnerEntry } from "@/lib/winners";
 import { checkAndIncrementUsage } from "@/lib/firebase/usage";
 import { getBusinessProfile, saveFirstCampaignId } from "@/lib/firebase/businessProfile";
 import { templateChannelsFor, CHANNEL_LABELS } from "@/lib/onboarding/answers";
@@ -415,7 +418,10 @@ function BuilderInner() {
   // The user's own library of proven copy and sales-call themes — scoped
   // to their account, reused across every campaign they build. See
   // lib/firebase/library.ts.
-  const [winningCopy, setWinningCopy] = useState<string[]>([]);
+  const [winnerEntries, setWinnerEntries] = useState<WinnerEntry[]>([]);
+  // Plain text for the setup card; the tagged, capped version the AI reads
+  // is built from the same entries (winnersForPrompt) when copy is written.
+  const winningCopy = useMemo(() => winnerEntries.map((e) => e.text), [winnerEntries]);
   const [callThemes, setCallThemes] = useState<string[]>([]);
   // Real proof (testimonials, results) and buyer research from Buyer
   // insights. Read when the page opens and again just before writing, so
@@ -427,7 +433,7 @@ function BuilderInner() {
 
   useEffect(() => {
     if (!user) {
-      setWinningCopy([]);
+      setWinnerEntries([]);
       setCallThemes([]);
       setInsightProof([]);
       setInsightResearch([]);
@@ -435,7 +441,7 @@ function BuilderInner() {
       setProofResults([]);
       return;
     }
-    listWinningCopy(user.uid).then(setWinningCopy);
+    listWinningCopyEntries(user.uid).then(setWinnerEntries).catch(() => {});
     listCallThemes(user.uid).then(setCallThemes);
     listInsights(user.uid)
       .then((all) => {
@@ -452,7 +458,24 @@ function BuilderInner() {
   async function handleAddWinningCopy(text: string) {
     if (!user) throw new Error("Sign in first to save winning copy.");
     await addWinningCopy(user.uid, text);
-    setWinningCopy(await listWinningCopy(user.uid));
+    setWinnerEntries(await listWinningCopyEntries(user.uid));
+  }
+
+  // "Mark as winner" in the step editor. Clicking a saved winner again
+  // takes it back out of Best performers.
+  async function handleToggleWinner(field: { key: string; label: string }, text: string) {
+    if (!user) throw new Error("Sign in first to save winners.");
+    const existing = findWinner(winnerEntries, text);
+    if (existing) {
+      await deleteWinningCopy(existing.id);
+    } else {
+      await markAsWinner(user.uid, text, {
+        channel: selected?.channel,
+        fieldLabel: field.label,
+        campaignType: activeTemplate.name,
+      });
+    }
+    setWinnerEntries(await listWinningCopyEntries(user.uid));
   }
 
   async function handleAddSalesCall(transcript: string) {
@@ -620,7 +643,7 @@ function BuilderInner() {
       } catch {
         /* keep what was loaded */
       }
-      const writeWinning = [...winningCopy, ...proofLines];
+      const writeWinning = [...winnersForPrompt(winnerEntries), ...proofLines];
       const writeThemes = [...callThemes, ...researchLines];
       const briefKey = JSON.stringify([
         offer.name, offer.price, offer.audience, offer.whatTheyGet, offer.tone,
@@ -1144,6 +1167,8 @@ function BuilderInner() {
             }}
             proof={proofItems}
             proofResults={proofResults}
+            isWinner={(text) => !!findWinner(winnerEntries, text)}
+            onToggleWinner={user ? handleToggleWinner : undefined}
             saveStatus={fieldSaveStatus}
             draft={!campaignId}
             campaignId={campaignId}

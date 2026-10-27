@@ -83,7 +83,11 @@ different from a generic AI chat. Do not relax them for convenience.
 ```
 users/{uid}
 offers/{offerId}          { uid, name, price, audience, whatTheyGet, tone }
-winners/{winnerId}        { uid, offerId?, text, channel, addedAt }
+winners/{winnerId}        { uid, text, origin: "marked" | "pasted", channel?,
+                            fieldLabel?, campaignType?, addedAt }
+                          ("Best performers": marked from a step with "Mark as
+                          winner", or pasted by hand. Read by lib/winners.ts,
+                          and fed to the AI as tagged reference copy.)
 salesCalls/{callId}       { uid, offerId?, transcript, themes: [...], addedAt }
 campaigns/{campaignId}    { uid, offerId, templateId, startDate, title, status }
 campaigns/{campaignId}/steps/{stepId}

@@ -8,6 +8,8 @@ import { imageSlots, shapesFor, StepImage } from "@/lib/images";
 import { fillPlaceholders, FillChange, scanPlaceholders } from "@/lib/insights/logic";
 import { ProofItem } from "@/lib/insights/types";
 import { isCustomStepId } from "@/lib/engine/customStep";
+import { isWinnableField } from "@/lib/winners";
+import { burstConfetti } from "@/lib/confetti";
 
 interface StepEditorProps {
   step: UIStep | undefined;
@@ -47,6 +49,12 @@ interface StepEditorProps {
    * switched off, never deleted. */
   onTitleChange?: (title: string) => void;
   onRemove?: () => void;
+  /** "Mark as winner": saves one field's copy to Best performers. Left out
+   * when nobody is signed in, which hides the button. `isWinner` says
+   * whether this exact text is already saved. Clicking a saved winner
+   * again takes it back out. */
+  isWinner?: (text: string) => boolean;
+  onToggleWinner?: (field: { key: string; label: string }, text: string) => Promise<void>;
 }
 
 const LANE_STYLE: Record<string, { label: string; fg: string; bg: string }> = {
@@ -86,9 +94,14 @@ export function StepEditor({
   proofResults = [],
   onTitleChange,
   onRemove,
+  isWinner,
+  onToggleWinner,
 }: StepEditorProps) {
   const [instruction, setInstruction] = useState("");
   const [whyOpen, setWhyOpen] = useState(false);
+  // Which field's winner button is mid-save, so a double click can't fire twice.
+  const [winnerBusy, setWinnerBusy] = useState<string | null>(null);
+  const [winnerError, setWinnerError] = useState<string | null>(null);
 
   // Reset per-step UI state (the dropdown, the draft instruction) each
   // time a different step opens, rather than carrying over whatever was
@@ -96,6 +109,7 @@ export function StepEditor({
   useEffect(() => {
     setWhyOpen(false);
     setInstruction("");
+    setWinnerError(null);
   }, [step?.templateStepId]);
 
   useEffect(() => {
@@ -334,9 +348,34 @@ export function StepEditor({
                 const value = step.copy?.[field.key] ?? "";
                 return (
                   <div key={field.key} className="flex flex-col gap-1.5">
-                    <span className="font-mono text-[10.5px] uppercase tracking-wider text-faint">
-                      {field.label}
-                    </span>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-mono text-[10.5px] uppercase tracking-wider text-faint">
+                        {field.label}
+                      </span>
+                      {onToggleWinner && isWinnableField(field.key) && value.trim() && (
+                        <WinnerButton
+                          saved={!!isWinner?.(value)}
+                          busy={winnerBusy === field.key}
+                          blocked={sharedNeedsInput({ [field.key]: value })}
+                          onClick={async (button) => {
+                            const wasSaved = !!isWinner?.(value);
+                            setWinnerBusy(field.key);
+                            setWinnerError(null);
+                            try {
+                              await onToggleWinner({ key: field.key, label: field.label }, value);
+                              // Confetti only when it becomes a winner, not when it's taken back out.
+                              if (!wasSaved) burstConfetti(button);
+                            } catch (err) {
+                              setWinnerError(
+                                err instanceof Error ? err.message : "Couldn't save that. Try again."
+                              );
+                            } finally {
+                              setWinnerBusy(null);
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
                     {field.kind === "short" ? (
                       <input
                         type="text"
@@ -366,6 +405,8 @@ export function StepEditor({
                   </div>
                 );
               })}
+
+              {winnerError && <div className="text-xs text-dangerFg">{winnerError}</div>}
 
               {/* Ads saved before they had an image idea field still get a picture */}
               {!isEmail && slots[0] && !step.fields.some((f) => f.key === "visual") && (
@@ -437,6 +478,46 @@ export function StepEditor({
         </div>
       </div>
     </div>
+  );
+}
+
+// "Mark as winner" for one field of copy. Saved copy shows a filled star
+// and a second click takes it back out. Copy that still has [CAPS] blanks
+// can't be saved: a winner with a blank in it is a bad example for the AI.
+function WinnerButton({
+  saved,
+  busy,
+  blocked,
+  onClick,
+}: {
+  saved: boolean;
+  busy: boolean;
+  blocked: boolean;
+  onClick: (button: HTMLButtonElement) => void;
+}) {
+  const disabled = busy || (blocked && !saved);
+  return (
+    <button
+      type="button"
+      onClick={(e) => onClick(e.currentTarget)}
+      disabled={disabled}
+      aria-pressed={saved}
+      title={
+        blocked && !saved
+          ? "Fill in the [CAPS] parts first, then you can save this as a winner."
+          : saved
+            ? "Saved in Best performers. Click to remove."
+            : "Save this to Best performers so Campeos can learn from it."
+      }
+      className={`shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50 ${
+        saved
+          ? "border-transparent bg-[#FDF3D6] text-[#8A5A00]"
+          : "border-line text-muted hover:text-slate hover:border-faint"
+      }`}
+    >
+      <span aria-hidden>{saved ? "★" : "☆"}</span>
+      {busy ? "Saving..." : saved ? "Winner" : "Mark as winner"}
+    </button>
   );
 }
 

@@ -13,13 +13,14 @@ import {
   deleteWinningCopy,
   listWinningCopyEntries,
 } from "@/lib/firebase/library";
+import { winnerChipLabel } from "@/lib/winners";
 
-// Standalone home for "What already works" — previously only reachable
-// as a cramped widget inside the Builder's setup panel, with the sidebar
-// links to it going nowhere (href="#"). Same Firestore data (winners
-// collection), now with its own page: view everything you've saved,
-// add more, delete what's no longer useful. Every campaign you build
-// still draws on this same library automatically.
+// "Best performers": the user's own library of copy that worked. Two ways
+// in: "Mark as winner" on any step in the builder (saved with what kind of
+// message it was and which campaign type it came from), or pasting a line
+// in here by hand. Same Firestore data (winners collection) either way.
+// Every campaign you build draws on this library automatically. The URL
+// stays /winning-copy so old links and bookmarks keep working.
 export default function WinningCopyPage() {
   const { user } = useAuth();
   const { ready } = useRequireAccess();
@@ -76,17 +77,18 @@ export default function WinningCopyPage() {
       <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 pb-24 md:pb-10 max-w-2xl">
         <div className="flex flex-col gap-1.5">
           <h1 className="font-display text-[28px] sm:text-[34px] font-semibold tracking-tight">
-            Winning copy
+            Best performers
           </h1>
           <p className="text-sm text-muted">
-            Headlines and lines that already converted for you. Every campaign you
-            build draws on this automatically.
+            The copy that worked for you. Click &quot;Mark as winner&quot; on any
+            message in a campaign, or paste a line below. Every campaign you build
+            from now on draws on these.
           </p>
         </div>
 
         {user && (
           <div className="flex flex-col gap-2.5 p-4 border border-line rounded-2xl">
-            <div className="text-sm font-semibold">Add a line</div>
+            <div className="text-sm font-semibold">Add a line by hand</div>
             <textarea
               value={value}
               onChange={(e) => setValue(e.target.value)}
@@ -112,7 +114,8 @@ export default function WinningCopyPage() {
 
           {user && entries?.length === 0 && (
             <div className="px-4 py-6 text-sm text-faint text-center border border-line rounded-2xl">
-              No winning copy added yet.
+              No winners yet. Open a message in a campaign and click &quot;Mark as winner&quot;
+              on the copy that worked, or paste a line above.
             </div>
           )}
 
@@ -121,8 +124,18 @@ export default function WinningCopyPage() {
               key={entry.id}
               className="flex items-start gap-3 px-4 py-3.5 border border-line rounded-xl"
             >
-              <div className="flex-grow min-w-0 text-sm leading-relaxed whitespace-pre-line">
-                {entry.text}
+              <div className="flex-grow min-w-0 flex flex-col gap-1.5">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10.5px] uppercase tracking-wider text-faint">
+                  {entry.origin === "marked" ? (
+                    <>
+                      <span>{winnerChipLabel(entry) || "Marked as winner"}</span>
+                      {entry.campaignType && <span>· {entry.campaignType}</span>}
+                    </>
+                  ) : (
+                    <span>Added by you</span>
+                  )}
+                </div>
+                <div className="text-sm leading-relaxed whitespace-pre-line">{entry.text}</div>
               </div>
               <button
                 onClick={() => handleDelete(entry.id)}

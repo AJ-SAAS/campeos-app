@@ -198,6 +198,13 @@ ${signOffRule}
 - If winning copy or call themes are given below, use them as the raw
   material for this step's angle. Don't just repeat them word for word;
   write new copy that carries the same idea.
+- Some winning copy ends with a tag in square brackets, like
+  [email, Headline / subject, Webinar campaign]. The tag only says what
+  kind of copy it was and where it came from. Prefer winners of the same
+  kind as the field you are writing (a winning subject line for a subject
+  line, a winning ad text for ad text). Study what they have in common:
+  length, hook, tone, how they open. Match that style. Never put a tag in
+  your copy, and never copy a winner word for word.
 - Lines that start with "Testimonial:" or "Result:" are REAL proof the user
   saved. Quote a testimonial exactly as written, with the name as given, and
   never change its wording or attach it to a different person. Use a real
@@ -211,7 +218,7 @@ export function buildStepCopyPrompt(
   source: SourceMaterial
 ): string {
   const winningCopyBlock = source.winningCopy.length
-    ? `Headlines that already worked for this user:\n${source.winningCopy
+    ? `Copy that already worked for this user (their saved winners, newest first):\n${source.winningCopy
         .map((line) => `- ${line}`)
         .join("\n")}`
     : "No winning copy has been added yet.";

@@ -51,7 +51,7 @@ export function Sidebar({ active, inBuilder = false }: { active: Active; inBuild
           <NavItem href="/dashboard" label="Home" active={active === "dashboard"}><GridIcon /></NavItem>
           <NavItem href="/campaigns" label="Campaigns" active={active === "campaigns"}><CampaignsIcon /></NavItem>
           <NavItem href="/offers" label="Offers" active={active === "offers"}><OffersIcon /></NavItem>
-          <NavItem href="/winning-copy" label="Winning copy" active={active === "winning-copy"}><TrophyIcon /></NavItem>
+          <NavItem href="/winning-copy" label="Best performers" active={active === "winning-copy"}><TrophyIcon /></NavItem>
           <NavItem href="/buyer-insights" label="Buyer insights" active={active === "buyer-insights"}><BarsIcon /></NavItem>
           <NavItem href="/settings" label="Settings" active={active === "settings"}><GearIcon /></NavItem>
         </nav>
