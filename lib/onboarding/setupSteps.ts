@@ -3,7 +3,7 @@
 // never shows a fake progress bar. Pure, so it is easy to test.
 
 export interface SetupStage {
-  id: "profile" | "offer" | "insights" | "plan" | "home";
+  id: string;
   /** Shown while it is happening ("Saving your business"). */
   label: string;
   /** Shown once it is finished. */

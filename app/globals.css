@@ -27,3 +27,14 @@ body {
 a:hover .campaign-icon::after{animation:campaign-shine .8s ease-out}
 @keyframes campaign-shine{from{left:-80%}to{left:140%}}
 @media (prefers-reduced-motion:reduce){.campaign-icon,.campaign-icon::after{animation:none !important;transition:none}}
+
+/* Deleting a campaign version: the row flashes green with a drawn check,
+   then folds away. The toast that confirms it slides up from the bottom. */
+@keyframes del-flash{0%{background:#ECFDF3}100%{background:#F6FEF9}}
+@keyframes del-draw{to{stroke-dashoffset:0}}
+@keyframes del-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+@keyframes toast-up{from{opacity:0;transform:translate(-50%,14px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+.del-check-circle{animation:del-pop .35s cubic-bezier(.2,.7,.2,1) both}
+.del-check-path{stroke-dasharray:24;stroke-dashoffset:24;animation:del-draw .35s .15s ease-out forwards}
+.toast-in{animation:toast-up .32s cubic-bezier(.2,.7,.2,1) both}
+@media (prefers-reduced-motion:reduce){.del-check-circle,.del-check-path,.toast-in{animation-duration:.01ms !important;animation-delay:0s !important}}

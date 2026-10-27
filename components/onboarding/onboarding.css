@@ -85,3 +85,24 @@
 .cob-chipbtn{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid #D4D1DB;background:#FFFFFF;color:#17131F;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
 .cob-chipbtn:hover{border-color:#B9B3C7}
 .cob-chipbtn.on{box-shadow:inset 0 0 0 2px #17131F;background:#FAF9FC}
+
+/* The step timeline on the new-campaign questions: nodes joined by a
+   purple-to-pink line that fills as you go, with a slow sheen moving along
+   it so it feels alive. */
+.cob-tl{position:relative;display:flex;justify-content:space-between;align-items:flex-start;padding:0 2px 38px}
+.cob-tl-track{position:absolute;left:17px;right:17px;top:15px;height:4px;border-radius:4px;background:#ECEAF0;overflow:hidden}
+.cob-tl-fill{position:absolute;inset:0;border-radius:4px;background:linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F);transform-origin:left;transition:transform .85s cubic-bezier(.2,.7,.2,1)}
+.cob-tl-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.6) 50%,transparent 70%);background-size:200% 100%;animation:cob-tl-sheen 2.2s linear infinite}
+@keyframes cob-tl-sheen{from{background-position:200% 0}to{background-position:-200% 0}}
+.cob-tl-node{position:relative;z-index:1;width:34px;height:34px}
+.cob-tl-dot{width:34px;height:34px;border-radius:50%;border:2px solid #DDDAE4;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#A39DAD;transition:background .4s,border-color .4s,color .4s,box-shadow .4s,transform .4s}
+.cob-tl-dot.done{border-color:transparent;background:linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#E0109F);color:#FFFFFF;box-shadow:0 10px 20px -10px rgba(155,31,214,.75)}
+.cob-tl-dot.now{border-color:transparent;background:linear-gradient(#FFFFFF,#FFFFFF) padding-box,linear-gradient(135deg,#3B1FD1,#9B1FD6 55%,#E0109F) border-box;color:#5B21B6;transform:scale(1.08);animation:cob-tl-pulse 1.9s ease-out infinite}
+@keyframes cob-tl-pulse{0%{box-shadow:0 0 0 0 rgba(155,31,214,.38)}100%{box-shadow:0 0 0 12px rgba(155,31,214,0)}}
+.cob-tl-label{position:absolute;top:42px;left:50%;transform:translateX(-50%);font-size:12.5px;font-weight:600;color:#A39DAD;white-space:nowrap;transition:color .3s}
+.cob-tl-dot.done + .cob-tl-label,.cob-tl-dot.now + .cob-tl-label{color:#17131F}
+.cob-tl-check path{stroke-dasharray:24;stroke-dashoffset:24;animation:del-draw .4s .15s ease-out forwards}
+@keyframes cob-skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.cob-skel{border-radius:14px;min-height:76px;background:linear-gradient(100deg,#F3F1F7 30%,#FAF9FC 50%,#F3F1F7 70%);background-size:200% 100%;animation:cob-skel 1.4s linear infinite}
+.cob-opt.add{border-style:dashed;display:flex;align-items:center;gap:10px;font-weight:600}
+@media (prefers-reduced-motion:reduce){.cob-tl-fill::after,.cob-tl-dot.now,.cob-skel{animation:none !important}}

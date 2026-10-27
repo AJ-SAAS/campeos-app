@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { PlanModal } from "@/components/PlanModal";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
-import { OfferPicker } from "@/components/builder/OfferPicker";
+import { CampaignWizard } from "@/components/builder/CampaignWizard";
 import { SetupPanel } from "@/components/builder/SetupPanel";
 import { UIStep } from "@/components/builder/Timeline";
 import { Preflight } from "@/components/builder/Preflight";
@@ -97,7 +97,7 @@ function toDateInput(d: Date): string {
 const FREE_STEPS = 3;
 
 // No more default offer. A brand-new campaign now starts with an empty
-// one and waits for the OfferPicker screen (below) to fill it in — the
+// one and waits for the new-campaign questions (CampaignWizard) to fill it in — the
 // old hardcoded "Fall Reset Program" placeholder was never meant to be
 // real campaign content, but nothing forced it to be replaced, which is
 // also what was producing near-identical draft rows.
@@ -167,7 +167,7 @@ function BuilderInner() {
   // Defaults to the webinar template (the original /builder behavior).
   const templateParam = searchParams.get("template");
   // /builder?first=1 is where onboarding lands: the offer they just
-  // described is already picked, so skip the OfferPicker entirely.
+  // described is already picked, so skip the questions entirely.
   const isFirst = searchParams.get("first") === "1" && !existingId;
 
   const [campaignId, setCampaignId] = useState<string | null>(null);
@@ -182,7 +182,7 @@ function BuilderInner() {
   const [dateChosen, setDateChosen] = useState(() => !!existingId || !!eventDateFromParam(searchParams.get("date")));
   const [loadedSteps, setLoadedSteps] = useState<CampaignStepDoc[] | null>(null);
   const [loadingCampaign, setLoadingCampaign] = useState(!!existingId);
-  // A brand-new campaign (no ?id=) shows the OfferPicker until an offer
+  // A brand-new campaign (no ?id=) shows the CampaignWizard questions until an offer
   // is actually chosen or created; a loaded campaign already has one.
   const [offerPicked, setOfferPicked] = useState(!!existingId);
   // Once a saved campaign loads, its own templateId wins over whatever
@@ -207,6 +207,8 @@ function BuilderInner() {
   const [userPlatforms, setUserPlatforms] = useState<string[]>([]);
   // Account default for "Sign emails as" (Settings).
   const [defaultSignOff, setDefaultSignOff] = useState<string>("");
+  // The currency they picked in onboarding, for the price on a new offer.
+  const [profileCurrency, setProfileCurrency] = useState<string>("");
   // Their sales page (link or text) from onboarding: research for the brief.
   const [salesPage, setSalesPage] = useState<string>("");
   // The campaign's buyer brief, reused while the offer and research stay
@@ -223,6 +225,7 @@ function BuilderInner() {
         if (!profile) return;
         setUserPlatforms(profile.channels ?? []);
         setDefaultSignOff(profile.signOffName ?? "");
+        setProfileCurrency(profile.currency ?? "");
         setSalesPage(profile.salesPage ?? "");
         if (existingId) return;
         setAllowedChannels(templateChannelsFor(profile.channels));
@@ -888,11 +891,7 @@ function BuilderInner() {
   }
 
   if (loadingCampaign || (profileLoading && !offerPicked)) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-paper text-muted">
-        Loading campaign...
-      </div>
-    );
+    return <LoadingScreen steps={["Opening your campaign"]} />;
   }
 
   if (!offerPicked) {
@@ -904,10 +903,19 @@ function BuilderInner() {
       );
     }
     return (
-      <OfferPicker
+      <CampaignWizard
         uid={user.uid}
-        onPick={(picked) => {
+        templateName={activeTemplate.name}
+        defaults={{
+          currency: profileCurrency || undefined,
+          fromName: defaultSignOff || undefined,
+          goLive: dateChosen ? toDateInput(eventDate) : undefined,
+        }}
+        backHref="/campaigns"
+        onDone={(picked, goLive) => {
           setOffer(picked);
+          setEventDate(goLive);
+          setDateChosen(true);
           setOfferPicked(true);
         }}
       />

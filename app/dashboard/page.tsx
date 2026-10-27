@@ -3,7 +3,9 @@
 import { FirstTour } from "@/components/FirstTour";
 import { MergeText } from "@/components/MergeText";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { useEffect, useMemo, useState } from "react";
+import { Toast, type ToastMessage } from "@/components/Toast";
+import { OlderVersionRow } from "@/components/dashboard/OlderVersionRow";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
@@ -64,7 +66,13 @@ export default function Dashboard() {
   const [firstId, setFirstId] = useState<string | null>(null);
   const [userPlatforms, setUserPlatforms] = useState<string[]>([]);
   const [planOpen, setPlanOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = (t: ToastMessage) => {
+    setToast(t);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3200);
+  };
   const now = useMemo(() => new Date(), []);
 
   useEffect(() => {
@@ -94,17 +102,21 @@ export default function Dashboard() {
       .catch(() => {});
   }, [user]);
 
-  async function handleDelete(c: Campaign) {
-    if (!window.confirm(`Delete "${c.title}" from ${new Date(c.eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}? This can't be undone.`)) return;
-    setDeletingId(c.id);
+  // Deletes for real. The row plays its own animation and only then asks
+  // us to drop it (handleRemoved), so a quick delete can't cut it short.
+  async function handleDelete(c: Campaign): Promise<boolean> {
     try {
       await deleteCampaign(c.id, c.uid);
-      setCampaigns((prev) => prev?.filter((x) => x.id !== c.id) ?? prev);
+      return true;
     } catch {
-      window.alert("Couldn't delete that campaign. Try again in a moment.");
-    } finally {
-      setDeletingId(null);
+      showToast({ text: "Couldn't delete that one. Try again in a moment.", tone: "error" });
+      return false;
     }
+  }
+
+  function handleRemoved(c: Campaign) {
+    setCampaigns((prev) => prev?.filter((x) => x.id !== c.id) ?? prev);
+    showToast({ text: `Deleted "${c.title}"`, tone: "ok" });
   }
 
   if (!ready) return <LoadingScreen />;
@@ -135,13 +147,14 @@ export default function Dashboard() {
               stepsById={stepsById}
               stepsLoaded={stepsLoaded}
               userPlatforms={userPlatforms}
-              deletingId={deletingId}
               onDelete={handleDelete}
+              onRemoved={handleRemoved}
             />
           )}
         </main>
       </div>
       <PlanModal open={planOpen} onClose={() => setPlanOpen(false)} />
+      <Toast toast={toast} />
     </div>
   );
 }
@@ -157,8 +170,8 @@ function PaidView({
   stepsById,
   stepsLoaded,
   userPlatforms,
-  deletingId,
   onDelete,
+  onRemoved,
 }: {
   now: Date;
   firstName: string;
@@ -166,8 +179,8 @@ function PaidView({
   stepsById: Record<string, CampaignStepDoc[]>;
   stepsLoaded: boolean;
   userPlatforms: string[];
-  deletingId: string | null;
-  onDelete: (c: Campaign) => void;
+  onDelete: (c: Campaign) => Promise<boolean>;
+  onRemoved: (c: Campaign) => void;
 }) {
   const loaded = stepsLoaded;
   const days = useMemo(
@@ -267,7 +280,7 @@ function PaidView({
           </section>
         )}
 
-        <CampaignList now={now} campaigns={campaigns} stepsById={stepsById} deletingId={deletingId} onDelete={onDelete} />
+        <CampaignList now={now} campaigns={campaigns} stepsById={stepsById} onDelete={onDelete} onRemoved={onRemoved} />
       </div>
 
     </div>
@@ -423,14 +436,14 @@ function CampaignList({
   now,
   campaigns,
   stepsById,
-  deletingId,
   onDelete,
+  onRemoved,
 }: {
   now: Date;
   campaigns: Campaign[] | null;
   stepsById: Record<string, CampaignStepDoc[]>;
-  deletingId: string | null;
-  onDelete: (c: Campaign) => void;
+  onDelete: (c: Campaign) => Promise<boolean>;
+  onRemoved: (c: Campaign) => void;
 }) {
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
@@ -491,27 +504,7 @@ function CampaignList({
                     <span className="font-semibold text-slate">{openGroup === key ? "Hide" : "Tidy up"}</span>
                   </button>
                   {openGroup === key &&
-                    group.slice(1).map((c) => (
-                      <div
-                        key={c.id}
-                        className={`flex items-center gap-3 pl-[50px] pr-[22px] py-2.5 bg-[#FAFAFA] text-sm ${deletingId === c.id ? "opacity-50" : ""}`}
-                      >
-                        <Link href={`/builder?id=${c.id}`} className="flex-grow min-w-0 truncate hover:underline">
-                          {c.title}
-                          <span className="text-muted">
-                            {" "}
-                            · {c.createdAt ? c.createdAt.toDate().toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "older"}
-                          </span>
-                        </Link>
-                        <button
-                          onClick={() => onDelete(c)}
-                          disabled={deletingId === c.id}
-                          className="shrink-0 h-8 px-3 rounded-lg border border-[#ECEAF0] bg-paper text-xs font-semibold text-dangerFg hover:border-dangerFg"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))}
+                    group.slice(1).map((c) => <OlderVersionRow key={c.id} campaign={c} onDelete={onDelete} onRemoved={onRemoved} />)}
                 </>
               )}
             </div>
