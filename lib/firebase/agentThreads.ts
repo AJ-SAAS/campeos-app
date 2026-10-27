@@ -1,5 +1,6 @@
-import { addDoc, collection, getDocs, query, serverTimestamp, Timestamp, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, getDocs, query, serverTimestamp, Timestamp, where } from "firebase/firestore";
 import { db } from "./client";
+import { SAVED_HISTORY_LIMIT, splitForPrune } from "../agentHistory";
 
 // One flat, per-user chat history with the agent. Scoped to the user
 // (not a single campaign), matching lib/firebase/library.ts. We fetch
@@ -32,4 +33,22 @@ export async function listAgentMessages(uid: string): Promise<AgentMessage[]> {
   const messages = snap.docs.map((d) => d.data() as AgentMessage);
   messages.sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
   return messages;
+}
+
+async function sortedDocs(uid: string) {
+  const snap = await getDocs(query(collection(db, "agentMessages"), where("uid", "==", uid)));
+  return [...snap.docs].sort(
+    (a, b) => ((a.data() as AgentMessage).createdAt?.toMillis() ?? 0) - ((b.data() as AgentMessage).createdAt?.toMillis() ?? 0)
+  );
+}
+
+/** Deletes the oldest saved messages past the limit. Best effort. */
+export async function pruneAgentMessages(uid: string, keep = SAVED_HISTORY_LIMIT): Promise<void> {
+  const { drop } = splitForPrune(await sortedDocs(uid), keep);
+  await Promise.all(drop.map((d) => deleteDoc(d.ref)));
+}
+
+/** "New chat": deletes this user's whole saved thread. */
+export async function clearAgentMessages(uid: string): Promise<void> {
+  await Promise.all((await sortedDocs(uid)).map((d) => deleteDoc(d.ref)));
 }

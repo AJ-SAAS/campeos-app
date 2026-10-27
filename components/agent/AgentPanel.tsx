@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/AuthProvider";
-import { addAgentMessage, listAgentMessages } from "@/lib/firebase/agentThreads";
+import { addAgentMessage, clearAgentMessages, listAgentMessages, pruneAgentMessages } from "@/lib/firebase/agentThreads";
+import { SAVED_HISTORY_LIMIT, recentForModel } from "@/lib/agentHistory";
 import { getBusinessProfile, BusinessProfile } from "@/lib/firebase/businessProfile";
 import { executeCreateCampaign, executeEditStep, UsageLimitError, SubscriptionRequiredError } from "@/lib/ai/agentActions";
 import { AgentChatMessage, CreateCampaignArgs, EditStepArgs } from "@/lib/ai/agent";
@@ -109,9 +110,11 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
       setProfile(null);
       return;
     }
-    listAgentMessages(user.uid).then((history) =>
-      setMessages(history.map((m) => ({ role: m.role, content: m.content })))
-    );
+    listAgentMessages(user.uid).then((history) => {
+      setMessages(history.slice(-SAVED_HISTORY_LIMIT).map((m) => ({ role: m.role, content: m.content })));
+      // Keep the saved thread short. Best effort, never blocks the chat.
+      if (history.length > SAVED_HISTORY_LIMIT) pruneAgentMessages(user.uid).catch(() => {});
+    });
     getBusinessProfile(user.uid).then(setProfile);
   }, [user]);
 
@@ -126,15 +129,9 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
     setInput("");
     setError(null);
     setSending(true);
-    // /api/agent caps history at 20 messages (see app/api/agent/route.ts) —
-    // a long-running thread (this one keeps the same Firestore history
-    // across every campaign you've ever built) will eventually cross
-    // that, and sending the whole thing just makes every later message
-    // fail validation forever. Only the most recent messages matter for
-    // context anyway.
-    const history: AgentChatMessage[] = messages
-      .slice(-20)
-      .map((m) => ({ role: m.role, content: m.content }));
+    // Only the last few messages go to the AI: every message sent is paid
+    // for, and recent turns are all it needs (the campaign is sent apart).
+    const history: AgentChatMessage[] = recentForModel(messages).map((m) => ({ role: m.role, content: m.content }));
     setMessages((prev) => [...prev, { role: "user", content: text }]);
 
     try {
@@ -339,6 +336,19 @@ export function AgentPanel({ campaign, fill = false, mascot = "live", onMoodChan
           <MascotStatic size={34} mood={mood} />
         )}
         <span className="flex-grow text-base font-semibold">{AGENT_NAME}</span>
+        {messages.length > 0 && !sending && !buildTrace && (
+          <button
+            onClick={() => {
+              if (!user) return;
+              setMessages([]);
+              setError(null);
+              clearAgentMessages(user.uid).catch(() => {});
+            }}
+            className="h-8 px-3 rounded-lg border border-[#E3E1E8] text-xs font-semibold text-slate hover:bg-[#FAFAFA]"
+          >
+            New chat
+          </button>
+        )}
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#15803D]">
           <span className="w-1.5 h-1.5 rounded-full bg-lime" />
           Online
