@@ -83,7 +83,7 @@ export default function WinningCopyPage() {
         </PageHeader>
 
         {user && (
-          <section className="flex flex-col gap-3.5 p-5 sm:p-6 rounded-[26px] border border-[#ECEAF0] bg-white shadow-[0_1px_0_rgba(20,10,40,.03),0_18px_40px_-28px_rgba(59,31,209,.25)]">
+          <section className="shrink-0 flex flex-col gap-3.5 p-5 sm:p-6 rounded-[26px] border border-[#ECEAF0] bg-white shadow-[0_1px_0_rgba(20,10,40,.03),0_18px_40px_-28px_rgba(59,31,209,.25)]">
             <div>
               <div className="font-serif text-[22px] font-medium tracking-tight">Add a line by hand</div>
               <div className="text-sm text-muted mt-0.5">A headline, subject line or ad line that already got results.</div>
@@ -107,7 +107,7 @@ export default function WinningCopyPage() {
           </section>
         )}
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 shrink-0">
           {!entries && user && <div className="text-sm text-faint">Loading...</div>}
 
           {user && entries?.length === 0 && (

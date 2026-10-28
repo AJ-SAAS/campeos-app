@@ -202,7 +202,7 @@ export default function BuyerInsightsPage() {
           </PageHeader>
 
           {user && (
-            <section className="rounded-[26px] border border-[#ECEAF0] bg-white shadow-[0_1px_0_rgba(20,10,40,.03),0_18px_40px_-28px_rgba(59,31,209,.25)] overflow-hidden">
+            <section className="rounded-[26px] border border-[#ECEAF0] bg-white shadow-[0_1px_0_rgba(20,10,40,.03),0_18px_40px_-28px_rgba(59,31,209,.25)] shrink-0">
               <div className="flex gap-1 p-1.5 m-3 mb-0 rounded-full bg-[#F6F4FA] w-fit max-w-full overflow-x-auto" role="tablist">
                 {(
                   [
@@ -231,7 +231,7 @@ export default function BuyerInsightsPage() {
             </section>
           )}
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 shrink-0">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-serif text-[24px] font-medium tracking-tight">
                 Your library{insights ? <span className="ml-2 font-mono text-xs text-faint align-middle">{insights.length} saved</span> : null}
@@ -286,7 +286,7 @@ export default function BuyerInsightsPage() {
           </div>
 
           {oldCalls.length > 0 && (
-            <details className="rounded-[22px] border border-[#ECEAF0] bg-white">
+            <details className="shrink-0 rounded-[22px] border border-[#ECEAF0] bg-white">
               <summary className="px-5 py-4 text-sm font-semibold cursor-pointer">
                 Older sales calls ({oldCalls.length})
               </summary>
