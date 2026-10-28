@@ -272,15 +272,20 @@ function PaidView({
           )}
         </section>
 
-        {/* Coming up: one folded row per day */}
+        {/* Coming up: a timeline, one card per day */}
         {loaded && laterDays.length > 0 && (
           <section aria-label="Coming up">
-            <h2 className="text-[15px] font-semibold text-muted mb-2.5">Coming up this week</h2>
-            <div className="flex flex-col gap-2">
-              {laterDays.map((d) => (
-                <DayRow key={d.date.toISOString()} day={d} userPlatforms={userPlatforms} />
-              ))}
+            <div className="flex items-baseline justify-between mb-3.5">
+              <h2 className="text-[18px] font-semibold">Coming up this week</h2>
+              <span className="font-mono text-xs text-muted">
+                {laterDays.length} {laterDays.length === 1 ? "day" : "days"} · {laterDays.reduce((n, d) => n + d.items.length, 0)} posts
+              </span>
             </div>
+            <ol className="flex flex-col">
+              {laterDays.map((d, i) => (
+                <DayRow key={d.date.toISOString()} day={d} now={now} userPlatforms={userPlatforms} last={i === laterDays.length - 1} />
+              ))}
+            </ol>
           </section>
         )}
 
@@ -391,48 +396,85 @@ function Logos({ platforms }: { platforms: PlatformKey[] }) {
   );
 }
 
-function DayRow({ day, userPlatforms }: { day: WeekDay; userPlatforms: string[] }) {
+function DayRow({
+  day, now, userPlatforms, last,
+}: {
+  day: WeekDay;
+  now: Date;
+  userPlatforms: string[];
+  last: boolean;
+}) {
   const [open, setOpen] = useState(false);
-  const platforms = Array.from(
-    new Set(day.items.flatMap((i) => channelInfo(i.channel, userPlatforms).platforms))
-  ) as PlatformKey[];
+  const first = day.items[0];
   const needs = day.items.filter((i) => i.status === "Add details" || i.status === "Not written").length;
+  const allReady = day.items.every((i) => i.status === "Ready");
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const isTomorrow = day.date.toDateString() === tomorrow.toDateString();
+
+  // One chip per kind of message: "Social posts 3", "Email 1".
+  const groups = useMemo(() => {
+    const map = new Map<string, { name: string; platforms: PlatformKey[]; count: number }>();
+    for (const it of day.items) {
+      const info = channelInfo(it.channel, userPlatforms);
+      const g = map.get(info.key) ?? { name: info.short, platforms: info.platforms, count: 0 };
+      g.count += 1;
+      map.set(info.key, g);
+    }
+    return Array.from(map.values());
+  }, [day.items, userPlatforms]);
+
   return (
-    <div className="border border-[#ECEAF0] rounded-[16px] overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        className="w-full flex items-center gap-2.5 sm:gap-3.5 px-4 sm:px-5 py-3.5 text-left hover:bg-[#FCFCFD]"
-      >
-        <span className="w-[54px] sm:w-[62px] shrink-0 text-[14px] font-semibold">
-          {day.label} {day.num}
-        </span>
-        <Logos platforms={platforms} />
-        <span className="flex-grow min-w-0 text-[14px] text-muted truncate">
-          {day.items.length} {day.items.length === 1 ? "post" : "posts"}
-          {needs > 0 && <span className="text-[#9A3412] font-semibold"> · {needs} need input</span>}
-        </span>
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#A39DAD"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-      {open && (
-        <div className="border-t border-[#F0F0F0]">
-          <MessageList items={day.items} userPlatforms={userPlatforms} />
+    <li className="grid grid-cols-[52px_minmax(0,1fr)] sm:grid-cols-[68px_minmax(0,1fr)] gap-x-3 sm:gap-x-4">
+      {/* Date + the line that joins the days */}
+      <div className="relative flex flex-col items-center pt-3.5">
+        <div className="text-center leading-none">
+          <div className="font-mono text-[10px] uppercase tracking-[.1em] text-muted">{day.label}</div>
+          <div className="font-serif text-[30px] font-medium mt-1">{day.num}</div>
         </div>
-      )}
-    </div>
+        {!last && <span aria-hidden="true" className="flex-1 w-px mt-3 bg-gradient-to-b from-[#D9CCF3] to-[#EEE9F8]" />}
+      </div>
+
+      <div className={`border border-[#ECEAF0] rounded-[18px] overflow-hidden bg-white transition-shadow hover:shadow-[0_8px_26px_-16px_rgba(59,31,209,.35)] ${last ? "" : "mb-3"}`}>
+        <button
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="w-full text-left px-4 sm:px-5 py-4 flex items-start gap-3"
+        >
+          <span className="flex-grow min-w-0">
+            <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              {isTomorrow && <span className="px-2 py-0.5 rounded-full bg-[#F4EEFE] text-[#5B21B6] text-[11px] font-bold">Tomorrow</span>}
+              <span className="text-[15px] font-semibold truncate">
+                {first.at.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} · {first.title}
+              </span>
+            </span>
+            <span className="flex flex-wrap items-center gap-2 mt-2.5">
+              {groups.map((g) => (
+                <span key={g.name} className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 h-7 rounded-full bg-[#F7F6FA] text-[12.5px] font-semibold text-[#3D3747]">
+                  <LogoStack platforms={g.platforms.slice(0, 1)} size={12} />
+                  {g.name} <span className="text-muted font-medium">{g.count}</span>
+                </span>
+              ))}
+              {day.items.length > 1 && <span className="text-[12.5px] text-muted">+ {day.items.length - 1} more {day.items.length - 1 === 1 ? "message" : "messages"}</span>}
+            </span>
+          </span>
+          <span className="shrink-0 flex items-center gap-2.5 pt-0.5">
+            {needs > 0 ? (
+              <span className="px-2.5 py-1 rounded-full bg-[#FFEDD5] text-[#9A3412] text-[11.5px] font-bold">{needs} need input</span>
+            ) : allReady ? (
+              <span className="px-2.5 py-1 rounded-full bg-[#DCFCE7] text-[#166534] text-[11.5px] font-bold">Ready</span>
+            ) : null}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A39DAD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${open ? "rotate-180" : ""}`}>
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </span>
+        </button>
+        {open && (
+          <div className="border-t border-[#F0F0F0]">
+            <MessageList items={day.items} userPlatforms={userPlatforms} />
+          </div>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -490,7 +532,7 @@ function CampaignList({
           const key = main.title.trim().toLowerCase();
           return (
             <div key={main.id} className="border-b border-[#F5F4F7] last:border-b-0">
-              <CampaignRow summary={s} now={now} loaded={!!stepsById[main.id]} />
+              <CampaignRow summary={s} now={now} loaded={!!stepsById[main.id]} steps={stepsById[main.id]} />
               {group.length > 1 && (
                 <>
                   <button
@@ -527,12 +569,25 @@ function CampaignList({
   );
 }
 
-function CampaignRow({ summary, now, loaded }: { summary: CampaignSummary; now: Date; loaded: boolean }) {
+function CampaignRow({
+  summary, now, loaded, steps,
+}: {
+  summary: CampaignSummary;
+  now: Date;
+  loaded: boolean;
+  steps?: CampaignStepDoc[];
+}) {
   const { campaign, total, written, status, next } = summary;
   let template = "Campaign";
   try {
     template = getTemplate(campaign.templateId).name;
   } catch {}
+  const initials = template
+    .split(/\s+/)
+    .filter((w) => /^[A-Za-z0-9]/.test(w))
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
   const pill =
     status === "Live"
       ? "bg-[#DCFCE7] text-[#166534]"
@@ -540,31 +595,61 @@ function CampaignRow({ summary, now, loaded }: { summary: CampaignSummary; now: 
         ? "bg-[#EEF2FF] text-[#3730A3]"
         : "bg-[#F2F1F5] text-muted";
   const pct = total ? Math.round((written / total) * 100) : 0;
+  const complete = total > 0 && written === total;
+  const platforms = useMemo(() => {
+    const set = new Set<PlatformKey>();
+    for (const st of steps ?? []) channelInfo(st.channel, []).platforms.forEach((p) => set.add(p));
+    return Array.from(set).slice(0, 4);
+  }, [steps]);
+
   return (
-    <Link href={`/builder?id=${campaign.id}`} className="flex items-center gap-4 px-[22px] py-4 hover:bg-[#FCFCFD]">
+    <Link href={`/builder?id=${campaign.id}`} className="group flex items-center gap-4 px-[18px] sm:px-[22px] py-[18px] hover:bg-[#FCFBFE] transition-colors">
+      <span
+        aria-hidden="true"
+        className="hidden sm:flex w-[46px] h-[46px] shrink-0 rounded-[14px] items-center justify-center text-[14px] font-bold text-white"
+        style={{ background: status === "Live" ? "linear-gradient(135deg,#3B1FD1,#E0109F)" : status === "Done" ? "linear-gradient(135deg,#6B7280,#9CA3AF)" : "linear-gradient(135deg,#A78BFA,#C4B5FD)" }}
+      >
+        {initials}
+      </span>
       <div className="flex-grow min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[15px] font-semibold truncate">{campaign.title}</span>
-          {loaded && <span className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-bold ${pill}`}>{status}</span>}
+          <span className="text-[16px] font-semibold truncate">{campaign.title}</span>
+          {loaded && (
+            <span className={`shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${pill}`}>
+              {status === "Live" && <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-[#22C55E] motion-safe:animate-pulse" />}
+              {status}
+            </span>
+          )}
         </div>
         <div className="text-[13px] text-muted mt-0.5 truncate">
           {template}
           {loaded && (next ? ` · Next: ${formatWhen(next.at, now)}, ${next.title}` : status === "Done" ? " · All sent" : " · No date set")}
         </div>
         {loaded && total > 0 && (
-          <div className="flex items-center gap-2.5 mt-2.5">
-            <span className="flex-1 max-w-[220px] h-[5px] rounded-full bg-[#F0EEF4] overflow-hidden">
-              <span className="block h-full rounded-full bg-slate" style={{ width: `${pct}%` }} />
+          <div className="flex items-center gap-3 mt-3">
+            <span className="flex-1 max-w-[260px] h-[6px] rounded-full bg-[#F0EEF4] overflow-hidden">
+              <span
+                className="block h-full rounded-full transition-[width] duration-700"
+                style={{ width: `${pct}%`, background: complete ? "#22C55E" : "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)" }}
+              />
             </span>
             <span className="font-mono text-[11px] text-muted">
-              {written} of {total} written
+              {complete ? `All ${total} written` : `${written} of ${total} written`}
             </span>
           </div>
         )}
       </div>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A39DAD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M9 6l6 6-6 6" />
-      </svg>
+      {platforms.length > 0 && (
+        <span className="hidden md:flex shrink-0">
+          <LogoStack platforms={platforms} size={14} />
+        </span>
+      )}
+      <span className="shrink-0 inline-flex items-center gap-1 text-sm font-semibold text-[#5B21B6] opacity-60 group-hover:opacity-100 transition-opacity">
+        Open
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </span>
     </Link>
   );
 }
