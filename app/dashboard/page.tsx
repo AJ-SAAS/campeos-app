@@ -24,6 +24,7 @@ import {
 } from "@/lib/firebase/campaigns";
 import { getBusinessProfile } from "@/lib/firebase/businessProfile";
 import { getTemplate } from "@/lib/templates";
+import { templateForSale } from "@/lib/salesCalendar";
 import { channelInfo, LogoStack, PlatformKey } from "@/components/builder/channels";
 import {
   buildDays,
@@ -294,7 +295,7 @@ function PaidView({
  * go-live date; once a campaign exists for it, "Continue" opens that. */
 function SalesDateCard({ sale, campaign }: { sale: SalesDate; campaign?: Campaign }) {
   const ymd = `${sale.date.getFullYear()}-${String(sale.date.getMonth() + 1).padStart(2, "0")}-${String(sale.date.getDate()).padStart(2, "0")}`;
-  const href = campaign ? `/builder?id=${campaign.id}` : `/builder?date=${ymd}`;
+  const href = campaign ? `/builder?id=${campaign.id}` : `/builder?template=${templateForSale(sale.id)}&date=${ymd}`;
   const when = sale.date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   return (
     <Link

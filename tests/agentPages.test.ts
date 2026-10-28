@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { opensAutomatically, showsFloatingAgent } from "../lib/agentPages";
+import { opensAutomatically, showsFloatingAgent, shouldAutoOpen } from "../lib/agentPages";
 
 test("floating Eos shows on app pages but not on settings, sign-in or marketing", () => {
   for (const p of ["/dashboard", "/campaigns", "/offers", "/buyer-insights", "/winning-copy", "/billing", "/campaigns/abc"]) {
@@ -14,4 +14,10 @@ test("floating Eos shows on app pages but not on settings, sign-in or marketing"
 test("Eos opens by itself only on Home", () => {
   assert.equal(opensAutomatically("/dashboard"), true);
   assert.equal(opensAutomatically("/campaigns"), false);
+});
+
+test("Eos opens by itself only the first time", () => {
+  assert.equal(shouldAutoOpen(null, true), true);
+  assert.equal(shouldAutoOpen("1", true), false);
+  assert.equal(shouldAutoOpen(null, false), false);
 });

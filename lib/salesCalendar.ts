@@ -37,6 +37,16 @@ function easter(year: number): Date {
   return new Date(year, month, day);
 }
 
+// Sales days that have their own campaign template (same id as the catalog).
+const OWN_TEMPLATE = new Set(["black-friday", "cyber-monday", "xmas-holidays", "valentines-day"]);
+
+/** Which campaign template "Plan it" opens for a sales day. The big ones
+ * have their own; the rest (Easter, Mother's Day...) use the Holiday Sale
+ * template, which is a clear start-and-end deal. Never the webinar default. */
+export function templateForSale(saleId: string): string {
+  return OWN_TEMPLATE.has(saleId) ? saleId : "holiday-sale";
+}
+
 /** The sales calendar: every big selling day, in date order, from
  * tomorrow on. */
 export function salesCalendar(now: Date): SalesDate[] {

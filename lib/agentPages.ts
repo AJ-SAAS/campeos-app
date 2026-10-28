@@ -12,6 +12,17 @@ export function showsFloatingAgent(pathname: string | null): boolean {
   return SHOW_ON.some((p) => matches(pathname, p));
 }
 
+/** Where we remember, in this browser, that Eos has already opened by
+ * itself for this person. */
+export const AUTO_OPEN_KEY = "campeos:eos-opened";
+
+/** Eos opens by itself once, the first time someone lands on Home. After
+ * that it stays closed until they open it. No saved note (or no storage to
+ * keep one) means "don't": better silent than popping up every visit. */
+export function shouldAutoOpen(storedFlag: string | null, canRemember: boolean): boolean {
+  return canRemember && !storedFlag;
+}
+
 /** Eos opens by itself on Home, and stays closed everywhere else. */
 export function opensAutomatically(pathname: string | null): boolean {
   return pathname === "/dashboard";

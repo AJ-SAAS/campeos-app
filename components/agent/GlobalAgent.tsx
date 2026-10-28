@@ -13,7 +13,7 @@ export function GlobalAgent() {
   const pathname = usePathname();
   if (!user || needsVerification || !showsFloatingAgent(pathname)) return null;
   const home = opensAutomatically(pathname);
-  // Remounted only when moving to or from Home, so Eos opens on arrival
-  // there and starts closed when you leave.
-  return <AgentLauncher key={home ? "home" : "other"} openOnDesktop={home} />;
+  // Remounted only when moving to or from Home. On Home it opens once, the
+  // first time ever, then stays closed until the person opens it.
+  return <AgentLauncher key={home ? "home" : "other"} openOnDesktop={home} userId={user.uid} />;
 }

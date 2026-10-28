@@ -5,6 +5,7 @@ import { AgentPanel, AgentPanelCampaignContext } from "./AgentPanel";
 import { Mascot } from "@/components/mascot/Mascot";
 import type { OrbMood } from "@/lib/mascot/orb";
 import { AGENT_NAME } from "@/lib/brand";
+import { AUTO_OPEN_KEY, shouldAutoOpen } from "@/lib/agentPages";
 
 interface AgentLauncherProps {
   /** Present when the agent should be able to edit the campaign
@@ -13,6 +14,8 @@ interface AgentLauncherProps {
   /** Start open on screens wide enough to leave the page usable beside it.
    * On a phone the chat is a full-screen sheet, so it starts closed. */
   openOnDesktop?: boolean;
+  /** Who is signed in. The "already opened once" note is kept per person. */
+  userId?: string;
 }
 
 // A floating entry point to the agent for pages that aren't the
@@ -20,7 +23,7 @@ interface AgentLauncherProps {
 // same Firestore history) as the dashboard's AgentPanel. When `campaign`
 // is passed, the agent also gets the edit_step tool, scoped to the steps
 // in that campaign — see lib/ai/agent.ts and components/agent/AgentPanel.tsx.
-export function AgentLauncher({ campaign, openOnDesktop = false }: AgentLauncherProps) {
+export function AgentLauncher({ campaign, openOnDesktop = false, userId }: AgentLauncherProps) {
   const [open, setOpen] = useState(false);
   // What the agent is doing right now, reported by the panel (thinking
   // while it writes, happy when it's done). Shown on the mascot button.
@@ -29,9 +32,27 @@ export function AgentLauncher({ campaign, openOnDesktop = false }: AgentLauncher
   const [hop, setHop] = useState(0);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
+  // Opens by itself only the first time, so it isn't in your face on every
+  // visit. After that it stays closed until you open it.
   useEffect(() => {
-    if (openOnDesktop && window.matchMedia?.("(min-width: 640px)").matches) setOpen(true);
-  }, [openOnDesktop]);
+    if (!openOnDesktop || !userId) return;
+    if (!window.matchMedia?.("(min-width: 640px)").matches) return;
+    const key = `${AUTO_OPEN_KEY}:${userId}`;
+    let seen: string | null = null;
+    let canRemember = true;
+    try {
+      seen = localStorage.getItem(key);
+    } catch {
+      canRemember = false;
+    }
+    if (!shouldAutoOpen(seen, canRemember)) return;
+    try {
+      localStorage.setItem(key, "1");
+    } catch {
+      return;
+    }
+    setOpen(true);
+  }, [openOnDesktop, userId]);
 
   // Three ways to dismiss: the FAB itself (toggle), clicking outside the
   // panel, and Escape. A popover with only one way to close is a popover
