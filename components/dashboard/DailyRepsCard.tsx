@@ -6,9 +6,9 @@ import { useAuth } from "@/lib/firebase/AuthProvider";
 import { listSprints } from "@/lib/firebase/dailySprints";
 import { clock, dateKey, parseSession, remainingMs, streakDays } from "@/lib/daily/sprint";
 
-// The Daily Reset entry on Home: start the one-hour sprint, or pick up the
+// The Daily Reps entry on Home: start the one-hour sprint, or pick up the
 // one that is already running.
-export function DailyResetCard() {
+export function DailyRepsCard() {
   const { user } = useAuth();
   const [streak, setStreak] = useState(0);
   const [doneToday, setDoneToday] = useState(false);
@@ -33,16 +33,16 @@ export function DailyResetCard() {
   }, [user]);
 
   const running = leftMs !== null;
-  const title = running ? "Your sprint is running" : doneToday ? "Today's sprint is done" : "Daily Reset";
+  const title = running ? "Your reps are running" : doneToday ? "Today's reps are done" : "Daily Reps";
   const sub = running
     ? `${clock(leftMs ?? 0)} left. Pick up where you stopped.`
     : doneToday
-      ? "Nice work. Come back tomorrow to keep your streak."
-      : "One focused hour. Eos plans it. You do the work that brings customers.";
+      ? "Nice work. Come back tomorrow to keep your streak going."
+      : "One focused hour. Eos plans it. You get the reps in that bring customers.";
 
   return (
     <section
-      aria-label="Daily Reset"
+      aria-label="Daily Reps"
       className="relative overflow-hidden flex flex-wrap items-center gap-x-6 gap-y-4 px-5 sm:px-7 py-6 rounded-[24px] text-white"
       style={{ background: "linear-gradient(120deg,#2B157F 0%,#6D1FC4 55%,#C21A8E 100%)" }}
     >
@@ -62,7 +62,7 @@ export function DailyResetCard() {
         href="/daily"
         className="relative inline-flex items-center justify-center h-12 px-6 rounded-xl bg-white text-[#2B157F] text-[15px] font-bold hover:bg-white/90"
       >
-        {running ? "Resume sprint" : doneToday ? "See Daily Reset" : "Start my sprint"}
+        {running ? "Resume reps" : doneToday ? "See Daily Reps" : "Start today's reps"}
       </Link>
     </section>
   );

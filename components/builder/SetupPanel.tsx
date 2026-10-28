@@ -52,7 +52,7 @@ export function SetupPanel({
 
   return (
     <aside aria-label="Campaign setup" className="w-full lg:w-80 shrink-0 bg-paper p-4 sm:p-5 pb-24 lg:pb-5 flex flex-col gap-5 overflow-y-auto">
-      <h2 className="shrink-0 font-display text-lg font-semibold">Campaign setup</h2>
+      <h2 className="shrink-0 text-lg font-semibold">Campaign setup</h2>
 
       {/* shrink-0 on every card below: without it, this flex column gets
           squeezed shorter than its content inside the builder's real
@@ -67,7 +67,7 @@ export function SetupPanel({
         <div className="h-[3px] bg-gradient-to-r from-clay to-pink" />
         <div className="p-3.5 flex flex-col gap-1">
           <div className="text-xs font-semibold text-faint">Campaign type</div>
-          <div className="font-display text-[15px] font-semibold">Webinar launch</div>
+          <div className="text-[15px] font-semibold">Webinar launch</div>
           <div className="text-xs text-muted leading-relaxed">
             Registration through an 11-day backend sequence: emails, texts, ads and social posts.
           </div>

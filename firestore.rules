@@ -40,7 +40,7 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
     }
 
-    // Finished Daily Reset sprints, one doc each, owned by the user. See
+    // Finished Daily Reps sprints, one doc each, owned by the user. See
     // lib/firebase/dailySprints.ts.
     match /dailySprints/{sprintId} {
       allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.uid;

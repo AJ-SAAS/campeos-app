@@ -2,7 +2,7 @@ import { addDoc, collection, getDocs, query, serverTimestamp, where } from "fire
 import { db } from "./client";
 import type { SprintResults } from "../daily/sprint";
 
-// One doc per finished Daily Reset sprint, so tomorrow's sprint (and the
+// One doc per finished Daily Reps sprint, so tomorrow's sprint (and the
 // streak) can build on what happened. A sprint still in progress lives only
 // in the browser; it is saved here when the person finishes it.
 

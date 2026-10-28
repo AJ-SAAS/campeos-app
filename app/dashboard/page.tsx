@@ -4,7 +4,7 @@ import { FirstTour } from "@/components/FirstTour";
 import { MergeText } from "@/components/MergeText";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { Toast, type ToastMessage } from "@/components/Toast";
-import { DailyResetCard } from "@/components/dashboard/DailyResetCard";
+import { DailyRepsCard } from "@/components/dashboard/DailyRepsCard";
 import { OlderVersionRow } from "@/components/dashboard/OlderVersionRow";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -233,7 +233,7 @@ function PaidView({
           </Link>
         </div>
 
-        <DailyResetCard />
+        <DailyRepsCard />
 
         {salesDates.length > 0 && campaigns !== null && (
           <section
@@ -609,7 +609,7 @@ function WelcomeView({
         </p>
       </div>
 
-      <DailyResetCard />
+      <DailyRepsCard />
 
       <FirstLaunch campaign={first} steps={steps} loading={campaigns === null || (!!first && !steps)} onUnlock={onUnlock} />
       <FirstTour enabled={campaigns !== null && !(!!first && !steps)} />

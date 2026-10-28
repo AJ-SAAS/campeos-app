@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { Sidebar } from "@/components/Sidebar";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
-import { DailyReset } from "@/components/daily/DailyReset";
+import { DailyReps } from "@/components/daily/DailyReps";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { useRequireAccess } from "@/lib/firebase/useRequireAccess";
 import { useSubscription } from "@/lib/firebase/useSubscription";
 import { getBusinessProfile } from "@/lib/firebase/businessProfile";
 
-// Daily Reset: a one-hour growth sprint. See components/daily/DailyReset.tsx.
+// Daily Reps: a one-hour growth sprint. See components/daily/DailyReps.tsx.
 export default function DailyPage() {
   const { user } = useAuth();
   const { ready } = useRequireAccess();
@@ -33,7 +33,7 @@ export default function DailyPage() {
         <Sidebar active="daily" />
         <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-7 sm:px-8 lg:px-14 lg:py-10 pb-28 md:pb-12">
           {profile ? (
-            <DailyReset uid={user.uid} offerName={profile.offerName} userChannels={profile.channels} />
+            <DailyReps uid={user.uid} offerName={profile.offerName} userChannels={profile.channels} />
           ) : (
             <div className="h-[420px] max-w-[860px] rounded-[26px] bg-[#F8F8F8] animate-pulse" />
           )}

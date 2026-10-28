@@ -13,7 +13,7 @@ import {
 } from "@/lib/daily/sprint";
 import { listSprints, saveSprint } from "@/lib/firebase/dailySprints";
 
-// Daily Reset: pick your time, press start, and work through four guided
+// Daily Reps: pick your time, press start, and work through four guided
 // tasks. Eos plans it; you do it. Three screens: start, work, finish.
 
 const GRAD = "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)";
@@ -35,7 +35,7 @@ function writeStore(uid: string, value: string | null) {
   }
 }
 
-export function DailyReset({ uid, offerName, userChannels }: { uid: string; offerName: string; userChannels: string[] }) {
+export function DailyReps({ uid, offerName, userChannels }: { uid: string; offerName: string; userChannels: string[] }) {
   const today = useMemo(() => dateKey(new Date()), []);
   const [session, setSession] = useState<SprintSession | null>(null);
   const [phase, setPhase] = useState<"start" | "work" | "done">("start");
@@ -137,12 +137,12 @@ function Start({
           <Mascot size={120} fit={1.05} centered bubble={false} glow={false} restless={false} mood="happy" label={AGENT_NAME} style={{ margin: -8 }} />
         </div>
         <div className="min-w-[240px] flex-1">
-          <div className="font-mono text-xs uppercase tracking-[.08em] text-muted">Daily Reset</div>
+          <div className="font-mono text-xs uppercase tracking-[.08em] text-muted">Daily Reps</div>
           <h1 className="font-serif text-[34px] sm:text-[42px] leading-[1.05] font-medium tracking-tight mt-1.5">
             Your business grows when you do the work.
           </h1>
           <p className="text-[16px] text-muted mt-2">
-            Pick your time. {AGENT_NAME} plans the hour and gets the guidance ready. You do the work.
+            Pick your time. {AGENT_NAME} plans the hour and gets the guidance ready. You get the reps in.
           </p>
         </div>
       </div>
@@ -234,7 +234,7 @@ function Start({
           className="h-[52px] px-7 rounded-xl text-white text-[16px] font-bold shadow-[0_14px_30px_-14px_rgba(155,31,214,.7)]"
           style={{ background: GRAD }}
         >
-          Start my sprint
+          Start today's reps
         </button>
         <p className="text-sm text-muted max-w-[420px]">
           Targets are starting points to test, not promises. A lighter day still counts.
@@ -279,7 +279,7 @@ function Work({
       <section aria-label="Sprint status" className="rounded-[24px] border border-[#E9DDFB] overflow-hidden" style={{ background: "linear-gradient(135deg,#F7F2FE,#FDEFF7)" }}>
         <div className="flex flex-wrap items-center justify-between gap-4 px-5 sm:px-6 py-5">
           <div className="min-w-0">
-            <div className="font-mono text-xs uppercase tracking-[.08em] text-[#5B21B6]">Daily Reset · {weekday}</div>
+            <div className="font-mono text-xs uppercase tracking-[.08em] text-[#5B21B6]">Daily Reps · {weekday}</div>
             <h1 className="font-serif text-[28px] sm:text-[34px] leading-[1.1] font-medium tracking-tight mt-1">
               {over ? "Time's up." : offerName ? `Let's grow ${offerName}.` : "Let's grow your business."}
             </h1>
@@ -606,7 +606,7 @@ function Finish({
           <Mascot size={110} fit={1.05} centered bubble={false} glow={false} restless={false} mood={allDone ? "happy" : "idle"} label={AGENT_NAME} style={{ margin: -6 }} />
         </div>
         <div>
-          <div className="font-mono text-xs uppercase tracking-[.08em] text-muted">Daily Reset · {minutesSpent(session, Date.now())} min</div>
+          <div className="font-mono text-xs uppercase tracking-[.08em] text-muted">Daily Reps · {minutesSpent(session, Date.now())} min</div>
           <h1 className="font-serif text-[34px] sm:text-[42px] leading-[1.05] font-medium tracking-tight mt-1.5">{verdict.title}</h1>
           <p className="text-[16px] text-muted mt-2">{verdict.sub}</p>
         </div>
@@ -652,7 +652,7 @@ function Finish({
           </div>
         )}
         <button type="button" onClick={onNew} className="h-[52px] px-5 rounded-xl border border-[#D4D1DB] text-[16px] font-semibold hover:bg-[#FAFAFA]">
-          {saved ? "Back to Daily Reset" : "Skip and start over"}
+          {saved ? "Back to Daily Reps" : "Skip and start over"}
         </button>
       </div>
       {saveFailed && (

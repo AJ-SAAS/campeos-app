@@ -43,7 +43,7 @@ const config: Config = {
         // as generic grotesque type. DM Sans stays for body copy (reads
         // better at paragraph sizes) and DM Mono for timestamps, counts
         // and other data-shaped labels.
-        display: ["Space Grotesk", "sans-serif"],
+        display: ["DM Sans", "sans-serif"],
         body: ["DM Sans", "sans-serif"],
         mono: ["DM Mono", "monospace"],
         // Newsreader — only for the marketing page's big section

@@ -25,7 +25,7 @@ export default function TermsPage() {
 
       <div className="max-w-[720px] mx-auto px-6 py-10 flex flex-col gap-10">
         <div className="flex flex-col gap-2">
-          <h1 className="font-display text-3xl font-extrabold tracking-tight">Terms of Service</h1>
+          <h1 className="font-serif text-[34px] sm:text-[42px] leading-[1.05] font-medium tracking-tight">Terms of Service</h1>
           <p className="text-sm text-faint">Last updated October 18, 2026</p>
         </div>
 
@@ -184,7 +184,7 @@ export default function TermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2.5">
-      <h2 className="font-display text-lg font-bold">{title}</h2>
+      <h2 className="text-lg font-semibold">{title}</h2>
       <div className="flex flex-col gap-2.5 text-muted">{children}</div>
     </div>
   );

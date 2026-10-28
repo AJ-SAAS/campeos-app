@@ -1,4 +1,4 @@
-// Daily Reset: a focused work sprint. Eos plans it, you do it.
+// Daily Reps: a focused work sprint. Eos plans it, you do it.
 //
 // Everything here is plain logic with no screens and no database, so it can
 // be tested on its own. The rule it is built around: making a draft is not
@@ -347,7 +347,7 @@ export function sprintVerdict(s: SprintSession): { title: string; sub: string } 
   const done = tasksCompleted(s);
   const total = s.plan.tasks.length;
   const pct = workPercent(s);
-  if (done === total) return { title: "Sprint complete.", sub: "You showed up and did all of it." };
+  if (done === total) return { title: "Reps done.", sub: "You did all of it. That is how it compounds." };
   if (pct >= 50) return { title: "Solid sprint.", sub: "More than half the work is done. That is how momentum builds." };
   if (pct > 0) return { title: "You showed up.", sub: "Some work beats none. Try a gentler plan if the hour felt too big." };
   return { title: "Nothing logged today.", sub: "That's okay. Come back tomorrow, even for a lighter sprint." };

@@ -242,10 +242,10 @@ export function StepEditor({
                   onChange={(e) => onTitleChange(e.target.value)}
                   placeholder="Name this post"
                   aria-label="Post name"
-                  className="font-display text-[28px] sm:text-[34px] font-bold leading-[1.15] tracking-tight text-center bg-transparent border-b border-dashed border-line focus:border-slate outline-none px-1 max-w-full"
+                  className="font-serif text-[28px] sm:text-[34px] font-medium leading-[1.15] tracking-tight text-center bg-transparent border-b border-dashed border-line focus:border-slate outline-none px-1 max-w-full"
                 />
               ) : (
-                <h1 className="font-display text-[28px] sm:text-[34px] font-bold leading-[1.15] tracking-tight">
+                <h1 className="font-serif text-[28px] sm:text-[34px] font-medium leading-[1.15] tracking-tight">
                   {step.title}
                 </h1>
               )}

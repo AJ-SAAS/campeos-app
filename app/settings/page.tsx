@@ -4,6 +4,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PageHeader } from "@/components/PageHeader";
 import { Sidebar } from "@/components/Sidebar";
 import { PlanModal, usePlanSuggestion } from "@/components/PlanModal";
 import { useAuth } from "@/lib/firebase/AuthProvider";
@@ -125,10 +126,7 @@ export default function SettingsPage() {
 
         <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-7 sm:px-8 lg:px-14 lg:py-10 pb-28 md:pb-14">
           <div className="max-w-[760px] flex flex-col gap-6">
-            <div>
-              <h1 className="font-serif text-[38px] sm:text-[44px] leading-[1.05] font-medium tracking-tight">Settings</h1>
-              <p className="text-[16px] text-muted mt-2">Your account, your plan and your business, in one place.</p>
-            </div>
+            <PageHeader title="Settings">Your account, your plan and your business, in one place.</PageHeader>
 
             {user && (
               <>

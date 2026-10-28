@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&display=swap');
 
 /* Shared by the sign-in page (app/auth) and onboarding (app/onboarding).
    Every class is prefixed "cob-" so nothing here can collide with the
    app's Tailwind classes or the landing page's "cps-" classes. */
 
-.cob-root{font-family:Inter,system-ui,sans-serif;color:#17131F;min-height:100vh;display:flex;flex-wrap:wrap;background:#FFFFFF}
+.cob-root{font-family:"DM Sans",system-ui,sans-serif;color:#17131F;min-height:100vh;display:flex;flex-wrap:wrap;background:#FFFFFF}
 .cob-root *{box-sizing:border-box}
 .cob-root a{color:#17131F}
 .cob-root a:hover{color:#5B21B6}

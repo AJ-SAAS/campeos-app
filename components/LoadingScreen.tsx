@@ -29,7 +29,7 @@ export function LoadingScreen({ steps = LOADING_STEPS }: { steps?: string[] }) {
     <div
       role="status"
       aria-live="polite"
-      style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, background: "#FFFFFF", fontFamily: "Inter, system-ui, sans-serif", color: "#17131F" }}
+      style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, background: "#FFFFFF", fontFamily: '"DM Sans", system-ui, sans-serif', color: "#17131F" }}
     >
       <style>{`
         @keyframes cps-ld-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}

@@ -90,7 +90,7 @@ export function Timeline({ steps, selectedId, onSelect, eventDate, phases, gener
     <section aria-label="Campaign timeline" className="flex-grow min-w-0 w-full p-4 sm:p-6 pb-24 sm:pb-6 flex flex-col gap-4 overflow-y-auto">
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="font-display text-[20px] sm:text-[22px] font-semibold tracking-tight">Campaign timeline</h2>
+          <h2 className="text-[20px] sm:text-[22px] font-semibold tracking-tight">Campaign timeline</h2>
           <div className="text-[13px] text-muted">
             {steps.length} steps with suggested send times.
           </div>
@@ -186,7 +186,7 @@ export function Timeline({ steps, selectedId, onSelect, eventDate, phases, gener
           return (
             <div key={day} className="flex flex-col gap-2">
               <div className="flex items-center gap-2.5">
-                <span className="font-display text-[13px] font-bold uppercase tracking-wider">
+                <span className="text-[13px] font-bold uppercase tracking-wider">
                   {label}
                 </span>
                 {isEventDay && (

@@ -3,6 +3,7 @@
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/PageHeader";
 import { Sidebar } from "@/components/Sidebar";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { useAuth } from "@/lib/firebase/AuthProvider";
@@ -71,25 +72,17 @@ export default function CampaignsPage() {
         <Sidebar active="campaigns" />
 
         <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-8 pb-24 md:pb-10">
-          <div className="flex flex-col gap-1.5">
-            <div className="font-mono text-xs uppercase tracking-wider text-faint">
-              {catalog.length} campaign types
-            </div>
-            <h1 className="font-display text-[28px] sm:text-[34px] lg:text-[40px] leading-tight font-semibold tracking-tight">
-              Start a campaign
-            </h1>
-            <p className="text-sm text-muted max-w-[52ch]">
-              Pick a template. If you&apos;ve already built one from it, picking it
-              again picks up where you left off.
-            </p>
-          </div>
+          <PageHeader eyebrow={`${catalog.length} campaign types`} title="Start a campaign">
+            Pick a template. If you&apos;ve already built one from it, picking it
+            again picks up where you left off.
+          </PageHeader>
 
           {categoryOrder.map((category) => {
             const entries = catalog.filter((c) => c.category === category);
             if (entries.length === 0) return null;
             return (
               <section key={category} className="flex flex-col gap-3">
-                <h2 className="font-display text-[19px] font-bold tracking-tight">
+                <h2 className="text-[18px] font-semibold">
                   {categoryLabels[category]}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -123,7 +116,7 @@ export default function CampaignsPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2.5">
                             <div
-                              className="campaign-icon w-[30px] h-[30px] shrink-0 rounded-[9px] flex items-center justify-center font-display text-[11px] font-bold text-white"
+                              className="campaign-icon w-[30px] h-[30px] shrink-0 rounded-[9px] flex items-center justify-center text-[11px] font-bold text-white"
                               style={{ background: campaignGradient(entry.id) }}
                             >
                               {initialsOf(entry.title)}
@@ -132,7 +125,7 @@ export default function CampaignsPage() {
                               {activeCampaign && (
                                 <span className="w-[7px] h-[7px] rounded-full bg-lime shrink-0 animate-pulse" />
                               )}
-                              <h3 className="font-display text-[17px] font-bold leading-snug">
+                              <h3 className="text-[17px] font-semibold leading-snug">
                                 {entry.title}
                               </h3>
                             </div>

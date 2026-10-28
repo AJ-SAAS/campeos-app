@@ -152,7 +152,7 @@ export function GetStartedWidget() {
       className="fixed z-40 right-3 left-3 bottom-20 sm:left-auto sm:w-[400px] md:bottom-5 md:right-5 bg-paper border border-line rounded-3xl p-5 shadow-[0_30px_60px_-30px_rgba(23,19,31,.45)] animate-step-in"
     >
       <div className="flex items-center gap-2">
-        <h2 className="flex-1 font-display text-lg font-semibold tracking-tight">Get started</h2>
+        <h2 className="flex-1 text-lg font-semibold tracking-tight">Get started</h2>
         <button onClick={toggleCollapsed} aria-label="Minimize" title="Minimize" className="w-9 h-9 rounded-xl flex items-center justify-center text-muted hover:bg-ivory">
           <ChevronDown />
         </button>

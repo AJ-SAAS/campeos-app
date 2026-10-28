@@ -2,6 +2,7 @@
 
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Sidebar } from "@/components/Sidebar";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { useAuth } from "@/lib/firebase/AuthProvider";
@@ -75,16 +76,11 @@ export default function WinningCopyPage() {
       <Sidebar active="winning-copy" />
 
       <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 pb-24 md:pb-10 max-w-2xl">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="font-display text-[28px] sm:text-[34px] font-semibold tracking-tight">
-            Best performers
-          </h1>
-          <p className="text-sm text-muted">
-            The copy that worked for you. Click &quot;Mark as winner&quot; on any
-            message in a campaign, or paste a line below. Every campaign you build
-            from now on draws on these.
-          </p>
-        </div>
+        <PageHeader title="Best performers">
+          The copy that worked for you. Click &quot;Mark as winner&quot; on any
+          message in a campaign, or paste a line below. Every campaign you build
+          from now on draws on these.
+        </PageHeader>
 
         {user && (
           <div className="flex flex-col gap-2.5 p-4 border border-line rounded-2xl">

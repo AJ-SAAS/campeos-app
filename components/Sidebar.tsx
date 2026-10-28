@@ -49,7 +49,7 @@ export function Sidebar({ active, inBuilder = false }: { active: Active; inBuild
 
         <nav aria-label="Main" className="flex flex-col gap-0.5">
           <NavItem href="/dashboard" label="Home" active={active === "dashboard"}><GridIcon /></NavItem>
-          <NavItem href="/daily" label="Daily Reset" active={active === "daily"}><BoltIcon /></NavItem>
+          <NavItem href="/daily" label="Daily Reps" active={active === "daily"}><BoltIcon /></NavItem>
           <NavItem href="/campaigns" label="Campaigns" active={active === "campaigns"}><CampaignsIcon /></NavItem>
           <NavItem href="/offers" label="Offers" active={active === "offers"}><OffersIcon /></NavItem>
           <NavItem href="/winning-copy" label="Best performers" active={active === "winning-copy"}><TrophyIcon /></NavItem>

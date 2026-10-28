@@ -359,7 +359,7 @@ export function AgentPanel({ campaign, fill = false, contained = false, visible 
       <section className="flex flex-col bg-paper border border-line rounded-2xl overflow-hidden min-h-[280px] sm:min-h-[320px]">
         <div className="bg-gradient-to-r from-clay to-pink flex items-center gap-2.5 px-5 py-4">
           <MascotStatic size={28} />
-          <span className="font-display text-base font-semibold text-white">{AGENT_NAME}</span>
+          <span className="text-base font-semibold text-white">{AGENT_NAME}</span>
         </div>
         <div className="flex-grow flex items-center justify-center text-sm text-faint px-6 text-center">
           Sign in to talk to {AGENT_NAME} and build a campaign.

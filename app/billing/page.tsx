@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Sidebar } from "@/components/Sidebar";
 import { usePlanSuggestion } from "@/components/PlanModal";
 import { useAuth } from "@/lib/firebase/AuthProvider";
@@ -133,16 +134,11 @@ export default function BillingPage() {
       <Sidebar active={null} />
 
       <main className="flex-grow min-w-0 px-4 py-8 sm:px-8 lg:px-12 lg:py-14 flex flex-col items-center gap-8 pb-28 md:pb-14">
-        <div className="text-center max-w-[560px]">
-          <h1 className="font-display text-[34px] sm:text-[44px] font-bold tracking-tight leading-tight">
-            {activePlan ? "Your plan" : "Pick a plan"}
-          </h1>
-          <p className="mt-2 text-[16px] text-muted leading-relaxed">
-            {activePlan
-              ? `You're on ${PLANS[activePlan].name}, billed ${currentInterval}. Change or cancel anytime.`
-              : "Both plans write every email, text, ad and post. They differ in how many campaigns you run."}
-          </p>
-        </div>
+        <PageHeader center title={activePlan ? "Your plan" : "Pick a plan"}>
+          {activePlan
+            ? `You're on ${PLANS[activePlan].name}, billed ${currentInterval}. Change or cancel anytime.`
+            : "Both plans write every email, text, ad and post. They differ in how many campaigns you run."}
+        </PageHeader>
 
         {!authLoading && !user && (
           <div className="bg-paper border border-line rounded-2xl px-5 py-4 text-sm text-muted">
@@ -174,7 +170,7 @@ export default function BillingPage() {
             {reason && !activePlan && <div className="mt-2 text-xs text-muted">{reason}</div>}
 
             <div key={selected} className="mt-8 animate-step-in">
-              <div className="font-display text-[64px] sm:text-[84px] font-bold leading-none tracking-tight">
+              <div className="text-[64px] sm:text-[84px] font-bold leading-none tracking-tight">
                 {plan.big}
               </div>
               <div className="mt-2 text-[16px] text-muted">
@@ -226,7 +222,7 @@ export default function BillingPage() {
               </span>
             </div>
             <div key={selected} className="mt-3 flex items-baseline gap-1.5 animate-step-in">
-              <span className="font-display text-[56px] font-bold tracking-tight leading-none">{plan.price[billingInterval]}</span>
+              <span className="text-[56px] font-bold tracking-tight leading-none">{plan.price[billingInterval]}</span>
               <span className="text-[17px] text-muted">/month</span>
             </div>
             <div className="mt-1.5 text-[14px] text-muted">

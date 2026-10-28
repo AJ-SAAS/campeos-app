@@ -2,6 +2,7 @@
 
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Sidebar } from "@/components/Sidebar";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { useAuth } from "@/lib/firebase/AuthProvider";
@@ -181,16 +182,10 @@ export default function BuyerInsightsPage() {
         <Sidebar active="buyer-insights" />
 
         <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 pb-24 md:pb-10 max-w-3xl">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-start justify-between gap-3">
-              <h1 className="font-display text-[28px] sm:text-[34px] font-semibold tracking-tight">Buyer insights</h1>
-              <SavePill status={status} onRetry={retry} />
-            </div>
-            <p className="text-sm text-muted">
-              Add what your buyers say: testimonials, sales calls, stories and messages. Every campaign you build uses
-              it, and real quotes are never made up. You can edit or delete anything, and it saves by itself.
-            </p>
-          </div>
+          <PageHeader title="Buyer insights" right={<SavePill status={status} onRetry={retry} />}>
+            Add what your buyers say: testimonials, sales calls, stories and messages. Every campaign you build uses
+            it, and real quotes are never made up. You can edit or delete anything, and it saves by itself.
+          </PageHeader>
 
           {user && <TestimonialForm uid={user.uid} onAdd={addNew} />}
           {user && <ReadForm uid={user.uid} onAdd={addNew} />}

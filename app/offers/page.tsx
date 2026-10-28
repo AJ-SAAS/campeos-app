@@ -2,6 +2,7 @@
 
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Sidebar } from "@/components/Sidebar";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
 import { OfferForm } from "@/components/OfferForm";
@@ -89,15 +90,10 @@ export default function OffersPage() {
         <Sidebar active="offers" />
 
         <main className="flex-grow min-w-0 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 flex flex-col gap-6 pb-24 md:pb-10 max-w-2xl">
-          <div className="flex flex-col gap-1.5">
-            <h1 className="font-display text-[28px] sm:text-[34px] font-semibold tracking-tight">
-              Offers
-            </h1>
-            <p className="text-sm text-muted">
-              What you&apos;re selling. Save an offer once, then pick it for any
-              campaign instead of retyping the same details every time.
-            </p>
-          </div>
+          <PageHeader title="Offers">
+            What you&apos;re selling. Save an offer once, then pick it for any
+            campaign instead of retyping the same details every time.
+          </PageHeader>
 
           {user && !formOpen && (
             <button
