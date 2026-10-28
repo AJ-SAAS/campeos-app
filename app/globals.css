@@ -58,3 +58,29 @@ a:hover .campaign-icon::after{animation:campaign-shine .8s ease-out}
 @media (prefers-reduced-motion: reduce) {
   .write-nudge { animation: write-ring 2.4s ease-out infinite; }
 }
+
+/* Nudge for the Daily Reps button on Home: a small hop every few seconds, a
+   soft white ring, and the arrow leans forward. Not shown once today's reps
+   are done. */
+@keyframes reps-nudge {
+  0%, 58%, 100% { transform: translateY(0) scale(1); }
+  64% { transform: translateY(-4px) scale(1.05); }
+  70% { transform: translateY(0) scale(0.98); }
+  76% { transform: translateY(-2px) scale(1.03); }
+  84% { transform: translateY(0) scale(1); }
+}
+@keyframes reps-ring {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); }
+  70%, 100% { box-shadow: 0 0 0 14px rgba(255, 255, 255, 0); }
+}
+@keyframes reps-arrow {
+  0%, 58%, 100% { transform: translateX(0); }
+  68% { transform: translateX(5px); }
+  78% { transform: translateX(0); }
+}
+.reps-nudge { animation: reps-nudge 3.6s ease-in-out infinite, reps-ring 1.8s ease-out infinite; }
+.reps-nudge .reps-arrow { animation: reps-arrow 3.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .reps-nudge { animation: reps-ring 2.4s ease-out infinite; }
+  .reps-nudge .reps-arrow { animation: none; }
+}

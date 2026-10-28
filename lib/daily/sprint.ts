@@ -319,6 +319,31 @@ export function parseSession(raw: string | null, today: string, now: number): Sp
   }
 }
 
+// ---------- Yesterday's leftovers and the running total ----------
+
+/** A saved session of any day, as long as it has the right shape. */
+export function parseAnySession(raw: string | null): SprintSession | null {
+  if (!raw) return null;
+  try {
+    const s = JSON.parse(raw) as SprintSession;
+    if (s?.v !== 1 || !s.plan?.tasks?.length || typeof s.startedAt !== "number" || typeof s.endsAt !== "number" || typeof s.date !== "string") return null;
+    return s;
+  } catch {
+    return null;
+  }
+}
+
+/** True when the session has real work in it (something published or counted). */
+export function sessionHasWork(s: SprintSession): boolean {
+  return publishedCount(s) > 0 || Object.values(s.counts).some((n) => n > 0);
+}
+
+/** A session from an earlier day, or one left open long past its end. It is
+ * not today's reps any more: whatever was done gets counted, then it goes. */
+export function isStale(s: SprintSession, today: string, now: number): boolean {
+  return s.date !== today || now - s.endsAt > 6 * 3600_000;
+}
+
 // ---------- Results ----------
 
 export interface SprintResults {
@@ -340,6 +365,16 @@ export function resultsFrom(s: SprintSession, extra: { replies: number; sales: n
     replies: Math.max(0, Math.floor(extra.replies) || 0),
     sales: Math.max(0, Math.floor(extra.sales) || 0),
   };
+}
+
+/** Every real action in a sprint: posts, messages, comments, follow-ups. */
+export function repsOf(r: SprintResults): number {
+  return r.published + r.contacted + r.comments + r.followUps;
+}
+
+/** All the reps ever done. This one never resets; only today's sprint does. */
+export function totalReps(records: { results: SprintResults }[]): number {
+  return records.reduce((n, r) => n + repsOf(r.results), 0);
 }
 
 /** What Eos says about how it went. Never scolds a light day. */

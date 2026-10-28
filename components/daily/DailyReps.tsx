@@ -7,50 +7,43 @@ import { AGENT_NAME } from "@/lib/brand";
 import {
   CHANNELS, FOCUSES, INTENSITIES, SCENARIOS, SPRINT_MINUTES,
   buildSprint, channelTitle, clock, dateKey, defaultChannels, doneCount, minutesSpent, newSession,
-  parseSession, remainingMs, resultsFrom, sprintVerdict, streakDays, subtasksFor, taskComplete,
+  remainingMs, repsOf, totalReps, resultsFrom, sprintVerdict, streakDays, subtasksFor, taskComplete,
   tasksCompleted, workPercent,
   type ChannelId, type FocusId, type IntensityId, type SprintSession, type SprintTask,
 } from "@/lib/daily/sprint";
-import { listSprints, saveSprint } from "@/lib/firebase/dailySprints";
+import { listSprints, saveSprint, type SprintRecord } from "@/lib/firebase/dailySprints";
+import { todaysSession, writeStore } from "@/lib/daily/session";
 
 // Daily Reps: pick your time, press start, and work through four guided
 // tasks. Eos plans it; you do it. Three screens: start, work, finish.
 
 const GRAD = "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)";
-const storeKey = (uid: string) => `campeos:daily:${uid}`;
-
-function readStore(uid: string): string | null {
-  try {
-    return localStorage.getItem(storeKey(uid));
-  } catch {
-    return null;
-  }
-}
-function writeStore(uid: string, value: string | null) {
-  try {
-    if (value === null) localStorage.removeItem(storeKey(uid));
-    else localStorage.setItem(storeKey(uid), value);
-  } catch {
-    /* private window: the sprint still runs, it just won't survive a refresh */
-  }
-}
 
 export function DailyReps({ uid, offerName, userChannels }: { uid: string; offerName: string; userChannels: string[] }) {
   const today = useMemo(() => dateKey(new Date()), []);
   const [session, setSession] = useState<SprintSession | null>(null);
   const [phase, setPhase] = useState<"start" | "work" | "done">("start");
   const [loaded, setLoaded] = useState(false);
-  const [dates, setDates] = useState<string[]>([]);
+  const [records, setRecords] = useState<SprintRecord[]>([]);
+  const dates = useMemo(() => records.map((r) => r.date), [records]);
 
-  // Pick up a sprint that was running before a refresh.
+  // Pick up a sprint that was running before a refresh. One from an earlier
+  // day is not shown (the reps reset daily), but its work is counted.
   useEffect(() => {
-    const saved = parseSession(readStore(uid), today, Date.now());
-    if (saved) {
-      setSession(saved);
-      setPhase("work");
-    }
-    setLoaded(true);
-    listSprints(uid).then((r) => setDates(r.map((x) => x.date))).catch(() => {});
+    let cancelled = false;
+    (async () => {
+      const saved = await todaysSession(uid, today, Date.now());
+      if (cancelled) return;
+      if (saved) {
+        setSession(saved);
+        setPhase("work");
+      }
+      setLoaded(true);
+      listSprints(uid).then((r) => !cancelled && setRecords(r)).catch(() => {});
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [uid, today]);
 
   const update = useCallback(
@@ -85,9 +78,10 @@ export function DailyReps({ uid, offerName, userChannels }: { uid: string; offer
       <Finish
         session={session}
         streak={streak + (doneToday ? 0 : 1)}
-        onSaved={(d) => {
+        before={totalReps(records)}
+        onSaved={(rec) => {
           writeStore(uid, null);
-          setDates((x) => (x.includes(d) ? x : [d, ...x]));
+          setRecords((x) => [rec, ...x]);
         }}
         uid={uid}
         onNew={() => {
@@ -101,6 +95,7 @@ export function DailyReps({ uid, offerName, userChannels }: { uid: string; offer
   return (
     <Start
       streak={streak}
+      total={totalReps(records)}
       doneToday={doneToday}
       userChannels={userChannels}
       onStart={(focus, intensity) => {
@@ -118,9 +113,10 @@ export function DailyReps({ uid, offerName, userChannels }: { uid: string; offer
 // ---------------------------------------------------------------- Start
 
 function Start({
-  streak, doneToday, userChannels, onStart,
+  streak, total, doneToday, userChannels, onStart,
 }: {
   streak: number;
+  total: number;
   doneToday: boolean;
   userChannels: string[];
   onStart: (f: FocusId, i: IntensityId) => void;
@@ -147,10 +143,11 @@ function Start({
         </div>
       </div>
 
-      {(streak > 0 || doneToday) && (
-        <div className="self-start inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F4EEFE] text-[#5B21B6] text-sm font-semibold">
-          {doneToday ? "Today's sprint is done" : `${streak} ${streak === 1 ? "day" : "days"} in a row`}
-          {doneToday && streak > 0 ? ` · ${streak} in a row` : ""}
+      {(streak > 0 || doneToday || total > 0) && (
+        <div className="self-start inline-flex flex-wrap items-center gap-x-2 px-3.5 py-1.5 rounded-full bg-[#F4EEFE] text-[#5B21B6] text-sm font-semibold">
+          {doneToday ? <span>Today&apos;s reps are done</span> : streak > 0 ? <span>{streak} {streak === 1 ? "day" : "days"} in a row</span> : null}
+          {doneToday && streak > 0 && <span>· {streak} in a row</span>}
+          {total > 0 && <span>{doneToday || streak > 0 ? "· " : ""}{total.toLocaleString()} {total === 1 ? "rep" : "reps"} all time</span>}
         </div>
       )}
 
@@ -548,12 +545,14 @@ function Scenarios() {
 // --------------------------------------------------------------- Finish
 
 function Finish({
-  session, streak, uid, onSaved, onNew,
+  session, streak, before, uid, onSaved, onNew,
 }: {
   session: SprintSession;
   streak: number;
+  /** Reps from earlier sprints. Today's are added on top. */
+  before: number;
   uid: string;
-  onSaved: (date: string) => void;
+  onSaved: (record: SprintRecord) => void;
   onNew: () => void;
 }) {
   const [replies, setReplies] = useState("");
@@ -574,7 +573,7 @@ function Finish({
     setSaving(true);
     setSaveFailed(false);
     try {
-      await saveSprint(uid, {
+      const record: SprintRecord = {
         date: session.date,
         minutes: session.plan.minutes,
         focus: session.plan.focus,
@@ -582,9 +581,10 @@ function Finish({
         tasksCompleted: tasksCompleted(session),
         workPercent: workPercent(session),
         results,
-      });
+      };
+      await saveSprint(uid, record);
       setSaved(true);
-      onSaved(session.date);
+      onSaved(record);
     } catch {
       setSaveFailed(true);
     } finally {
@@ -592,6 +592,7 @@ function Finish({
     }
   }
 
+  const allTime = before + repsOf(results);
   const tiles: [string, number][] = [
     ["Posts published", results.published],
     ["People messaged", results.contacted],
@@ -620,6 +621,10 @@ function Finish({
           </div>
         ))}
       </section>
+
+      <p className="text-sm text-muted -mt-2">
+        {allTime.toLocaleString()} {allTime === 1 ? "rep" : "reps"} all time. Today&apos;s sprint resets tomorrow. Your total doesn&apos;t.
+      </p>
 
       <section aria-label="What came back" className="border border-[#ECEAF0] rounded-[22px] px-5 py-5">
         <h2 className="text-[16px] font-semibold">What came back so far?</h2>

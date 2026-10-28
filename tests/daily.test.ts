@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildSprint, clock, defaultChannels, doneCount, newSession, parseSession, publishedCount,
-  resultsFrom, streakDays, subtasksFor, taskComplete, tasksCompleted, workPercent, sprintVerdict, remainingMs,
+  resultsFrom, streakDays, parseAnySession, sessionHasWork, isStale, repsOf, totalReps, subtasksFor, taskComplete, tasksCompleted, workPercent, sprintVerdict, remainingMs,
 } from "../lib/daily/sprint";
 
 const plan = buildSprint({ focus: "balanced", intensity: "steady" });
@@ -93,4 +93,32 @@ test("streak counts days in a row and survives until the day ends", () => {
   assert.equal(streakDays(["2026-10-26", "2026-10-25"], "2026-10-27"), 2);
   assert.equal(streakDays(["2026-10-24"], "2026-10-27"), 0);
   assert.equal(streakDays([], "2026-10-27"), 0);
+});
+
+test("yesterday's sprint is stale, today's is not", () => {
+  const s = newSession(plan, 1_000_000, ["linkedin"], "2026-10-27");
+  assert.equal(isStale(s, "2026-10-28", 1_000_500), true);
+  assert.equal(isStale(s, "2026-10-27", 1_000_500), false);
+  assert.equal(isStale(s, "2026-10-27", s.endsAt + 7 * 3600_000), true);
+});
+
+test("only a sprint with real work in it is worth keeping", () => {
+  const s = newSession(plan, 0, ["linkedin"], "2026-10-27");
+  assert.equal(sessionHasWork(s), false);
+  assert.equal(sessionHasWork({ ...s, steps: { "linkedin:write": true } }), false);
+  assert.equal(sessionHasWork({ ...s, counts: { prospect: 2 } }), true);
+  assert.equal(sessionHasWork({ ...s, steps: { "linkedin:publish": true } }), true);
+});
+
+test("any-day parsing keeps old sessions so their work can be counted", () => {
+  const s = newSession(plan, 0, ["linkedin"], "2026-10-20");
+  assert.ok(parseAnySession(JSON.stringify(s)));
+  assert.equal(parseAnySession("nope"), null);
+});
+
+test("the all-time total adds up every action and never resets", () => {
+  const r = (n: number) => ({ results: { published: n, contacted: n, comments: n, followUps: n, replies: 9, sales: 9 } });
+  assert.equal(repsOf(r(2).results), 8);
+  assert.equal(totalReps([r(1), r(2), r(3)]), 24);
+  assert.equal(totalReps([]), 0);
 });
