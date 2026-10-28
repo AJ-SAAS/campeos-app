@@ -43,7 +43,20 @@ const CREDIT_OPTIONS: { value: Credit; label: string }[] = [
   { value: "none", label: "No name" },
 ];
 
-const inputCls = "w-full px-3 py-2 border border-faint rounded-lg text-sm bg-paper";
+const inputCls =
+  "w-full px-3.5 py-2.5 rounded-xl border border-[#E4E1EC] bg-white text-sm placeholder:text-faint transition focus:outline-none focus:border-[#7C3AED] focus:ring-4 focus:ring-[#7C3AED]/10";
+const GRADIENT = "linear-gradient(90deg,#3B1FD1,#9B1FD6 55%,#E0109F)";
+const primaryBtn =
+  "inline-flex items-center justify-center gap-2 h-11 px-6 rounded-full text-white text-sm font-semibold shadow-[0_8px_20px_-8px_rgba(155,31,214,.55)] transition hover:brightness-110 active:scale-[.98] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed";
+
+const KIND_TONE: Record<string, string> = {
+  testimonial: "bg-[#F4EEFE] text-[#5B21B6]",
+  call: "bg-[#E8F1FF] text-[#1D4ED8]",
+  story: "bg-[#FFF3DD] text-[#9A5B00]",
+  message: "bg-[#E6F7EF] text-[#0F7A4D]",
+  survey: "bg-[#FDE9F4] text-[#B0166F]",
+};
+const kindTone = (k: string) => KIND_TONE[k] ?? "bg-[#F1EFF5] text-[#4B4560]";
 
 function filterOf(kind: InsightKind): Filter {
   return kind === "testimonial" ? "testimonial" : kind === "call" ? "call" : "other";
@@ -66,6 +79,7 @@ export default function BuyerInsightsPage() {
   const [insights, setInsights] = useState<Insight[] | null>(null);
   const [oldCalls, setOldCalls] = useState<SalesCallEntry[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
+  const [tab, setTab] = useState<"testimonial" | "read">("testimonial");
   const [status, setStatus] = useState<SaveState>("idle");
 
   // Autosave: edits are saved 0.7s after the last keystroke. `dirty` holds
@@ -187,48 +201,93 @@ export default function BuyerInsightsPage() {
             it, and real quotes are never made up. You can edit or delete anything, and it saves by itself.
           </PageHeader>
 
-          {user && <TestimonialForm uid={user.uid} onAdd={addNew} />}
-          {user && <ReadForm uid={user.uid} onAdd={addNew} />}
+          {user && (
+            <section className="rounded-[26px] border border-[#ECEAF0] bg-white shadow-[0_1px_0_rgba(20,10,40,.03),0_18px_40px_-28px_rgba(59,31,209,.25)] overflow-hidden">
+              <div className="flex gap-1 p-1.5 m-3 mb-0 rounded-full bg-[#F6F4FA] w-fit max-w-full overflow-x-auto" role="tablist">
+                {(
+                  [
+                    ["testimonial", "Testimonial"],
+                    ["read", "Call, story or message"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    role="tab"
+                    aria-selected={tab === key}
+                    onClick={() => setTab(key)}
+                    className={`h-9 px-4 rounded-full text-[13px] font-semibold whitespace-nowrap transition ${
+                      tab === key ? "bg-white text-slate shadow-sm" : "text-muted hover:text-slate"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {tab === "testimonial" ? (
+                <TestimonialForm uid={user.uid} onAdd={addNew} />
+              ) : (
+                <ReadForm uid={user.uid} onAdd={addNew} />
+              )}
+            </section>
+          )}
 
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {(
-                [
-                  ["all", "All"],
-                  ["testimonial", "Testimonials"],
-                  ["call", "Calls"],
-                  ["other", "Other"],
-                ] as [Filter, string][]
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setFilter(key)}
-                  aria-pressed={filter === key}
-                  className={`h-8 px-3 rounded-full text-xs font-semibold border ${
-                    filter === key ? "bg-slate text-white border-slate" : "bg-paper text-muted border-line"
-                  }`}
-                >
-                  {label} {counts[key]}
-                </button>
-              ))}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-serif text-[24px] font-medium tracking-tight">
+                Your library{insights ? <span className="ml-2 font-mono text-xs text-faint align-middle">{insights.length} saved</span> : null}
+              </h2>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {(
+                  [
+                    ["all", "All"],
+                    ["testimonial", "Testimonials"],
+                    ["call", "Calls"],
+                    ["other", "Other"],
+                  ] as [Filter, string][]
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setFilter(key)}
+                    aria-pressed={filter === key}
+                    className={`inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs font-semibold transition ${
+                      filter === key ? "bg-[#0D0A1A] text-white" : "bg-[#F6F4FA] text-muted hover:bg-[#EEEAF6]"
+                    }`}
+                  >
+                    {label}
+                    <span className={filter === key ? "text-white/60" : "text-faint"}>{counts[key]}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {insights === null && user && <div className="text-sm text-faint">Loading...</div>}
             {insights && shown.length === 0 && (
-              <div className="px-4 py-6 text-sm text-faint text-center border border-line rounded-2xl">
-                {insights.length === 0
-                  ? "Nothing here yet. Add a testimonial above, or paste a sales call."
-                  : "Nothing in this list."}
+              <div className="flex flex-col items-center text-center gap-3 px-6 py-12 rounded-[26px] border border-dashed border-[#D9D4E6] bg-[#FBFAFD]">
+                <div className="w-12 h-12 rounded-2xl grid place-items-center text-white" style={{ background: GRADIENT }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.3A8 8 0 1 1 21 12z" />
+                  </svg>
+                </div>
+                <div className="font-serif text-xl font-medium">
+                  {insights.length === 0 ? "No buyer voices yet" : "Nothing in this list"}
+                </div>
+                <p className="text-sm text-muted max-w-[44ch]">
+                  {insights.length === 0
+                    ? "Add a testimonial above, or paste a sales call. Your campaigns will quote real buyers instead of guessing."
+                    : "Try another filter to see the rest of your library."}
+                </p>
               </div>
             )}
-            {shown.map((ins) => (
-              <InsightCard key={ins.id} insight={ins} onChange={update} onDelete={() => remove(ins.id)} />
-            ))}
+            <div className="flex flex-col gap-3">
+              {shown.map((ins) => (
+                <InsightCard key={ins.id} insight={ins} onChange={update} onDelete={() => remove(ins.id)} />
+              ))}
+            </div>
           </div>
 
           {oldCalls.length > 0 && (
-            <details className="border border-line rounded-2xl">
-              <summary className="px-4 py-3 text-sm font-semibold cursor-pointer">
+            <details className="rounded-[22px] border border-[#ECEAF0] bg-white">
+              <summary className="px-5 py-4 text-sm font-semibold cursor-pointer">
                 Older sales calls ({oldCalls.length})
               </summary>
               <div className="flex flex-col gap-2.5 px-4 pb-4">
@@ -323,37 +382,36 @@ function TestimonialForm({ uid, onAdd }: { uid: string; onAdd: (i: Omit<Insight,
   }
 
   return (
-    <div className="flex flex-col gap-2.5 p-4 border border-line rounded-2xl">
+    <div className="flex flex-col gap-3.5 p-5 sm:p-6">
       <div>
-        <div className="text-sm font-semibold">Add a testimonial or review</div>
-        <div className="text-xs text-muted">Type or paste what they said, word for word. Add their name if you have it.</div>
+        <div className="font-serif text-[22px] font-medium tracking-tight">Add a testimonial or review</div>
+        <div className="text-sm text-muted mt-0.5">Type or paste what they said, word for word. Add their name if you have it.</div>
       </div>
-      <textarea
-        value={quote}
-        onChange={(e) => setQuote(e.target.value)}
-        placeholder="I finally feel like I'm not breaking."
-        rows={3}
-        className={`${inputCls} resize-none`}
-      />
+      <div className="relative">
+        <span className="absolute left-4 top-2 font-serif text-4xl leading-none text-[#C9B8F5] select-none" aria-hidden="true">&ldquo;</span>
+        <textarea
+          value={quote}
+          onChange={(e) => setQuote(e.target.value)}
+          placeholder="I finally feel like I'm not breaking."
+          rows={3}
+          className={`${inputCls} resize-none pl-10 pt-3.5 font-serif text-[17px]`}
+        />
+      </div>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Their name (optional)" className={inputCls} />
       {more && (
-        <div className="grid gap-2.5 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Who they are (optional)" className={inputCls} />
           <input value={result} onChange={(e) => setResult(e.target.value)} placeholder="Their result (optional)" className={inputCls} />
         </div>
       )}
       {error && <div className="text-xs text-dangerFg">{error}</div>}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={submit}
-          disabled={busy || !quote.trim()}
-          className="inline-flex items-center justify-center h-10 px-4 rounded-[10px] bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold disabled:opacity-50"
-        >
+      <div className="flex flex-wrap items-center gap-4">
+        <button onClick={submit} disabled={busy || !quote.trim()} className={primaryBtn} style={{ background: GRADIENT }}>
           {busy ? "Saving..." : "Save testimonial"}
         </button>
         {!more && (
-          <button onClick={() => setMore(true)} className="text-xs text-muted font-medium underline">
-            Add who they are or their result
+          <button onClick={() => setMore(true)} className="text-[13px] text-[#5B21B6] font-semibold hover:underline">
+            + Who they are or their result
           </button>
         )}
       </div>
@@ -427,11 +485,14 @@ function ReadForm({ uid, onAdd }: { uid: string; onAdd: (i: Omit<Insight, "id" |
     }
   }
 
+  const [drag, setDrag] = useState(false);
+  const canSubmit = !!text.trim() || !!link.trim() || images.length > 0;
+
   return (
-    <div className="flex flex-col gap-2.5 p-4 border border-line rounded-2xl">
+    <div className="flex flex-col gap-3.5 p-5 sm:p-6">
       <div>
-        <div className="text-sm font-semibold">Add a sales call, story or message</div>
-        <div className="text-xs text-muted">
+        <div className="font-serif text-[22px] font-medium tracking-tight">Add a sales call, story or message</div>
+        <div className="text-sm text-muted mt-0.5">
           Paste it, drop a screenshot or give a link. Campeos pulls out what buyers worried about, wanted and said, in their own words.
         </div>
       </div>
@@ -442,36 +503,67 @@ function ReadForm({ uid, onAdd }: { uid: string; onAdd: (i: Omit<Insight, "id" |
         rows={5}
         className={`${inputCls} resize-none`}
       />
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Or a link (optional)" className={inputCls} />
-        <select value={kind} onChange={(e) => setKind(e.target.value as InsightKind | "")} className={inputCls} aria-label="What is it?">
+      <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Or a link (optional)" className={inputCls} />
+      <div className="flex flex-col gap-2">
+        <div className="font-mono text-[11px] uppercase tracking-wider text-faint">What is it?</div>
+        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="What is it?">
           {KIND_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="inline-flex items-center h-8 px-3 rounded-full border border-line text-xs font-semibold text-muted cursor-pointer">
-          Add screenshots
-          <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => pick(e.target.files)} />
-        </label>
-        {images.map((im, i) => (
-          <span key={i} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-ivory text-xs">
-            {im.name.slice(0, 22)}
-            <button onClick={() => setImages(images.filter((_, j) => j !== i))} aria-label="Remove" className="text-muted">
-              ×
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={kind === o.value}
+              onClick={() => setKind(o.value)}
+              className={`h-8 px-3.5 rounded-full text-xs font-semibold transition ${
+                kind === o.value ? "bg-[#F4EEFE] text-[#5B21B6] ring-1 ring-[#C9B8F5]" : "bg-[#F6F4FA] text-muted hover:bg-[#EEEAF6]"
+              }`}
+            >
+              {o.value === "" ? "Auto" : o.label}
             </button>
-          </span>
-        ))}
+          ))}
+        </div>
       </div>
-      {error && <div className="text-xs text-dangerFg">{error}</div>}
-      <button
-        onClick={submit}
-        disabled={busy || (!text.trim() && !link.trim() && images.length === 0)}
-        className="self-start inline-flex items-center justify-center h-10 px-4 rounded-[10px] bg-gradient-to-r from-clay to-pink text-white text-sm font-semibold disabled:opacity-50"
+      <label
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDrag(false);
+          pick(e.dataTransfer.files);
+        }}
+        className={`flex items-center justify-center gap-2.5 px-4 py-5 rounded-2xl border border-dashed text-sm cursor-pointer transition ${
+          drag ? "border-[#7C3AED] bg-[#F4EEFE] text-[#5B21B6]" : "border-[#D9D4E6] bg-[#FBFAFD] text-muted hover:border-[#B9A6EE]"
+        }`}
       >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <circle cx="9" cy="9" r="1.5" />
+          <path d="M21 15l-5-5L5 21" />
+        </svg>
+        <span>
+          <span className="font-semibold text-slate">Drop screenshots</span> or click to add (up to 4)
+        </span>
+        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => pick(e.target.files)} />
+      </label>
+      {images.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {images.map((im, i) => (
+            <span key={i} className="inline-flex items-center gap-2 h-8 pl-1.5 pr-3 rounded-full bg-[#F6F4FA] text-xs">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={im.url} alt="" className="w-5 h-5 rounded-full object-cover" />
+              {im.name.slice(0, 22)}
+              <button onClick={() => setImages(images.filter((_, j) => j !== i))} aria-label="Remove" className="text-muted hover:text-slate">
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {error && <div className="text-xs text-dangerFg">{error}</div>}
+      <button onClick={submit} disabled={busy || !canSubmit} className={`${primaryBtn} self-start`} style={{ background: GRADIENT }}>
         {busy ? "Reading..." : "Read and save"}
       </button>
     </div>
@@ -519,15 +611,15 @@ function InsightCard({ insight, onChange, onDelete }: { insight: Insight; onChan
   const preview = isTestimonial ? t.quote : [...l.pains, ...l.results, ...l.quotes][0] ?? "";
 
   return (
-    <div className="flex flex-col gap-3 px-4 py-3.5 border border-line rounded-xl">
+    <div className="flex flex-col gap-3 px-5 py-4 rounded-[22px] border border-[#ECEAF0] bg-white transition hover:shadow-[0_14px_30px_-22px_rgba(59,31,209,.35)]">
       <div className="flex items-start gap-3">
         <div className="flex-grow min-w-0 flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-ivory text-[11px] font-semibold">{KIND_LABEL[insight.kind]}</span>
+            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${kindTone(insight.kind)}`}>{KIND_LABEL[insight.kind]}</span>
             {insight.source === "scan" && <span className="text-[11px] text-faint">From your page</span>}
           </div>
           {isTestimonial ? (
-            !open && <div className="text-sm text-slate line-clamp-2">&ldquo;{t.quote}&rdquo;{t.name && <span className="text-muted"> {t.name}</span>}</div>
+            !open && <div className="font-serif text-[17px] leading-snug text-slate line-clamp-3">&ldquo;{t.quote}&rdquo;{t.name && <span className="block mt-1 font-body text-[13px] text-muted">{t.name}{t.role ? `, ${t.role}` : ""}</span>}</div>
           ) : (
             <input
               value={insight.title}
@@ -538,19 +630,19 @@ function InsightCard({ insight, onChange, onDelete }: { insight: Insight; onChan
           )}
           {!open && !isTestimonial && preview && <div className="text-xs text-faint line-clamp-2">{preview}</div>}
         </div>
-        <div className="shrink-0 flex items-center gap-3 text-xs font-medium text-muted">
-          <button onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        <div className="shrink-0 flex items-center gap-1 text-xs font-semibold text-muted">
+          <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="h-8 px-3 rounded-full hover:bg-[#F6F4FA] transition">
             {open ? "Close" : "Edit"}
           </button>
           {confirming ? (
             <span className="inline-flex items-center gap-2">
-              <button onClick={onDelete} className="text-dangerFg font-semibold">
+              <button onClick={onDelete} className="h-8 px-3 rounded-full bg-red-50 text-dangerFg font-semibold">
                 Yes, delete
               </button>
-              <button onClick={() => setConfirming(false)}>No</button>
+              <button onClick={() => setConfirming(false)} className="h-8 px-2 rounded-full hover:bg-[#F6F4FA]">No</button>
             </span>
           ) : (
-            <button onClick={() => setConfirming(true)} aria-label="Delete">
+            <button onClick={() => setConfirming(true)} aria-label="Delete" className="h-8 px-3 rounded-full hover:bg-red-50 hover:text-dangerFg transition">
               Delete
             </button>
           )}
@@ -591,7 +683,7 @@ function InsightCard({ insight, onChange, onDelete }: { insight: Insight; onChan
           {l.objections.length > 0 && (
             <Block label="Reasons they hesitated">
               {l.objections.map((o, i) => (
-                <div key={i} className="flex flex-col gap-1.5 p-2.5 border border-line rounded-lg">
+                <div key={i} className="flex flex-col gap-2 p-3 rounded-2xl bg-[#FBFAFD] border border-[#ECEAF0]">
                   <div className="flex items-center gap-2">
                     <input
                       value={o.objection}
@@ -666,7 +758,7 @@ function Block({ label, children }: { label: string; children: React.ReactNode }
 
 function RemoveButton({ onClick }: { onClick: () => void }) {
   return (
-    <button onClick={onClick} aria-label="Remove this line" className="shrink-0 w-8 h-8 rounded-lg border border-line text-muted text-base leading-none">
+    <button onClick={onClick} aria-label="Remove this line" className="shrink-0 w-9 h-9 rounded-full bg-[#F6F4FA] text-muted text-base leading-none hover:bg-red-50 hover:text-dangerFg transition">
       ×
     </button>
   );
