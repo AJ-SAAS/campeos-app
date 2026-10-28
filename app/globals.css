@@ -84,3 +84,31 @@ a:hover .campaign-icon::after{animation:campaign-shine .8s ease-out}
   .reps-nudge { animation: reps-ring 2.4s ease-out infinite; }
   .reps-nudge .reps-arrow { animation: none; }
 }
+
+/* Daily Reps focus stage */
+@keyframes reps-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, 30px) scale(1.08); }
+}
+.reps-aurora { animation: reps-drift 14s ease-in-out infinite; pointer-events: none; }
+.reps-aurora-b { animation-duration: 18s; animation-direction: reverse; }
+@keyframes reps-pop {
+  0% { transform: scale(.7); opacity: .3; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.reps-pop { animation: reps-pop .4s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes reps-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.reps-in { animation: reps-in .4s cubic-bezier(.2,.7,.2,1) both; }
+.reps-cheer { animation: reps-in .3s cubic-bezier(.2,.9,.3,1.2) both; }
+@keyframes reps-now {
+  0% { box-shadow: 0 0 0 0 rgba(196,181,253,.5); }
+  100% { box-shadow: 0 0 0 9px rgba(196,181,253,0); }
+}
+.reps-ring-now { animation: reps-now 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .reps-aurora, .reps-pop, .reps-in, .reps-cheer, .reps-ring-now { animation: none; }
+}

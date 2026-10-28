@@ -300,6 +300,12 @@ export function clock(ms: number): string {
   return `${h > 0 ? `${h}:` : ""}${mm}:${String(sec).padStart(2, "0")}`;
 }
 
+/** Always minutes and seconds, so a full hour reads 60:00 and fits in a ring. */
+export function clockMinSec(ms: number): string {
+  const total = Math.ceil(ms / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
 export function minutesSpent(s: SprintSession, now: number): number {
   return Math.min(s.plan.minutes, Math.max(0, Math.round((now - s.startedAt) / 60_000)));
 }
@@ -375,6 +381,25 @@ export function repsOf(r: SprintResults): number {
 /** All the reps ever done. This one never resets; only today's sprint does. */
 export function totalReps(records: { results: SprintResults }[]): number {
   return records.reduce((n, r) => n + repsOf(r.results), 0);
+}
+
+/** One line from Eos while the sprint runs, based on how far along you are. */
+export function coachLine(pct: number, over: boolean): string {
+  if (over) return pct >= 100 ? "All of it, done. Go log it." : "Time's up. Finish what you're on, then log it.";
+  if (pct >= 100) return "Every rep done. That's a full hour of real work.";
+  if (pct >= 75) return "Last stretch. Finish strong.";
+  if (pct >= 50) return "Halfway there. Keep the pace.";
+  if (pct >= 20) return "You're moving. Keep stacking reps.";
+  if (pct > 0) return "First rep done. The rest get easier.";
+  return "Start with the first step. Momentum does the rest.";
+}
+
+/** The button label for logging one rep of a count-based task. */
+export function logLabel(kind: TaskKind): string {
+  if (kind === "prospect") return "I messaged one person";
+  if (kind === "engage") return "I posted a comment";
+  if (kind === "followup") return "I sent a follow-up";
+  return "I published one";
 }
 
 /** What Eos says about how it went. Never scolds a light day. */

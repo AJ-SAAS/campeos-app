@@ -122,3 +122,18 @@ test("the all-time total adds up every action and never resets", () => {
   assert.equal(totalReps([r(1), r(2), r(3)]), 24);
   assert.equal(totalReps([]), 0);
 });
+
+test("Eos coaches by how far along you are", async () => {
+  const { coachLine, logLabel } = await import("../lib/daily/sprint");
+  assert.match(coachLine(0, false), /Start/);
+  assert.match(coachLine(55, false), /Halfway/);
+  assert.match(coachLine(100, false), /Every rep/);
+  assert.match(coachLine(30, true), /Time's up/);
+  assert.equal(logLabel("prospect"), "I messaged one person");
+});
+
+test("the ring clock never shows hours", async () => {
+  const { clockMinSec } = await import("../lib/daily/sprint");
+  assert.equal(clockMinSec(3600_000), "60:00");
+  assert.equal(clockMinSec(59 * 60_000 + 3000), "59:03");
+});

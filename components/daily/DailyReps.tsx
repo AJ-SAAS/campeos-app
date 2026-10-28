@@ -13,6 +13,7 @@ import {
 } from "@/lib/daily/sprint";
 import { listSprints, saveSprint, type SprintRecord } from "@/lib/firebase/dailySprints";
 import { todaysSession, writeStore } from "@/lib/daily/session";
+import { Work } from "./FocusStage";
 
 // Daily Reps: pick your time, press start, and work through four guided
 // tasks. Eos plans it; you do it. Three screens: start, work, finish.
@@ -128,28 +129,31 @@ function Start({
 
   return (
     <div className="max-w-[860px] flex flex-col gap-7">
-      <div className="flex flex-wrap items-center gap-5">
-        <div className="shrink-0">
-          <Mascot size={120} fit={1.05} centered bubble={false} glow={false} restless={false} mood="happy" label={AGENT_NAME} style={{ margin: -8 }} />
+      <header className="relative overflow-hidden rounded-[32px] text-white px-6 sm:px-9 py-8" style={{ background: "#0D0A1A" }}>
+        <div aria-hidden="true" className="reps-aurora absolute -top-28 -left-20 w-[420px] h-[420px] rounded-full" style={{ background: "radial-gradient(circle,rgba(124,58,237,.55),transparent 68%)" }} />
+        <div aria-hidden="true" className="reps-aurora reps-aurora-b absolute -bottom-36 -right-16 w-[460px] h-[460px] rounded-full" style={{ background: "radial-gradient(circle,rgba(224,16,159,.38),transparent 68%)" }} />
+        <div className="relative flex flex-wrap items-center gap-6">
+          <div className="shrink-0">
+            <Mascot size={176} fit={1.05} centered bubble={false} glow={false} restless={false} mood="happy" label={AGENT_NAME} style={{ margin: -22 }} />
+          </div>
+          <div className="min-w-[240px] flex-1">
+            <div className="font-mono text-[11px] uppercase tracking-[.12em] text-white/55">Daily Reps</div>
+            <h1 className="font-serif text-[34px] sm:text-[44px] leading-[1.04] font-medium tracking-tight mt-2">
+              Your business grows when you do the work.
+            </h1>
+            <p className="text-[16px] text-white/70 mt-3 max-w-[520px]">
+              Pick your time. {AGENT_NAME} plans the hour and gets the guidance ready. You get the reps in.
+            </p>
+            {(streak > 0 || doneToday || total > 0) && (
+              <div className="mt-4 inline-flex flex-wrap items-center gap-x-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-sm font-semibold">
+                {doneToday ? <span>Today&apos;s reps are done</span> : streak > 0 ? <span>{streak} {streak === 1 ? "day" : "days"} in a row</span> : null}
+                {doneToday && streak > 0 && <span>· {streak} in a row</span>}
+                {total > 0 && <span>{doneToday || streak > 0 ? "· " : ""}{total.toLocaleString()} {total === 1 ? "rep" : "reps"} all time</span>}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="min-w-[240px] flex-1">
-          <div className="font-mono text-xs uppercase tracking-[.08em] text-muted">Daily Reps</div>
-          <h1 className="font-serif text-[34px] sm:text-[42px] leading-[1.05] font-medium tracking-tight mt-1.5">
-            Your business grows when you do the work.
-          </h1>
-          <p className="text-[16px] text-muted mt-2">
-            Pick your time. {AGENT_NAME} plans the hour and gets the guidance ready. You get the reps in.
-          </p>
-        </div>
-      </div>
-
-      {(streak > 0 || doneToday || total > 0) && (
-        <div className="self-start inline-flex flex-wrap items-center gap-x-2 px-3.5 py-1.5 rounded-full bg-[#F4EEFE] text-[#5B21B6] text-sm font-semibold">
-          {doneToday ? <span>Today&apos;s reps are done</span> : streak > 0 ? <span>{streak} {streak === 1 ? "day" : "days"} in a row</span> : null}
-          {doneToday && streak > 0 && <span>· {streak} in a row</span>}
-          {total > 0 && <span>{doneToday || streak > 0 ? "· " : ""}{total.toLocaleString()} {total === 1 ? "rep" : "reps"} all time</span>}
-        </div>
-      )}
+      </header>
 
       <section aria-label="How much time">
         <h2 className="text-[15px] font-semibold mb-2.5">How much time are you putting in today?</h2>
@@ -236,307 +240,6 @@ function Start({
         <p className="text-sm text-muted max-w-[420px]">
           Targets are starting points to test, not promises. A lighter day still counts.
         </p>
-      </div>
-    </div>
-  );
-}
-
-// ----------------------------------------------------------------- Work
-
-function useNow(active: boolean): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!active) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [active]);
-  return now;
-}
-
-function Work({
-  session, offerName, update, onFinish,
-}: {
-  session: SprintSession;
-  offerName: string;
-  update: (fn: (s: SprintSession) => SprintSession) => void;
-  onFinish: () => void;
-}) {
-  const now = useNow(true);
-  const left = remainingMs(session.endsAt, now);
-  const over = left === 0;
-  const pct = workPercent(session);
-  const done = tasksCompleted(session);
-  const total = session.plan.tasks.length;
-  const [open, setOpen] = useState<string>(session.plan.tasks[0].id);
-  const weekday = new Date().toLocaleDateString(undefined, { weekday: "long" });
-  const elapsed = Math.round(((session.plan.minutes * 60_000 - left) / (session.plan.minutes * 60_000)) * 100);
-
-  return (
-    <div className="max-w-[860px] flex flex-col gap-5">
-      <section aria-label="Sprint status" className="rounded-[24px] border border-[#E9DDFB] overflow-hidden" style={{ background: "linear-gradient(135deg,#F7F2FE,#FDEFF7)" }}>
-        <div className="flex flex-wrap items-center justify-between gap-4 px-5 sm:px-6 py-5">
-          <div className="min-w-0">
-            <div className="font-mono text-xs uppercase tracking-[.08em] text-[#5B21B6]">Daily Reps · {weekday}</div>
-            <h1 className="font-serif text-[28px] sm:text-[34px] leading-[1.1] font-medium tracking-tight mt-1">
-              {over ? "Time's up." : offerName ? `Let's grow ${offerName}.` : "Let's grow your business."}
-            </h1>
-            <p className="text-sm text-muted mt-1">
-              {done} of {total} tasks done · {pct}% of the work
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="font-mono text-[11px] uppercase tracking-[.08em] text-muted">{over ? "Finished" : "Time left"}</div>
-            <div role="timer" aria-live="off" className="font-mono text-[40px] sm:text-[48px] leading-none font-semibold tabular-nums">
-              {clock(left)}
-            </div>
-          </div>
-        </div>
-        <div className="px-5 sm:px-6 pb-5">
-          <div className="relative h-2 rounded-full bg-white/80 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Work done">
-            <div className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out" style={{ width: `${pct}%`, background: GRAD }} />
-          </div>
-          <div className="mt-1.5 flex justify-between text-xs text-muted">
-            <span>Work done</span>
-            <span>{elapsed}% of the hour used</span>
-          </div>
-        </div>
-      </section>
-
-      {over && (
-        <div role="status" className="px-4 py-3 rounded-xl bg-[#FEF7E0] text-[#7A4B00] text-sm font-semibold">
-          Your hour is up. Finish what you are on, then log your results.
-        </div>
-      )}
-
-      <ol className="flex flex-col gap-3">
-        {session.plan.tasks.map((t) => (
-          <TaskCard
-            key={t.id}
-            task={t}
-            session={session}
-            open={open === t.id}
-            onToggle={() => setOpen(open === t.id ? "" : t.id)}
-            update={update}
-          />
-        ))}
-      </ol>
-
-      <div className="flex flex-wrap items-center gap-4 pt-1">
-        <button
-          type="button"
-          onClick={onFinish}
-          className="h-[52px] px-7 rounded-xl text-white text-[16px] font-bold"
-          style={{ background: done === total ? GRAD : "#13171A" }}
-        >
-          {done === total ? "Finish sprint" : "Finish and log results"}
-        </button>
-        <p className="text-sm text-muted">Done early? Finish any time. Nothing counts until you did it yourself.</p>
-      </div>
-    </div>
-  );
-}
-
-function TaskCard({
-  task, session, open, onToggle, update,
-}: {
-  task: SprintTask;
-  session: SprintSession;
-  open: boolean;
-  onToggle: () => void;
-  update: (fn: (s: SprintSession) => SprintSession) => void;
-}) {
-  const n = doneCount(session, task);
-  const complete = taskComplete(session, task);
-  const steps = subtasksFor(task.kind, session.channels);
-  const toggleStep = (id: string) => update((s) => ({ ...s, steps: { ...s.steps, [id]: !s.steps[id] } }));
-  const bump = (by: number) =>
-    update((s) => ({ ...s, counts: { ...s.counts, [task.id]: Math.max(0, (s.counts[task.id] ?? 0) + by) } }));
-  const toggleChannel = (c: ChannelId) =>
-    update((s) => {
-      const has = s.channels.includes(c);
-      if (has && s.channels.length === 1) return s;
-      return { ...s, channels: has ? s.channels.filter((x) => x !== c) : [...s.channels, c] };
-    });
-
-  return (
-    <li className={`rounded-[22px] border overflow-hidden transition-colors ${complete ? "border-[#BBF7D0] bg-[#F6FDF8]" : "border-[#ECEAF0] bg-white"}`}>
-      <button type="button" onClick={onToggle} aria-expanded={open} className="w-full flex items-center gap-4 px-5 py-4 text-left">
-        <span
-          aria-hidden="true"
-          className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center ${complete ? "bg-[#22C55E] text-white" : "border-2 border-[#D4D1DB]"}`}
-        >
-          {complete && (
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-          )}
-        </span>
-        <span className="flex-1 min-w-0">
-          <span className="block font-mono text-[11px] uppercase tracking-[.08em] text-muted">
-            {task.tag} · {task.minutes} MIN
-          </span>
-          <span className="block text-[17px] font-semibold">{task.title}</span>
-        </span>
-        <span className="text-sm font-semibold tabular-nums text-[#5B21B6] shrink-0">
-          {Math.min(n, task.target)} / {task.target}
-        </span>
-        <span aria-hidden="true" className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}>⌄</span>
-      </button>
-
-      {open && (
-        <div className="px-5 pb-5 flex flex-col gap-4 border-t border-[#F0EEF4] pt-4">
-          <p className="text-[15px] text-muted">{task.blurb}</p>
-
-          {task.kind === "content" && (
-            <div>
-              <div className="text-sm font-semibold mb-2">Where will you publish?</div>
-              <div className="flex flex-wrap gap-2">
-                {CHANNELS.map((c) => {
-                  const on = session.channels.includes(c.id);
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => toggleChannel(c.id)}
-                      className={`h-10 px-3.5 rounded-xl border text-sm font-semibold ${on ? "border-transparent shadow-[inset_0_0_0_2px_#13171A] bg-[#FAF9FC]" : "border-[#D4D1DB] hover:border-[#B9B3C7]"}`}
-                    >
-                      {c.title} <span className="font-normal text-muted">· {c.sub}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {session.channels.length < task.target && (
-                <p className="text-xs text-muted mt-2">
-                  You picked {session.channels.length} of {task.target}. Pick more to hit the target, or aim lower today.
-                </p>
-              )}
-            </div>
-          )}
-
-          {task.kind !== "content" && (
-            <div className="flex items-center gap-3">
-              <div className="inline-flex items-center rounded-xl border border-[#D4D1DB] overflow-hidden">
-                <button type="button" aria-label={`One fewer ${task.unit}`} onClick={() => bump(-1)} className="w-11 h-11 text-xl hover:bg-[#FAFAFA]">−</button>
-                <span className="w-14 text-center font-semibold tabular-nums" aria-live="polite">{n}</span>
-                <button type="button" aria-label={`One more ${task.unit}`} onClick={() => bump(1)} className="w-11 h-11 text-xl hover:bg-[#FAFAFA]">+</button>
-              </div>
-              <span className="text-sm text-muted">{task.unit}</span>
-            </div>
-          )}
-
-          <Steps task={task} steps={steps} session={session} onToggle={toggleStep} />
-
-          {task.kind === "followup" && <Scenarios />}
-
-          <p className="text-xs text-muted">Done means: {task.done}</p>
-        </div>
-      )}
-    </li>
-  );
-}
-
-function Steps({
-  task, steps, session, onToggle,
-}: {
-  task: SprintTask;
-  steps: ReturnType<typeof subtasksFor>;
-  session: SprintSession;
-  onToggle: (id: string) => void;
-}) {
-  if (task.kind === "content") {
-    return (
-      <div className="flex flex-col gap-4">
-        {session.channels.map((c) => (
-          <div key={c} className="rounded-2xl bg-[#FAFAFC] border border-[#F0EEF4] px-4 py-3.5">
-            <div className="text-sm font-semibold mb-1">{channelTitle(c)} steps</div>
-            <StepList steps={steps.filter((s) => s.id.startsWith(`${c}:`))} done={session.steps} onToggle={onToggle} />
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div className="rounded-2xl bg-[#FAFAFC] border border-[#F0EEF4] px-4 py-3.5">
-      <div className="text-sm font-semibold mb-1">How to do it</div>
-      <StepList steps={steps} done={session.steps} onToggle={(id) => onToggle(`${task.id}:${id}`)} prefix={`${task.id}:`} />
-    </div>
-  );
-}
-
-function StepList({
-  steps, done, onToggle, prefix = "",
-}: {
-  steps: ReturnType<typeof subtasksFor>;
-  done: Record<string, boolean>;
-  onToggle: (id: string) => void;
-  prefix?: string;
-}) {
-  return (
-    <ul className="flex flex-col">
-      {steps.map((s) => {
-        const key = `${prefix}${s.id}`;
-        const on = !!done[key];
-        return (
-          <li key={s.id} className="py-2">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={on}
-                onChange={() => onToggle(s.id)}
-                className="mt-1 w-[18px] h-[18px] accent-[#7C3AED] shrink-0"
-              />
-              <span className="min-w-0">
-                <span className={`block text-[15px] font-semibold ${on ? "line-through text-muted" : ""}`}>
-                  {s.title} <span className="font-mono text-[11px] font-normal text-muted">{s.minutes} min</span>
-                </span>
-                <span className="block text-sm text-muted mt-0.5">{s.how}</span>
-              </span>
-            </label>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function Scenarios() {
-  const [id, setId] = useState(SCENARIOS[0].id);
-  const [copied, setCopied] = useState(false);
-  const sc = SCENARIOS.find((s) => s.id === id) ?? SCENARIOS[0];
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(sc.message);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      /* the text is on screen to select by hand */
-    }
-  }
-  return (
-    <div className="rounded-2xl border border-[#E9DDFB] bg-[#FBF8FF] px-4 py-4">
-      <div className="text-sm font-semibold mb-2">Who are you following up with?</div>
-      <div className="flex flex-wrap gap-2 mb-3">
-        {SCENARIOS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            aria-pressed={s.id === id}
-            onClick={() => setId(s.id)}
-            className={`h-9 px-3 rounded-full border text-[13px] font-semibold ${s.id === id ? "border-transparent bg-[#13171A] text-white" : "border-[#D4D1DB] bg-white hover:border-[#B9B3C7]"}`}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-      <div className="text-sm"><span className="font-semibold">Goal:</span> {sc.goal}</div>
-      <blockquote className="mt-2 px-3.5 py-3 rounded-xl bg-white border border-[#ECEAF0] text-[15px] leading-relaxed">
-        {sc.message}
-      </blockquote>
-      <p className="text-sm text-muted mt-2">{sc.guidance}</p>
-      <div className="flex items-center gap-3 mt-3">
-        <button type="button" onClick={copy} className="h-9 px-3.5 rounded-lg border border-[#D4D1DB] bg-white text-sm font-semibold hover:bg-[#FAFAFA]">
-          {copied ? "Copied" : "Copy message"}
-        </button>
-        <span className="text-xs text-muted">A starting point. Change the name and one detail so it sounds like you.</span>
       </div>
     </div>
   );
