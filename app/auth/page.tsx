@@ -114,7 +114,12 @@ function AuthInner() {
       await signIn();
       // The effect above routes once `user` updates.
     } catch (err) {
-      setError(err instanceof Error ? friendlyAuthError(err.message) : "Something went wrong.");
+      // Closing the Google popup isn't a failure, just a change of mind —
+      // don't show it as an error.
+      const message = err instanceof Error ? err.message : "";
+      if (!message.includes("auth/popup-closed-by-user")) {
+        setError(err instanceof Error ? friendlyAuthError(err.message) : "Something went wrong.");
+      }
     } finally {
       setPending(null);
     }

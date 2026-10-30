@@ -13,14 +13,20 @@ import { authFetch } from "@/lib/firebase/authFetch";
 // the plan (what changes between them, shown big), the right side shows
 // the price, what's included, and one Subscribe button. Feature lists
 // match the pricing on the sales page (components/landing). Yearly is
-// 10 months' price billed once a year ("2 months free"), its own Stripe
-// price (STRIPE_PRICE_*_YEARLY, see lib/stripe/client.ts).
+// 10 months' price billed once a year — shown as "Save $X a year"
+// (PLANS[id].yearlySavings), not "2 months free" (it's close but not
+// exact) — its own Stripe price (STRIPE_PRICE_*_YEARLY, see
+// lib/stripe/client.ts).
 
 const PLANS: Record<
   PlanKey,
   {
     name: string;
     price: Record<BillingInterval, string>;
+    /** What a year of the yearly price saves against 12 months of the
+     * monthly price, e.g. "$72" — shown instead of the vaguer "2 months
+     * free" (yearly is 10 months' price, not exactly 2 months off). */
+    yearlySavings: string;
     tagline: string;
     big: string;
     bigLabel: string;
@@ -31,6 +37,7 @@ const PLANS: Record<
   starter: {
     name: "Starter",
     price: { monthly: "$39", yearly: "$33" },
+    yearlySavings: "$72",
     tagline: "A few launches a year",
     big: "3",
     bigLabel: "campaigns a month",
@@ -49,6 +56,7 @@ const PLANS: Record<
   pro: {
     name: "Pro",
     price: { monthly: "$99", yearly: "$83" },
+    yearlySavings: "$192",
     tagline: "Launch all year",
     big: "Unlimited",
     bigLabel: "campaigns",
@@ -162,7 +170,7 @@ export default function BillingPage() {
                     }`}
                   >
                     {iv === "monthly" ? "Monthly" : "Yearly"}
-                    {iv === "yearly" && <span className="ml-1.5 text-[#15803D]">2 months free</span>}
+                    {iv === "yearly" && <span className="ml-1.5 text-[#15803D]">Save {plan.yearlySavings} a year</span>}
                   </button>
                 ))}
               </div>
@@ -228,7 +236,7 @@ export default function BillingPage() {
             <div className="mt-1.5 text-[14px] text-muted">
               {billingInterval === "yearly" ? (
                 <>
-                  Billed yearly. <span className="text-[#15803D] font-semibold">2 months free.</span>
+                  Billed yearly. <span className="text-[#15803D] font-semibold">Save {plan.yearlySavings} a year.</span>
                 </>
               ) : (
                 "Billed monthly"
