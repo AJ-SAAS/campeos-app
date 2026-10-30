@@ -102,7 +102,7 @@ export default function PrivacyPage() {
             <p id="choices">
               We advertise on Meta. If you allow it, we use the Meta Pixel and Meta&apos;s Conversions API to
               measure our ads. Meta may receive the pages you visit, and when you subscribe, the plan
-              and amount, a hashed version of your email address, and browser and device details such
+              and amount, hashed versions of your email address and phone number, and browser and device details such
               as your IP address. We do this to see which ads lead to sign-ups and to show our ads to
               people likely to be interested. We never send what you write in the app.
             </p>

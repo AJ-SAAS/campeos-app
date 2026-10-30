@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { isOptOutRegion, parseConsent, readCookie, trackingAllowed } from "../lib/meta/consent";
-import { amountToValue, buildPurchaseEvent, cleanMetaCookie, clientIpFrom, normalizeEmail, sha256 } from "../lib/meta/payload";
+import { amountToValue, buildPurchaseEvent, cleanMetaCookie, clientIpFrom, normalizeEmail, normalizePhone, sha256 } from "../lib/meta/payload";
 
 test("US is opt-out, everywhere else (and unknown) asks first", () => {
   assert.equal(isOptOutRegion("US"), true);
@@ -84,4 +84,16 @@ test("client ip and cookie cleaning", () => {
   assert.equal(cleanMetaCookie("<script>"), undefined);
   assert.equal(cleanMetaCookie(42), undefined);
   assert.equal(cleanMetaCookie("x".repeat(500)), undefined);
+});
+
+test("phone: digits only with country code, hashed, never raw", () => {
+  assert.equal(normalizePhone("+372 5555 5555"), "37255555555");
+  assert.equal(normalizePhone("(415) 555-0123"), "4155550123");
+  assert.equal(normalizePhone("12"), null);
+  assert.equal(normalizePhone("1".repeat(20)), null);
+  const e = buildPurchaseEvent({ eventId: "cs_1", amountTotal: 3900, currency: "usd", phone: "+1 415 555 0123" });
+  assert.deepEqual(e.user_data.ph, [sha256("14155550123")]);
+  assert.equal(JSON.stringify(e).includes("4155550123"), false);
+  const none = buildPurchaseEvent({ eventId: "cs_2", amountTotal: 3900, currency: "usd", phone: "x" });
+  assert.equal("ph" in none.user_data, false);
 });

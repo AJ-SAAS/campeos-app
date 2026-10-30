@@ -11,6 +11,16 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+/**
+ * Meta wants phone numbers as digits only, country code included, no plus
+ * or spaces. Stripe gives them like "+372 5555 5555". Too short to be real
+ * returns null so we never send junk.
+ */
+export function normalizePhone(phone: string): string | null {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 15 ? digits : null;
+}
+
 /** Stripe amounts are in the smallest unit (cents). Meta wants dollars. */
 export function amountToValue(amountTotal: number): number {
   return Math.round(amountTotal) / 100;
@@ -22,6 +32,7 @@ export interface PurchaseInput {
   amountTotal: number;
   currency: string;
   email?: string | null;
+  phone?: string | null;
   uid?: string | null;
   fbp?: string | null;
   fbc?: string | null;
@@ -36,6 +47,8 @@ export interface PurchaseInput {
 export function buildPurchaseEvent(input: PurchaseInput) {
   const user_data: Record<string, unknown> = {};
   if (input.email) user_data.em = [sha256(normalizeEmail(input.email))];
+  const phone = input.phone ? normalizePhone(input.phone) : null;
+  if (phone) user_data.ph = [sha256(phone)];
   if (input.uid) user_data.external_id = [sha256(input.uid)];
   if (input.fbp) user_data.fbp = input.fbp;
   if (input.fbc) user_data.fbc = input.fbc;

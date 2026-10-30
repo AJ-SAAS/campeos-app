@@ -61,6 +61,7 @@ export async function reportPurchase(session: Stripe.Checkout.Session): Promise<
       amountTotal: amount,
       currency: session.currency ?? "usd",
       email: session.customer_details?.email ?? session.customer_email,
+      phone: session.customer_details?.phone,
       uid: session.client_reference_id ?? session.metadata?.uid,
       fbp: saved.fbp,
       fbc: saved.fbc,

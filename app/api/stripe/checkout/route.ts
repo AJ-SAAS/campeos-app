@@ -59,6 +59,8 @@ export async function POST(req: Request) {
       mode: "subscription",
       customer: existingCustomerId,
       customer_email: existingCustomerId ? undefined : email,
+      // Phone is asked on the Stripe page. It goes to Meta hashed, only with the Purchase.
+      phone_number_collection: { enabled: true },
       client_reference_id: uid,
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
