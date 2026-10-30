@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/firebase/AuthProvider";
 import { GlobalAgent } from "@/components/agent/GlobalAgent";
+import { MetaPixel } from "@/components/MetaPixel";
+import { ConsentBanner } from "@/components/ConsentBanner";
 
 // SITE_URL backs metadataBase (so relative OG/icon paths below resolve
 // to absolute URLs in the actual <meta> tags — required for link
@@ -74,6 +76,8 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <GlobalAgent />
+          <MetaPixel />
+          <ConsentBanner />
         </AuthProvider>
       </body>
     </html>

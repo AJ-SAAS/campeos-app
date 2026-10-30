@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { readAttribution } from "@/lib/meta/browser";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import { authFetch } from "@/lib/firebase/authFetch";
 import { getBusinessProfile } from "@/lib/firebase/businessProfile";
@@ -81,7 +82,7 @@ export function PlanModal({ open, onClose }: { open: boolean; onClose: () => voi
     try {
       const res = await authFetch("/api/stripe/checkout", {
         method: "POST",
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, attribution: readAttribution() }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error ?? "Checkout didn't open.");

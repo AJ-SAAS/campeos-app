@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { getStripeClient, PlanKey, BillingInterval } from "@/lib/stripe/client";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { markCustomerInMailerLite } from "@/lib/mailerlite";
+import { reportPurchase } from "@/lib/meta/purchases";
 
 // Stripe needs the raw request body to verify the signature — Next.js
 // would otherwise parse it as JSON first, which breaks verification.
@@ -73,6 +74,10 @@ export async function POST(req: Request) {
         // "Signed Up - Unpaid" group. Best-effort — never blocks or fails
         // the webhook itself (see lib/mailerlite.ts).
         await markCustomerInMailerLite(session.customer_details?.email ?? session.customer_email);
+
+        // Tell Meta about the sale (the server copy of the one Purchase).
+        // Safe to repeat and never throws, so it can't block access.
+        await reportPurchase(session);
         break;
       }
 

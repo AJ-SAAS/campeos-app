@@ -444,7 +444,7 @@ export default class LandingPage extends React.Component {
 </div>
 <div style={{ display: 'flex', gap: '48px', flexWrap: 'wrap', fontSize: '15px' }}>
 <div style={{ display: 'grid', gap: '10px', alignContent: 'start' }}><div style={{ fontWeight: '700' }}>Product</div><a href="#pricing" style={{ color: '#5B5566', textDecoration: 'none' }}>Pricing</a><a href="#features" style={{ color: '#5B5566', textDecoration: 'none' }}>Campaigns</a><a href="#changelog" style={{ color: '#5B5566', textDecoration: 'none' }}>Changelog</a><a href="#faq" style={{ color: '#5B5566', textDecoration: 'none' }}>Help</a></div>
-<div style={{ display: 'grid', gap: '10px', alignContent: 'start' }}><div style={{ fontWeight: '700' }}>Legal</div><a href="/terms" style={{ color: '#5B5566', textDecoration: 'none' }}>Terms</a><a href="/privacy" style={{ color: '#5B5566', textDecoration: 'none' }}>Privacy</a></div>
+<div style={{ display: 'grid', gap: '10px', alignContent: 'start' }}><div style={{ fontWeight: '700' }}>Legal</div><a href="/terms" style={{ color: '#5B5566', textDecoration: 'none' }}>Terms</a><a href="/privacy" style={{ color: '#5B5566', textDecoration: 'none' }}>Privacy</a><a href="/privacy#choices" data-privacy-choices style={{ color: '#5B5566', textDecoration: 'none' }}>Your privacy choices</a></div>
 <div style={{ display: 'grid', gap: '10px', alignContent: 'start' }}><div style={{ fontWeight: '700' }}>Contact</div><a href="mailto:ajay@ajaysharma.co" style={{ color: '#5B5566', textDecoration: 'none' }}>ajay@ajaysharma.co</a></div>
 </div>
 </div>

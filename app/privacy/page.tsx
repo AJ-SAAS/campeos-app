@@ -90,10 +90,28 @@ export default function PrivacyPage() {
               <li><strong>Firebase (Google Cloud)</strong> &mdash; handles sign-in and stores your account and campaign data.</li>
               <li><strong>Stripe</strong> &mdash; processes payments and manages subscriptions.</li>
               <li><strong>Vercel</strong> &mdash; hosts the application.</li>
+              <li><strong>Meta (Facebook and Instagram)</strong> &mdash; we run ads there. See the advertising section below.</li>
             </ul>
             <p>
               We don&apos;t share your data with anyone else, except if required by law or
               to protect our legal rights.
+            </p>
+          </Section>
+
+          <Section title="Advertising and your privacy choices">
+            <p id="choices">
+              We advertise on Meta. If you allow it, we use the Meta Pixel and Meta&apos;s Conversions API to
+              measure our ads. Meta may receive the pages you visit, and when you subscribe, the plan
+              and amount, a hashed version of your email address, and browser and device details such
+              as your IP address. We do this to see which ads lead to sign-ups and to show our ads to
+              people likely to be interested. We never send what you write in the app.
+            </p>
+            <p>
+              In the United States this is on unless you opt out. Everywhere else it is off unless you
+              accept. You can change your choice at any time with the &quot;Your privacy choices&quot; link at
+              the bottom of our home page, or by clearing this site&apos;s cookies. We treat a browser&apos;s
+              Global Privacy Control signal as an opt-out. You can also manage ad settings in your
+              Meta account.
             </p>
           </Section>
 

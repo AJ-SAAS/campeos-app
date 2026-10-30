@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getStripeClient, PLANS, isPlanKey, isBillingInterval, type BillingInterval } from "@/lib/stripe/client";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
+import { saveCheckoutAttribution } from "@/lib/meta/purchases";
+import { cleanMetaCookie, clientIpFrom } from "@/lib/meta/payload";
 
 /**
  * Starts a Stripe Checkout session for one of the two plans, monthly or
@@ -15,7 +17,11 @@ import { getVerifiedUser, SIGN_IN_AGAIN } from "@/lib/serverAuth";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { plan, interval: rawInterval } = body as { plan?: string; interval?: string };
+    const { plan, interval: rawInterval, attribution } = body as {
+      plan?: string;
+      interval?: string;
+      attribution?: { fbp?: unknown; fbc?: unknown; consent?: unknown; sourceUrl?: unknown };
+    };
 
     const caller = await getVerifiedUser(req);
     if (!caller) {
@@ -59,9 +65,26 @@ export async function POST(req: Request) {
         metadata: { uid, plan, interval },
       },
       metadata: { uid, plan, interval },
-      success_url: `${req.headers.get("origin")}/dashboard?checkout=success`,
+      success_url: `${req.headers.get("origin")}/welcome?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/billing?checkout=canceled`,
     });
+
+    // Save what the Stripe webhook can't see later (the buyer's click
+    // cookies, IP, browser and ad-tracking choice) so the server copy of the
+    // Purchase matches well. Best effort: never blocks checkout.
+    try {
+      await saveCheckoutAttribution(session.id, {
+        uid,
+        fbp: cleanMetaCookie(attribution?.fbp),
+        fbc: cleanMetaCookie(attribution?.fbc),
+        ip: clientIpFrom(req.headers.get("x-forwarded-for")),
+        userAgent: req.headers.get("user-agent"),
+        sourceUrl: typeof attribution?.sourceUrl === "string" ? attribution.sourceUrl.slice(0, 300) : undefined,
+        consent: attribution?.consent === true,
+      });
+    } catch (err) {
+      console.error("Couldn't save checkout attribution:", err);
+    }
 
     if (!session.url) {
       return NextResponse.json({ error: "Stripe didn't return a checkout URL." }, { status: 500 });

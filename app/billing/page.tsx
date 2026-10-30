@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { readAttribution } from "@/lib/meta/browser";
 import { PageHeader } from "@/components/PageHeader";
 import { Sidebar } from "@/components/Sidebar";
 import { usePlanSuggestion } from "@/components/PlanModal";
@@ -109,7 +110,7 @@ export default function BillingPage() {
     try {
       const res = await authFetch("/api/stripe/checkout", {
         method: "POST",
-        body: JSON.stringify({ plan: selected, interval: billingInterval }),
+        body: JSON.stringify({ plan: selected, interval: billingInterval, attribution: readAttribution() }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error ?? "Checkout didn't open.");
