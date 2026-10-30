@@ -23,7 +23,6 @@ import {
   billingFromPrice,
   priceLabel,
   whoIsThin,
-  defaultCurrency,
   splitPrice,
   joinPrice,
   launchDateInDays,
@@ -323,12 +322,6 @@ export default function OnboardingPage() {
   function toggleChannel(id: PlatformId) {
     setChannels((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
   }
-
-  useEffect(() => {
-    try {
-      setCurrency(defaultCurrency(navigator.language));
-    } catch {}
-  }, []);
 
   useEffect(() => {
     if (!signOffTouched.current && user?.displayName) setSignOff(firstName(user.displayName));

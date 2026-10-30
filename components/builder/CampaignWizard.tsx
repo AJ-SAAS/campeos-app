@@ -14,7 +14,6 @@ import { Offer, createOffer, listOffers } from "@/lib/firebase/offers";
 import {
   BILLING_OPTIONS,
   WHO_EXAMPLES,
-  defaultCurrency,
   launchDateInDays,
   launchDateToEvent,
   whoIsThin,
@@ -80,7 +79,7 @@ export function CampaignWizard({
   const [a, setA] = useState<WizardAnswers>(() => ({
     savedOfferId: null,
     name: "",
-    currency: defaults.currency || defaultCurrency(typeof navigator !== "undefined" ? navigator.language : ""),
+    currency: defaults.currency || "$",
     price: "",
     billing: null,
     audience: "",
